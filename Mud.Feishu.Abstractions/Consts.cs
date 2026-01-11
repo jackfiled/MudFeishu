@@ -6,9 +6,10 @@
 // -----------------------------------------------------------------------
 
 namespace Mud.Feishu.Abstractions;
+
 internal class Consts
 {
     public const string HandlerNamespace = "Mud.Feishu.Abstractions.EventHandlers";
-    public const string InheritedFrom = "DefaultFeishuEventHandler";
+    public const string InheritedFrom = "IdempotentFeishuEventHandler";
     public const string InheritedFromObject = "DefaultFeishuObjectEventHandler";
 }
