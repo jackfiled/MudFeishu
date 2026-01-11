@@ -5,9 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.Extensions.Logging;
-using Mud.Feishu.Abstractions.Services;
-
 namespace Mud.Feishu.Abstractions.EventHandlers;
 
 /// <summary>
@@ -19,21 +16,21 @@ namespace Mud.Feishu.Abstractions.EventHandlers;
 /// <remarks>
 /// 使用方式：
 /// 1. 继承此类并重写 <see cref="GetBusinessKey"/> 方法，定义业务去重键
-/// 2. 重写 <see cref="HandleEventInternalAsync"/> 方法实现业务逻辑
+/// 2. 重写 <see cref="DefaultFeishuEventHandler&lt;T&gt;.ProcessBusinessLogicAsync"/> 方法实现业务逻辑
 /// 3. 基类会自动处理业务去重，确保同一业务键只处理一次
 /// </remarks>
 public abstract class IdempotentFeishuEventHandler<T> : DefaultFeishuEventHandler<T>
     where T : class, IEventResult, new()
 {
     private readonly IFeishuEventDeduplicator _businessDeduplicator;
-  
+
 
     /// <summary>
     /// 构造函数
     /// </summary>
     /// <param name="businessDeduplicator">业务层去重服务</param>
     /// <param name="logger">日志记录器</param>
-    protected IdempotentFeishuEventHandler(
+    public IdempotentFeishuEventHandler(
         IFeishuEventDeduplicator businessDeduplicator,
         ILogger logger)
         : base(logger)
@@ -54,7 +51,7 @@ public abstract class IdempotentFeishuEventHandler<T> : DefaultFeishuEventHandle
         if (string.IsNullOrEmpty(businessKey))
         {
             _logger.LogWarning("业务键为空，跳过业务层幂等性检查，直接处理事件 {EventId}", eventData.EventId);
-            await HandleEventInternalAsync(eventData, cancellationToken);
+            await ProcessBusinessLogicAsync(eventData, null, cancellationToken);
             return;
         }
 
@@ -67,8 +64,9 @@ public abstract class IdempotentFeishuEventHandler<T> : DefaultFeishuEventHandle
 
         try
         {
+            var eventEntity = DeserializeEvent(eventData);
             // 处理事件
-            await HandleEventInternalAsync(eventData, cancellationToken);
+            await ProcessBusinessLogicAsync(eventData, eventEntity, cancellationToken);
 
             // 标记为已完成
             _businessDeduplicator.MarkAsCompleted(businessKey ?? string.Empty);
@@ -103,12 +101,4 @@ public abstract class IdempotentFeishuEventHandler<T> : DefaultFeishuEventHandle
     {
         return eventData.EventId;
     }
-
-    /// <summary>
-    /// 处理事件的内部逻辑
-    /// <para>此方法由基类调用，已确保幂等性</para>
-    /// </summary>
-    /// <param name="eventData">事件数据</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    protected abstract Task HandleEventInternalAsync(EventData eventData, CancellationToken cancellationToken);
 }

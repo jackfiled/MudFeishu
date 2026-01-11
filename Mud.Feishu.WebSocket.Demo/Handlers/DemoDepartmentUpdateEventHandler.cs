@@ -8,6 +8,7 @@
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.DataModels.Organization;
 using Mud.Feishu.Abstractions.EventHandlers;
+using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.WebSocket.Services;
 
 namespace Mud.Feishu.WebSocket.Demo.Handlers;
@@ -19,7 +20,7 @@ public class DemoDepartmentUpdateEventHandler : DepartmentUpdateEventHandler
 {
     private readonly DemoEventService _eventService;
 
-    public DemoDepartmentUpdateEventHandler(ILogger<DemoDepartmentUpdateEventHandler> logger, DemoEventService eventService) : base(logger)
+    public DemoDepartmentUpdateEventHandler(IFeishuEventDeduplicator businessDeduplicator, ILogger<DemoDepartmentUpdateEventHandler> logger, DemoEventService eventService) : base(businessDeduplicator, logger)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
     }

@@ -8,6 +8,7 @@
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.DataModels.Organization;
 using Mud.Feishu.Abstractions.EventHandlers;
+using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook.Demo.Services;
 
 namespace Mud.Feishu.Webhook.Demo.Handlers;
@@ -19,13 +20,12 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 {
     private readonly DemoEventService _eventService;
 
-    public DemoDepartmentEventHandler(ILogger<DemoDepartmentEventHandler> logger, DemoEventService eventService) : base(logger)
+    public DemoDepartmentEventHandler(IFeishuEventDeduplicator businessDeduplicator, ILogger<DemoDepartmentEventHandler> logger, DemoEventService eventService) : base(businessDeduplicator, logger)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
     }
 
-
-    protected override async Task ProcessBusinessLogicAsync(EventData eventData, ObjectEventResult<DepartmentCreatedResult>? departmentData, CancellationToken cancellationToken = default)
+    protected override async Task ProcessBusinessLogicAsync(EventData eventData, DepartmentCreatedResult? eventEntity, CancellationToken cancellationToken = default)
     {
         if (eventData == null)
             throw new ArgumentNullException(nameof(eventData));
@@ -36,13 +36,13 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
         {
 
             // 记录事件到服务
-            await _eventService.RecordDepartmentEventAsync(departmentData.Object, cancellationToken);
+            await _eventService.RecordDepartmentEventAsync(eventEntity, cancellationToken);
 
             // 模拟业务处理
-            await ProcessDepartmentEventAsync(departmentData.Object, cancellationToken);
+            await ProcessDepartmentEventAsync(eventEntity, cancellationToken);
 
             _logger.LogInformation("[部门事件] 部门创建事件处理完成: 部门ID {DepartmentId}, 部门名 {DepartmentName}",
-                departmentData.Object.DepartmentId, departmentData.Object.Name);
+                eventEntity.DepartmentId, eventEntity.Name);
         }
         catch (Exception ex)
         {

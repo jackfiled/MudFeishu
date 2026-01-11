@@ -75,7 +75,7 @@ public abstract class DefaultFeishuEventHandler<T> : IFeishuEventHandler
     /// <param name="eventData">事件数据</param>
     /// <returns>反序列化后的事件实体</returns>
     /// <exception cref="InvalidOperationException">当事件数据为空或反序列化失败时抛出</exception>
-    private T? DeserializeEvent(EventData eventData)
+    protected T? DeserializeEvent(EventData eventData)
     {
         if (eventData.Event == null)
         {

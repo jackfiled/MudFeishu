@@ -8,6 +8,7 @@
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.DataModels.Organization;
 using Mud.Feishu.Abstractions.EventHandlers;
+using Mud.Feishu.Abstractions.Services;
 
 namespace Mud.Feishu.Webhook.Demo.Handlers;
 
@@ -16,7 +17,7 @@ namespace Mud.Feishu.Webhook.Demo.Handlers;
 /// </summary>
 public class DemoDepartmentDeleteEventHandler : DepartmentDeleteEventHandler
 {
-    public DemoDepartmentDeleteEventHandler(ILogger<DepartmentDeleteEventHandler> logger) : base(logger)
+    public DemoDepartmentDeleteEventHandler(IFeishuEventDeduplicator businessDeduplicator, ILogger<DepartmentDeleteEventHandler> logger) : base(businessDeduplicator, logger)
     {
     }
 

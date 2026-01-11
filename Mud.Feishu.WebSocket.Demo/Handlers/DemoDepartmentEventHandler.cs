@@ -8,6 +8,7 @@
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.DataModels.Organization;
 using Mud.Feishu.Abstractions.EventHandlers;
+using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.WebSocket.Services;
 
 namespace Mud.Feishu.WebSocket.Demo.Handlers;
@@ -19,13 +20,13 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 {
     private readonly DemoEventService _eventService;
 
-    public DemoDepartmentEventHandler(ILogger<DemoDepartmentEventHandler> logger, DemoEventService eventService) : base(logger)
+    public DemoDepartmentEventHandler(IFeishuEventDeduplicator businessDeduplicator, ILogger<DemoDepartmentEventHandler> logger, DemoEventService eventService) : base(businessDeduplicator, logger)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
     }
 
 
-    protected override async Task ProcessBusinessLogicAsync(EventData eventData, ObjectEventResult<DepartmentCreatedResult>? departmentData, CancellationToken cancellationToken = default)
+    protected override async Task ProcessBusinessLogicAsync(EventData eventData, DepartmentCreatedResult? departmentData, CancellationToken cancellationToken = default)
     {
         if (eventData == null)
             throw new ArgumentNullException(nameof(eventData));
@@ -35,16 +36,16 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
         try
         {
             // 记录事件到服务
-            await _eventService.RecordDepartmentEventAsync(departmentData?.Object, cancellationToken);
+            await _eventService.RecordDepartmentEventAsync(departmentData, cancellationToken);
 
             // 模拟业务处理
-            if (departmentData?.Object != null)
+            if (departmentData != null)
             {
-                await ProcessDepartmentEventAsync(departmentData.Object, cancellationToken);
+                await ProcessDepartmentEventAsync(departmentData, cancellationToken);
             }
 
             _logger.LogInformation(">> [部门事件] 部门创建事件处理完成: 部门ID {DepartmentId}, 部门名 {DepartmentName}",
-                departmentData?.Object.DepartmentId, departmentData?.Object.Name);
+                departmentData.DepartmentId, departmentData);
         }
         catch (Exception ex)
         {
