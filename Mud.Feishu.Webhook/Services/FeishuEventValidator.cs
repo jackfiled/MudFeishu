@@ -19,21 +19,18 @@ public class FeishuEventValidator : IFeishuEventValidator
     private readonly IFeishuNonceDistributedDeduplicator _nonceDeduplicator;
     private readonly IOptions<FeishuWebhookOptions> _options;
     private readonly ISecurityAuditService? _securityAuditService;
-    private readonly IThreatDetectionService? _threatDetectionService;
 
     /// <inheritdoc />
     public FeishuEventValidator(
         ILogger<FeishuEventValidator> logger,
         IFeishuNonceDistributedDeduplicator nonceDeduplicator,
         IOptions<FeishuWebhookOptions> options,
-        ISecurityAuditService? securityAuditService,
-        IThreatDetectionService? threatDetectionService = null)
+        ISecurityAuditService? securityAuditService)
     {
         _logger = logger;
         _nonceDeduplicator = nonceDeduplicator;
         _options = options;
         _securityAuditService = securityAuditService;
-        _threatDetectionService = threatDetectionService;
     }
 
     /// <inheritdoc />
@@ -156,12 +153,30 @@ public class FeishuEventValidator : IFeishuEventValidator
                 // 如果配置为强制验证，则拒绝请求
                 if (_options.Value.EnforceHeaderSignatureValidation)
                 {
-                    _logger.LogWarning("请求头中缺少 X-Lark-Signature，拒绝请求（配置为强制验证）");
+                    var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                    var isProduction = string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase);
+
+                    _logger.LogWarning(
+                        "请求头中缺少 X-Lark-Signature，拒绝请求（配置为强制验证，当前环境: {Environment}）",
+                        environment);
+
+                    // 记录安全审计日志
+                    _ = _securityAuditService?.LogSecurityFailureAsync(
+                        SecurityEventType.SignatureValidation,
+                        "unknown",
+                        "FeishuEventValidator",
+                        isProduction
+                            ? "生产环境：请求头缺少 X-Lark-Signature，拒绝请求"
+                            : "非生产环境：请求头缺少 X-Lark-Signature（警告：此配置存在安全风险）",
+                        "");
+
                     return false;
                 }
 
                 // 否则跳过验证（兼容旧版本）
-                _logger.LogDebug("请求头中未包含 X-Lark-Signature，跳过头部签名验证");
+                _logger.LogWarning(
+                    "请求头中未包含 X-Lark-Signature，跳过头部签名验证（警告：此配置存在严重安全风险，" +
+                    "建议在生产环境设置 EnforceHeaderSignatureValidation = true）");
                 return true;
             }
 

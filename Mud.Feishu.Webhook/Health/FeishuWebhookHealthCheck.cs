@@ -59,34 +59,41 @@ public class FeishuWebhookHealthCheck : IHealthCheck
             ["signature_failures"] = signatureFailures,
             ["decryption_failures"] = decryptionFailures,
             ["total_events"] = totalEvents,
-            ["available_concurrent_slots"] = _concurrencyService.AvailableCount
+            ["available_concurrent_slots"] = _concurrencyService.AvailableCount,
+            ["failure_rate_threshold_unhealthy"] = options.HealthCheckUnhealthyFailureRateThreshold,
+            ["failure_rate_threshold_degraded"] = options.HealthCheckDegradedFailureRateThreshold
         };
 
         // 计算失败率
         double failureRate = totalEvents > 0 ? (double)failedEvents / totalEvents : 0;
         healthData["failure_rate"] = failureRate;
 
-        // 如果失败率超过 10%，返回不健康状态
-        if (failureRate > 0.1 && totalEvents >= 10)
+        // 使用配置的阈值判断健康状态
+        var minEvents = options.HealthCheckMinEventsThreshold;
+        var unhealthyThreshold = options.HealthCheckUnhealthyFailureRateThreshold;
+        var degradedThreshold = options.HealthCheckDegradedFailureRateThreshold;
+
+        // 如果失败率超过不健康阈值，返回不健康状态
+        if (failureRate > unhealthyThreshold && totalEvents >= minEvents)
         {
             return Task.FromResult(HealthCheckResult.Unhealthy(
-                "事件处理失败率过高",
+                $"事件处理失败率过高：{failureRate:P2} (阈值: {unhealthyThreshold:P2})",
                 null,
                 healthData));
         }
 
-        // 如果失败率超过 5%，返回降级状态
-        if (failureRate > 0.05 && totalEvents >= 10)
+        // 如果失败率超过降级阈值，返回降级状态
+        if (failureRate > degradedThreshold && totalEvents >= minEvents)
         {
             return Task.FromResult(HealthCheckResult.Degraded(
-                "事件处理失败率略高，建议检查",
+                $"事件处理失败率略高：{failureRate:P2} (阈值: {degradedThreshold:P2})，建议检查",
                 null,
                 healthData));
         }
 
         // 返回健康状态
         return Task.FromResult(HealthCheckResult.Healthy(
-            "飞书 Webhook 服务运行正常",
+            $"飞书 Webhook 服务运行正常 (失败率: {failureRate:P2})",
             healthData));
     }
 }

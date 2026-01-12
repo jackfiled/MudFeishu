@@ -100,13 +100,24 @@ public class FeishuWebhookOptions
     /// 当设置为 true 时，如果请求头中缺少签名将拒绝请求
     /// 生产环境建议设置为 true 以提高安全性
     /// </summary>
+    /// <remarks>
+    /// 安全警告：
+    /// - 生产环境必须设置为 true，否则存在严重的安全漏洞
+    /// - 仅在开发/测试环境且明确了解风险时设置为 false
+    /// - 系统会在生产环境自动检测并拒绝禁用签名的配置
+    /// </remarks>
     public bool EnforceHeaderSignatureValidation { get; set; } = true;
 
     /// <summary>
     /// 时间戳验证容错范围（秒）
-    /// 用于验证请求时间戳是否在有效范围内，默认为 300 秒
+    /// 用于验证请求时间戳是否在有效范围内，默认为 60 秒
     /// </summary>
-    public int TimestampToleranceSeconds { get; set; } = 300;
+    /// <remarks>
+    /// 安全建议：
+    /// - 生产环境建议设置为 60 秒或更短，以减少重放攻击时间窗口
+    /// - 开发环境可以适当放宽到 300 秒
+    /// </remarks>
+    public int TimestampToleranceSeconds { get; set; } = 60;
 
     /// <summary>
     /// 请求频率限制配置
@@ -121,14 +132,35 @@ public class FeishuWebhookOptions
     public bool EnableBackgroundProcessing { get; set; } = false;
 
     /// <summary>
+    /// 健康检查失败率阈值（不健康）
+    /// 当失败率超过此值时，健康检查返回 Unhealthy 状态
+    /// 范围：0.0 - 1.0，默认 0.1 (10%)
+    /// </summary>
+    public double HealthCheckUnhealthyFailureRateThreshold { get; set; } = 0.1;
+
+    /// <summary>
+    /// 健康检查失败率阈值（降级）
+    /// 当失败率超过此值时，健康检查返回 Degraded 状态
+    /// 范围：0.0 - 1.0，默认 0.05 (5%)
+    /// </summary>
+    public double HealthCheckDegradedFailureRateThreshold { get; set; } = 0.05;
+
+    /// <summary>
+    /// 健康检查最小事件数阈值
+    /// 达到此事件数后才开始计算失败率，避免早期数据不准确
+    /// 默认 10 个事件
+    /// </summary>
+    public int HealthCheckMinEventsThreshold { get; set; } = 10;
+
+    /// <summary>
     /// 验证配置项的有效性
     /// </summary>
     /// <exception cref="InvalidOperationException">当配置项无效时抛出</exception>
     public void Validate()
     {
-        // 验证 Token 和 Key 时，允许占位符值用于演示环境
-        // 仅在生产环境才需要严格的非空验证
-        // 这里只验证格式，不验证实际值的有效性
+        // 获取当前环境
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        var isProduction = string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase);
 
         if (string.IsNullOrEmpty(RoutePrefix))
             throw new InvalidOperationException("RoutePrefix不能为空");
@@ -148,6 +180,35 @@ public class FeishuWebhookOptions
         if (TimestampToleranceSeconds < 60)
             throw new InvalidOperationException("TimestampToleranceSeconds必须至少为60秒");
 
+        // 验证健康检查配置
+        if (HealthCheckUnhealthyFailureRateThreshold < 0 || HealthCheckUnhealthyFailureRateThreshold > 1)
+            throw new InvalidOperationException("HealthCheckUnhealthyFailureRateThreshold必须在0.0-1.0之间");
+
+        if (HealthCheckDegradedFailureRateThreshold < 0 || HealthCheckDegradedFailureRateThreshold > 1)
+            throw new InvalidOperationException("HealthCheckDegradedFailureRateThreshold必须在0.0-1.0之间");
+
+        if (HealthCheckDegradedFailureRateThreshold >= HealthCheckUnhealthyFailureRateThreshold)
+            throw new InvalidOperationException("HealthCheckDegradedFailureRateThreshold必须小于HealthCheckUnhealthyFailureRateThreshold");
+
+        if (HealthCheckMinEventsThreshold < 1)
+            throw new InvalidOperationException("HealthCheckMinEventsThreshold必须至少为1");
+
+        // 生产环境安全检查：强制启用签名验证
+        if (isProduction && !EnforceHeaderSignatureValidation)
+        {
+            throw new InvalidOperationException(
+                "生产环境必须启用 X-Lark-Signature 签名验证 (EnforceHeaderSignatureValidation = true)，" +
+                "禁用签名验证存在严重的安全风险！请检查配置或设置正确的 ASPNETCORE_ENVIRONMENT 环境变量。");
+        }
+
+        // 生产环境时间戳容错警告
+        if (isProduction && TimestampToleranceSeconds > 120)
+        {
+            throw new InvalidOperationException(
+                $"生产环境的时间戳容错范围过大 ({TimestampToleranceSeconds} 秒)，" +
+                "建议设置为 60 秒或更短以减少重放攻击风险。");
+        }
+
         // 验证 EncryptKey 强度（AES-256 需要 32 字节）
         if (!string.IsNullOrEmpty(EncryptKey))
         {
@@ -163,6 +224,8 @@ public class FeishuWebhookOptions
                 "your_encrypt_key_here",
                 "your_encrypt_key",
                 "encrypt_key",
+                "verification_token_here",
+                "your_verification_token",
                 "12345678901234567890123456789012",
                 "00000000000000000000000000000000",
                 "11111111111111111111111111111111",
@@ -175,14 +238,41 @@ public class FeishuWebhookOptions
                 throw new InvalidOperationException("EncryptKey 使用了明显不安全的默认值，请使用强密钥");
             }
 
-            // 检查密钥复杂性（至少包含字母和数字）
+            // 增强密钥强度检查
             var hasLetter = EncryptKey.Any(char.IsLetter);
             var hasDigit = EncryptKey.Any(char.IsDigit);
             var hasSpecial = EncryptKey.Any(ch => !char.IsLetterOrDigit(ch));
+            var hasUpper = EncryptKey.Any(char.IsUpper);
+            var hasLower = EncryptKey.Any(char.IsLower);
 
-            if (!(hasLetter || hasDigit || hasSpecial))
+            // 必须同时包含字母和数字
+            if (!(hasLetter && hasDigit))
             {
-                throw new InvalidOperationException("EncryptKey 过于简单，应使用包含字母、数字或特殊字符的复杂密钥");
+                throw new InvalidOperationException("EncryptKey 过于简单，应同时包含字母和数字");
+            }
+
+            // 生产环境要求包含大小写字母
+            if (isProduction && !(hasUpper && hasLower))
+            {
+                throw new InvalidOperationException("生产环境下 EncryptKey 必须包含大小写字母以增强安全性");
+            }
+
+            // 生产环境要求包含特殊字符
+            if (isProduction && !hasSpecial)
+            {
+                throw new InvalidOperationException("生产环境下 EncryptKey 必须包含特殊字符以增强安全性");
+            }
+
+            // 非生产环境给出警告
+            if (!isProduction && !(hasUpper && hasLower))
+            {
+                // 记录警告（如果可用）
+                // _logger?.LogWarning("建议 EncryptKey 包含大小写字母以增强安全性");
+            }
+
+            if (!isProduction && !hasSpecial)
+            {
+                // _logger?.LogWarning("建议 EncryptKey 包含特殊字符以增强安全性");
             }
         }
 

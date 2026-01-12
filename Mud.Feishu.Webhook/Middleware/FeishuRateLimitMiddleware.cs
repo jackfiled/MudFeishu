@@ -5,32 +5,55 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using System.Collections.Concurrent;
+using System.Text.Json;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Services;
-using System.Collections.Concurrent;
 
 namespace Mud.Feishu.Webhook.Middleware;
 
 /// <summary>
 /// 飞书 Webhook 请求频率限制中间件
 /// </summary>
-public class FeishuRateLimitMiddleware(
-    RequestDelegate next,
-    IOptions<FeishuWebhookOptions> webhookOptions,
-    IOptions<RateLimitOptions> rateLimitOptions,
-    ILogger<FeishuRateLimitMiddleware> logger,
-    ISecurityAuditService? securityAuditService,
-    IThreatDetectionService? threatDetectionService = null)
+public class FeishuRateLimitMiddleware : IDisposable
 {
-    private readonly RequestDelegate _next = next;
-    private readonly FeishuWebhookOptions _webhookOptions = webhookOptions.Value;
-    private readonly RateLimitOptions _rateLimitOptions = rateLimitOptions.Value;
-    private readonly ILogger<FeishuRateLimitMiddleware> _logger = logger;
-    private readonly ISecurityAuditService? _securityAuditService = securityAuditService;
-    private readonly IThreatDetectionService? _threatDetectionService = threatDetectionService;
+    private readonly RequestDelegate _next;
+    private readonly FeishuWebhookOptions _webhookOptions;
+    private readonly RateLimitOptions _rateLimitOptions;
+    private readonly ILogger<FeishuRateLimitMiddleware> _logger;
+    private readonly ISecurityAuditService? _securityAuditService;
 
     // 使用并发字典和滑动窗口计数器：ConcurrentDictionary<IP, (Count, WindowStart)>
     private readonly ConcurrentDictionary<string, (int Count, DateTime WindowStart)> _requestCounts = new();
+
+    // 定时清理的 Timer
+    private readonly Timer _cleanupTimer;
+
+    /// <summary>
+    /// 构造函数
+    /// </summary>
+    public FeishuRateLimitMiddleware(
+        RequestDelegate next,
+        IOptions<FeishuWebhookOptions> webhookOptions,
+        IOptions<RateLimitOptions> rateLimitOptions,
+        ILogger<FeishuRateLimitMiddleware> logger,
+        ISecurityAuditService? securityAuditService = null)
+    {
+        _next = next ?? throw new ArgumentNullException(nameof(next));
+        _webhookOptions = webhookOptions.Value;
+        _rateLimitOptions = rateLimitOptions.Value;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _securityAuditService = securityAuditService;
+
+        // 初始化定时清理任务，每分钟清理一次过期记录
+        _cleanupTimer = new Timer(
+            CleanupExpiredWindows,
+            null,
+            TimeSpan.FromMinutes(1),
+            TimeSpan.FromMinutes(1));
+
+        _logger.LogInformation("飞书 Webhook 限流中间件已启动，定时清理间隔: 1分钟");
+    }
 
     /// <summary>
     /// 处理 HTTP 请求
@@ -61,7 +84,7 @@ public class FeishuRateLimitMiddleware(
         }
 
         // 检查是否在白名单中
-        if (_rateLimitOptions.WhitelistIPs.Contains(clientIp))
+        if (!string.IsNullOrEmpty(clientIp) && _rateLimitOptions.WhitelistIPs.Contains(clientIp))
         {
             _logger.LogDebug("客户端 IP {ClientIP} 在白名单中，跳过限流", clientIp);
             await _next(context);
@@ -69,9 +92,6 @@ public class FeishuRateLimitMiddleware(
         }
 
         var now = DateTime.UtcNow;
-
-        // 清理过期的窗口记录（超过窗口大小）
-        CleanupExpiredWindows(now);
 
         // 获取或创建计数器
         if (_requestCounts.TryGetValue(clientIp, out var counter))
@@ -97,16 +117,6 @@ public class FeishuRateLimitMiddleware(
                         context.Request.Path,
                         $"请求频率超出限制：{counter.Count}/{_rateLimitOptions.MaxRequestsPerWindow} 在 {_rateLimitOptions.WindowSizeSeconds}秒内",
                         context.Items["RequestId"]?.ToString());
-
-                    _ = Task.Run(async () =>
-                    {
-                        await Task.Delay(_rateLimitOptions.WindowSizeSeconds * 1000);
-                        // 重新检查是否仍然不存在，然后添加新的计数器
-                        if (!_requestCounts.ContainsKey(clientIp))
-                        {
-                            _requestCounts.TryAdd(clientIp, (1, DateTime.UtcNow));
-                        }
-                    });
 
                     await WriteTooManyRequestsResponse(context,
                         $"{_rateLimitOptions.TooManyRequestsMessage}，请在 {_rateLimitOptions.WindowSizeSeconds} 秒后重试");
@@ -162,18 +172,28 @@ public class FeishuRateLimitMiddleware(
     }
 
     /// <summary>
-    /// 清理过期的窗口记录
+    /// 清理过期的窗口记录（由定时器调用）
     /// </summary>
-    private void CleanupExpiredWindows(DateTime now)
+    private void CleanupExpiredWindows(object? state)
     {
+        var now = DateTime.UtcNow;
         var expiredKeys = _requestCounts
-            .Where(kvp => (now - kvp.Value.WindowStart).TotalSeconds > _rateLimitOptions.WindowSizeSeconds)
+            .Where(kvp => (now - kvp.Value.WindowStart).TotalSeconds > _rateLimitOptions.WindowSizeSeconds * 2) // 保留2倍窗口时间，避免刚限流的IP被立即清理
             .Select(kvp => kvp.Key)
             .ToList();
 
+        var removedCount = 0;
         foreach (var key in expiredKeys)
         {
-            _requestCounts.TryRemove(key, out _);
+            if (_requestCounts.TryRemove(key, out _))
+            {
+                removedCount++;
+            }
+        }
+
+        if (removedCount > 0)
+        {
+            _logger.LogDebug("清理了 {Count} 个过期的限流记录", removedCount);
         }
     }
 
@@ -195,6 +215,14 @@ public class FeishuRateLimitMiddleware(
             }
         };
 
-        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(errorResponse));
+        await context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse));
+    }
+
+    /// <summary>
+    /// 释放资源
+    /// </summary>
+    public void Dispose()
+    {
+        _cleanupTimer?.Dispose();
     }
 }

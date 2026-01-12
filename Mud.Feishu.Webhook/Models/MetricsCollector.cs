@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace Mud.Feishu.Webhook.Models;
 
@@ -34,10 +33,7 @@ public class MetricsCollector
     public Activity? StartEventHandlingActivity()
     {
         var activity = _activitySource.StartActivity("HandleFeishuEvent");
-        if (activity is not null)
-        {
-            activity.SetTag("component", "Mud.Feishu.Webhook");
-        }
+        activity?.SetTag("component", "Mud.Feishu.Webhook");
         return activity;
     }
 
