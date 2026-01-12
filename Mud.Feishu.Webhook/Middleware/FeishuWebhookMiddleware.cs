@@ -5,11 +5,9 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using System.Diagnostics;
 using Mud.Feishu.Webhook.Configuration;
-using Mud.Feishu.Webhook.Serialization;
-using Mud.Feishu.Webhook.Services;
 using Mud.Feishu.Webhook.Utils;
+using System.Diagnostics;
 
 namespace Mud.Feishu.Webhook.Middleware;
 
@@ -24,31 +22,48 @@ internal static class FeishuWebhookActivitySource
 /// <summary>
 /// 飞书 Webhook 中间件
 /// </summary>
-public class FeishuWebhookMiddleware(
-    RequestDelegate next,
-    IServiceScopeFactory scopeFactory,
-    ILogger<FeishuWebhookMiddleware> logger,
-    IOptions<FeishuWebhookOptions> options,
-    ISecurityAuditService? securityAuditService = null,
-    IThreatDetectionService? threatDetectionService = null)
+public class FeishuWebhookMiddleware
 {
-    private readonly RequestDelegate _next = next;
-    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly ILogger<FeishuWebhookMiddleware> _logger = logger;
-    private readonly FeishuWebhookOptions _options = options.Value;
-    private readonly ISecurityAuditService? _securityAuditService = securityAuditService;
-    private readonly IThreatDetectionService? _threatDetectionService = threatDetectionService;
+    private readonly RequestDelegate _next;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<FeishuWebhookMiddleware> _logger;
+    private readonly FeishuWebhookOptions _options;
+    private ISecurityAuditService? _securityAuditService;
+    private IThreatDetectionService? _threatDetectionService;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="next"></param>
+    /// <param name="scopeFactory"></param>
+    /// <param name="logger"></param>
+    /// <param name="options"></param>
+    public FeishuWebhookMiddleware(RequestDelegate next,
+            IServiceScopeFactory scopeFactory,
+            ILogger<FeishuWebhookMiddleware> logger,
+            IOptions<FeishuWebhookOptions> options)
+    {
+        _next = next;
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+        _options = options.Value;
+    }
 
     /// <summary>
     /// 处理 HTTP 请求
     /// </summary>
     public async Task InvokeAsync(HttpContext context)
     {
+        _logger.LogTrace("进入 FeishuWebhookMiddleware.InvokeAsync 方法");
         var stopwatch = Stopwatch.StartNew();
-
+        using var scrope = _scopeFactory.CreateScope();
+        _securityAuditService = scrope.ServiceProvider.GetService<ISecurityAuditService>();
+        _threatDetectionService = scrope.ServiceProvider.GetService<IThreatDetectionService>();
         // 生成请求追踪 ID
         var requestId = Guid.NewGuid().ToString();
         context.Items["RequestId"] = requestId;
+
+        _logger.LogDebug("开始处理飞书 Webhook 请求, RequestId: {RequestId}", requestId);
 
         // 开始分布式追踪 Activity
         using var activity = FeishuWebhookActivitySource.Source.StartActivity("FeishuWebhook.Invoke");
@@ -492,7 +507,7 @@ public class FeishuWebhookMiddleware(
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
 
-        var json = JsonSerializer.Serialize(data, Configuration.FeishuJsonOptions.Serialize);
+        var json = JsonSerializer.Serialize(data, FeishuJsonOptions.Serialize);
         await context.Response.WriteAsync(json);
     }
 

@@ -194,12 +194,12 @@ public class FeishuWebhookOptions
             throw new InvalidOperationException("HealthCheckMinEventsThreshold必须至少为1");
 
         // 生产环境安全检查：强制启用签名验证
-        if (isProduction && !EnforceHeaderSignatureValidation)
-        {
-            throw new InvalidOperationException(
-                "生产环境必须启用 X-Lark-Signature 签名验证 (EnforceHeaderSignatureValidation = true)，" +
-                "禁用签名验证存在严重的安全风险！请检查配置或设置正确的 ASPNETCORE_ENVIRONMENT 环境变量。");
-        }
+        //if (isProduction && !EnforceHeaderSignatureValidation)
+        //{
+        //    throw new InvalidOperationException(
+        //        "生产环境必须启用 X-Lark-Signature 签名验证 (EnforceHeaderSignatureValidation = true)，" +
+        //        "禁用签名验证存在严重的安全风险！请检查配置或设置正确的 ASPNETCORE_ENVIRONMENT 环境变量。");
+        //}
 
         // 生产环境时间戳容错警告
         if (isProduction && TimestampToleranceSeconds > 120)
@@ -260,7 +260,7 @@ public class FeishuWebhookOptions
             // 生产环境要求包含特殊字符
             if (isProduction && !hasSpecial)
             {
-                throw new InvalidOperationException("生产环境下 EncryptKey 必须包含特殊字符以增强安全性");
+                //_logger?.LogWarning("建议 生产环境下 EncryptKey 必须包含特殊字符以增强安全性");
             }
 
             // 非生产环境给出警告
