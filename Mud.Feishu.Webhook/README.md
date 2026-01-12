@@ -17,9 +17,14 @@
 - ✅ **性能监控**：可选的性能指标收集和监控
 - ✅ **健康检查**：内置健康检查端点
 - ✅ **异步处理**：完全异步的事件处理机制
-- ✅ **并发控制**：可配置的并发事件处理数量限制
+- ✅ **并发控制**：可配置的并发事件处理数量限制，支持热更新
 - ✅ **分布式支持**：提供分布式去重接口，支持 Redis 等外部存储
 - ✅ **配置热更新**：支持运行时配置变更，无需重启服务
+- ✅ **请求频率限制**：内置滑动窗口限流中间件，防止恶意请求
+- ✅ **多机器人支持**：支持多个飞书机器人共享同一个 Webhook 端点
+- ✅ **后台处理模式**：支持异步后台处理，避免飞书超时重试
+- ✅ **安全加固**：强化 IP 验证、签名验证和密钥安全检查
+- ✅ **跨平台兼容**：支持 .NET Standard 2.0、.NET 6.0、.NET 8.0、.NET 10.0
 
 ## 快速开始
 
@@ -80,7 +85,25 @@ app.Run();
     "AllowedHttpMethods": [ "POST" ],
     "MaxRequestBodySize": 10485760,
     "ValidateSourceIP": false,
-    "AllowedSourceIPs": []
+    "AllowedSourceIPs": [],
+    "EnforceHeaderSignatureValidation": true,
+    "EnableBodySignatureValidation": true,
+    "TimestampToleranceSeconds": 300,
+    "EnableBackgroundProcessing": false,
+    "MultiAppEncryptKeys": {
+      "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
+      "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
+    },
+    "DefaultAppId": "cli_a1b2c3d4e5f6g7h8",
+    "RateLimit": {
+      "EnableRateLimit": true,
+      "WindowSizeSeconds": 60,
+      "MaxRequestsPerWindow": 100,
+      "EnableIpRateLimit": true,
+      "TooManyRequestsStatusCode": 429,
+      "TooManyRequestsMessage": "请求过于频繁，请稍后再试",
+      "WhitelistIPs": [ "127.0.0.1", "::1" ]
+    }
   }
 }
 ```
@@ -173,37 +196,116 @@ public class MessageEventHandler : IFeishuEventHandler
 ### 基本配置
 
 | 选项 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
+| --- | --- | --- | --- |
 | `VerificationToken` | string | - | 飞书事件订阅验证 Token |
-| `EncryptKey` | string | - | 飞书事件加密密钥 |
+| `EncryptKey` | string | - | 飞书事件加密密钥（32字节） |
 | `RoutePrefix` | string | "feishu/Webhook" | Webhook 路由前缀 |
 | `AutoRegisterEndpoint` | bool | true | 是否自动注册端点 |
+
+### 多机器人配置
+
+| 选项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `MultiAppEncryptKeys` | Dictionary\<string, string\> | - | 多机器人密钥配置（AppId -> EncryptKey） |
+| `DefaultAppId` | string | - | 默认应用 ID（多机器人场景回退） |
 
 ### 安全配置
 
 | 选项 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
+| --- | --- | --- | --- |
 | `ValidateSourceIP` | bool | false | 是否验证来源 IP |
 | `AllowedSourceIPs` | HashSet\<string\> | - | 允许的源 IP 地址列表 |
 | `AllowedHttpMethods` | HashSet\<string\> | ["POST"] | 允许的 HTTP 方法 |
 | `MaxRequestBodySize` | long | 10MB | 最大请求体大小 |
 | `EnforceHeaderSignatureValidation` | bool | true | 是否强制验证请求头签名 |
 | `EnableBodySignatureValidation` | bool | true | 是否在服务层再次验证请求体签名 |
+| `TimestampToleranceSeconds` | int | 300 | 时间戳验证容错范围（秒） |
 
 ### 性能配置
 
 | 选项 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
+| --- | --- | --- | --- |
 | `MaxConcurrentEvents` | int | 10 | 最大并发事件数，支持热更新 |
 | `EventHandlingTimeoutMs` | int | 30000 | 事件处理超时时间（毫秒） |
 | `EnablePerformanceMonitoring` | bool | false | 是否启用性能监控 |
+| `EnableBackgroundProcessing` | bool | false | 是否启用异步后台处理模式 |
 
 ### 日志配置
 
 | 选项 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
+| --- | --- | --- | --- |
 | `EnableRequestLogging` | bool | true | 是否启用请求日志记录 |
 | `EnableExceptionHandling` | bool | true | 是否启用异常处理 |
+
+### 请求频率限制配置
+
+| 选项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `RateLimit.EnableRateLimit` | bool | false | 是否启用请求频率限制 |
+| `RateLimit.WindowSizeSeconds` | int | 60 | 时间窗口大小（秒） |
+| `RateLimit.MaxRequestsPerWindow` | int | 100 | 每个时间窗口内允许的最大请求数 |
+| `RateLimit.EnableIpRateLimit` | bool | true | 是否基于 IP 限流 |
+| `RateLimit.TooManyRequestsStatusCode` | int | 429 | 超出限制时的响应状态码 |
+| `RateLimit.TooManyRequestsMessage` | string | "请求过于频繁，请稍后再试" | 超出限制时的响应消息 |
+| `RateLimit.WhitelistIPs` | HashSet\<string\> | [] | 白名单 IP 列表（不参与限流） |
+
+## 高级功能
+
+### 多机器人支持
+
+支持多个飞书机器人共享同一个 Webhook 端点：
+
+```json
+{
+  "FeishuWebhook": {
+    "MultiAppEncryptKeys": {
+      "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
+      "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
+    },
+    "DefaultAppId": "cli_a1b2c3d4e5f6g7h8"
+  }
+}
+```
+
+### 请求频率限制
+
+内置滑动窗口限流中间件，防止恶意请求：
+
+```json
+{
+  "FeishuWebhook": {
+    "RateLimit": {
+      "EnableRateLimit": true,
+      "WindowSizeSeconds": 60,
+      "MaxRequestsPerWindow": 100,
+      "EnableIpRateLimit": true,
+      "WhitelistIPs": [ "127.0.0.1", "::1" ]
+    }
+  }
+}
+```
+
+### 后台处理模式
+
+启用后台处理模式，避免飞书超时重试：
+
+```json
+{
+  "FeishuWebhook": {
+    "EnableBackgroundProcessing": true
+  }
+}
+```
+
+```csharp
+// 启用后台处理模式后，中间件会立即返回成功响应
+// 然后在后台异步处理事件，适用于耗时较长的业务逻辑
+builder.Services.CreateFeishuWebhookServiceBuilder(options =>
+{
+    options.EnableBackgroundProcessing = true;
+}).AddHandler<LongRunningEventHandler>()
+    .Build();
+```
 
 ## 注册处理器
 
@@ -370,11 +472,21 @@ public async Task HandleAsync(EventData eventData, CancellationToken cancellatio
 
 5. **分布式部署事件重复**
    - 默认使用内存去重，多实例部署需要实现分布式去重
-   - 参考 `IFeishuWebhookDistributedDeduplicator` 接口自定义 Redis 实现
+   - 参考 `IFeishuNonceDistributedDeduplicator` 接口自定义 Redis 实现
 
 6. **超时处理**
    - 检查 `EventHandlingTimeoutMs` 配置是否合理
    - 确保事件处理逻辑支持取消令牌
+
+7. **请求频率限制问题**
+   - 检查 `RateLimit.EnableRateLimit` 配置
+   - 确认客户端 IP 是否在白名单中
+   - 调整 `MaxRequestsPerWindow` 和 `WindowSizeSeconds` 参数
+
+8. **多机器人配置问题**
+   - 检查 `MultiAppEncryptKeys` 配置是否正确
+   - 确认 AppId 与密钥的映射关系
+   - 验证 `DefaultAppId` 配置
 
 ### 调试技巧
 
@@ -383,11 +495,12 @@ public async Task HandleAsync(EventData eventData, CancellationToken cancellatio
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
-// 启用请求日志记录
+// 启用请求日志记录和性能监控
 builder.Services.CreateFeishuWebhookServiceBuilder(options =>
 {
     options.EnableRequestLogging = true;
     options.EnablePerformanceMonitoring = true;
+    options.RateLimit.EnableRateLimit = true; // 启用限流调试
 }).AddHandler<MessageEventHandler>()
     .Build();
 ```

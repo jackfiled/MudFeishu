@@ -17,7 +17,14 @@ A webhook component for Feishu event subscription and handling, providing comple
 - ✅ **Performance Monitoring**: Optional performance metrics collection and monitoring
 - ✅ **Health Checks**: Built-in health check endpoint
 - ✅ **Async Processing**: Fully async event handling mechanism
-- ✅ **Concurrency Control**: Configurable concurrent event processing limit
+- ✅ **Concurrency Control**: Configurable concurrent event processing limit with hot reload support
+- ✅ **Distributed Support**: Provides distributed deduplication interface, supports Redis and other external storage
+- ✅ **Configuration Hot Reload**: Supports runtime configuration changes without service restart
+- ✅ **Rate Limiting**: Built-in sliding window rate limiting middleware to prevent malicious requests
+- ✅ **Multi-Bot Support**: Supports multiple Feishu bots sharing the same Webhook endpoint
+- ✅ **Background Processing**: Supports async background processing to avoid Feishu timeout retries
+- ✅ **Security Hardening**: Enhanced IP validation, signature validation, and encryption key security checks
+- ✅ **Cross-Platform**: Supports .NET Standard 2.0, .NET 6.0, .NET 8.0, .NET 10.0
 
 ## Quick Start
 
@@ -76,7 +83,25 @@ app.Run();
     "AllowedHttpMethods": [ "POST" ],
     "MaxRequestBodySize": 10485760,
     "ValidateSourceIP": false,
-    "AllowedSourceIPs": []
+    "AllowedSourceIPs": [],
+    "EnforceHeaderSignatureValidation": true,
+    "EnableBodySignatureValidation": true,
+    "TimestampToleranceSeconds": 300,
+    "EnableBackgroundProcessing": false,
+    "MultiAppEncryptKeys": {
+      "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
+      "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
+    },
+    "DefaultAppId": "cli_a1b2c3d4e5f6g7h8",
+    "RateLimit": {
+      "EnableRateLimit": true,
+      "WindowSizeSeconds": 60,
+      "MaxRequestsPerWindow": 100,
+      "EnableIpRateLimit": true,
+      "TooManyRequestsStatusCode": 429,
+      "TooManyRequestsMessage": "Too many requests, please try again later",
+      "WhitelistIPs": [ "127.0.0.1", "::1" ]
+    }
   }
 }
 ```
@@ -169,35 +194,130 @@ public class MessageEventHandler : IFeishuEventHandler
 ### Basic Configuration
 
 | Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| --- | --- | --- | --- |
 | `VerificationToken` | string | - | Feishu event subscription verification token |
-| `EncryptKey` | string | - | Feishu event encryption key |
+| `EncryptKey` | string | - | Feishu event encryption key (32 bytes) |
 | `RoutePrefix` | string | "feishu/Webhook" | Webhook route prefix |
 | `AutoRegisterEndpoint` | bool | true | Whether to auto-register endpoint |
+
+### Multi-Bot Configuration
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `MultiAppEncryptKeys` | Dictionary\<string, string\> | - | Multi-bot encryption keys (AppId -> EncryptKey) |
+| `DefaultAppId` | string | - | Default app ID (fallback for multi-bot scenarios) |
 
 ### Security Configuration
 
 | Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| --- | --- | --- | --- |
 | `ValidateSourceIP` | bool | false | Whether to validate source IP |
 | `AllowedSourceIPs` | HashSet\<string\> | - | Allowed source IP addresses |
 | `AllowedHttpMethods` | HashSet\<string\> | ["POST"] | Allowed HTTP methods |
 | `MaxRequestBodySize` | long | 10MB | Max request body size |
+| `EnforceHeaderSignatureValidation` | bool | true | Whether to enforce header signature validation |
+| `EnableBodySignatureValidation` | bool | true | Whether to validate request body signature at service layer |
+| `TimestampToleranceSeconds` | int | 300 | Timestamp validation tolerance (seconds) |
 
 ### Performance Configuration
 
 | Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `MaxConcurrentEvents` | int | 10 | Max concurrent events |
-| `EventHandlingTimeoutMs` | int | 30000 | Event handling timeout (milliseconds) *Not currently used* |
+| --- | --- | --- | --- |
+| `MaxConcurrentEvents` | int | 10 | Max concurrent events, supports hot reload |
+| `EventHandlingTimeoutMs` | int | 30000 | Event handling timeout (milliseconds) |
 | `EnablePerformanceMonitoring` | bool | false | Whether to enable performance monitoring |
+| `EnableBackgroundProcessing` | bool | false | Whether to enable async background processing |
 
 ### Logging Configuration
 
 | Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| --- | --- | --- | --- |
 | `EnableRequestLogging` | bool | true | Whether to enable request logging |
 | `EnableExceptionHandling` | bool | true | Whether to enable exception handling |
+
+### Rate Limiting Configuration
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `RateLimit.EnableRateLimit` | bool | false | Whether to enable rate limiting |
+| `RateLimit.WindowSizeSeconds` | int | 60 | Time window size (seconds) |
+| `RateLimit.MaxRequestsPerWindow` | int | 100 | Max requests per time window |
+| `RateLimit.EnableIpRateLimit` | bool | true | Whether to enable IP-based rate limiting |
+| `RateLimit.TooManyRequestsStatusCode` | int | 429 | Status code when rate limit exceeded |
+| `RateLimit.TooManyRequestsMessage` | string | "Too many requests, please try again later" | Message when rate limit exceeded |
+| `RateLimit.WhitelistIPs` | HashSet\<string\> | [] | Whitelist IPs (exempt from rate limiting) |
+
+## Advanced Features
+
+### Multi-Bot Support
+
+Support multiple Feishu bots sharing the same Webhook endpoint:
+
+```json
+{
+  "FeishuWebhook": {
+    "MultiAppEncryptKeys": {
+      "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
+      "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
+    },
+    "DefaultAppId": "cli_a1b2c3d4e5f6g7h8"
+  }
+}
+```
+
+### Rate Limiting
+
+Built-in sliding window rate limiting middleware to prevent malicious requests:
+
+```json
+{
+  "FeishuWebhook": {
+    "RateLimit": {
+      "EnableRateLimit": true,
+      "WindowSizeSeconds": 60,
+      "MaxRequestsPerWindow": 100,
+      "EnableIpRateLimit": true,
+      "WhitelistIPs": [ "127.0.0.1", "::1" ]
+    }
+  }
+}
+```
+
+### Background Processing Mode
+
+Enable background processing mode to avoid Feishu timeout retries:
+
+```json
+{
+  "FeishuWebhook": {
+    "EnableBackgroundProcessing": true
+  }
+}
+```
+
+```csharp
+// After enabling background processing mode, middleware returns success response immediately
+// Then processes events asynchronously in the background, suitable for long-running business logic
+builder.Services.CreateFeishuWebhookServiceBuilder(options =>
+{
+    options.EnableBackgroundProcessing = true;
+}).AddHandler<LongRunningEventHandler>()
+    .Build();
+```
+
+### Concurrency Control Hot Reload
+
+Support runtime dynamic adjustment of concurrency limits without service restart:
+
+```csharp
+// Configuration changes are automatically applied with hot reload support
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<MessageEventHandler>()
+    .Build();
+
+// Modify MaxConcurrentEvents value in configuration file at runtime
+// System will automatically detect and apply new concurrency limits
+```
 
 ## Registering Handlers
 
@@ -356,10 +476,29 @@ public async Task HandleAsync(EventData eventData, CancellationToken cancellatio
 3. **Signature Validation Failed**
    - Check time synchronization
    - Confirm request hasn't been modified by proxy server
+   - Ensure `EnforceHeaderSignatureValidation` is set to true in production
 
 4. **Event Handling Failed**
    - Check if event handlers are correctly registered
    - View detailed error information in logs
+
+5. **Distributed Deployment Event Duplication**
+   - Default uses in-memory deduplication, multi-instance deployment requires distributed deduplication
+   - Refer to `IFeishuNonceDistributedDeduplicator` interface for custom Redis implementation
+
+6. **Timeout Handling**
+   - Check if `EventHandlingTimeoutMs` configuration is reasonable
+   - Ensure event handling logic supports cancellation tokens
+
+7. **Rate Limiting Issues**
+   - Check `RateLimit.EnableRateLimit` configuration
+   - Confirm client IP is in whitelist
+   - Adjust `MaxRequestsPerWindow` and `WindowSizeSeconds` parameters
+
+8. **Multi-Bot Configuration Issues**
+   - Check if `MultiAppEncryptKeys` configuration is correct
+   - Confirm AppId to encryption key mapping
+   - Verify `DefaultAppId` configuration
 
 ### Debugging Tips
 
@@ -368,11 +507,12 @@ public async Task HandleAsync(EventData eventData, CancellationToken cancellatio
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
-// Enable request logging
+// Enable request logging and performance monitoring
 builder.Services.CreateFeishuWebhookServiceBuilder(options =>
 {
     options.EnableRequestLogging = true;
     options.EnablePerformanceMonitoring = true;
+    options.RateLimit.EnableRateLimit = true; // Enable rate limiting debugging
 }).AddHandler<MessageEventHandler>()
     .Build();
 ```
