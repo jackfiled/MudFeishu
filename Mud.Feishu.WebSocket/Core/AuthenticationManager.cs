@@ -19,8 +19,11 @@ public class AuthenticationManager
 {
     private readonly ILogger<AuthenticationManager> _logger;
     private readonly Func<string, Task> _sendMessageCallback;
+    private readonly SessionManager? _sessionManager;
     private bool _isAuthenticated = false;
     private readonly FeishuWebSocketOptions _options;
+    private readonly SemaphoreSlim _authLock = new(1, 1);
+    private int _authRetryCount = 0;
 
     /// <summary>
     /// 认证成功事件
@@ -44,27 +47,87 @@ public class AuthenticationManager
     /// <param name="logger">日志记录器实例</param>
     /// <param name="options">WebSocket配置选项</param>
     /// <param name="sendMessageCallback">发送消息回调函数</param>
+    /// <param name="sessionManager">会话管理器（可选）</param>
     public AuthenticationManager(
         ILogger<AuthenticationManager> logger,
         FeishuWebSocketOptions options,
-        Func<string, Task> sendMessageCallback)
+        Func<string, Task> sendMessageCallback,
+        SessionManager? sessionManager = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _sendMessageCallback = sendMessageCallback ?? throw new ArgumentNullException(nameof(sendMessageCallback));
+        _sessionManager = sessionManager;
         _options = options;
     }
 
     /// <summary>
-    /// 发送认证消息
+    /// 发送认证消息（带重试机制）
     /// </summary>
     public async Task AuthenticateAsync(string appAccessToken, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(appAccessToken))
             throw new ArgumentException("应用访问令牌不能为空", nameof(appAccessToken));
 
+        await _authLock.WaitAsync(cancellationToken);
         try
         {
-           _logger.LogInformation("正在进行WebSocket认证...");
+            // 如果已认证，直接返回
+            if (_isAuthenticated)
+            {
+                _logger.LogDebug("WebSocket已认证，跳过重复认证");
+                return;
+            }
+
+            // 使用指数退避策略重试认证
+            var maxRetries = _options.MaxReconnectAttempts;
+            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    _authRetryCount = attempt;
+                    await AuthenticateInternalAsync(appAccessToken, cancellationToken);
+                    // 认证成功，退出重试循环
+                    break;
+                }
+                catch (Exception ex) when (attempt < maxRetries)
+                {
+                    _logger.LogWarning(ex, "WebSocket认证失败（第 {Attempt} 次尝试），准备重试...", attempt + 1);
+
+                    // 计算退避延迟时间：baseDelay * (2^attempt)，最大不超过 MaxReconnectDelayMs
+                    var baseDelay = TimeSpan.FromMilliseconds(_options.ReconnectDelayMs);
+                    var exponentialDelay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * Math.Pow(2, attempt));
+                    var maxDelay = TimeSpan.FromMilliseconds(_options.MaxReconnectDelayMs);
+                    var delay = exponentialDelay > maxDelay ? maxDelay : exponentialDelay;
+
+                    _logger.LogInformation("等待 {Delay}ms 后进行第 {NextAttempt} 次认证尝试",
+                        delay.TotalMilliseconds, attempt + 2);
+
+                    await Task.Delay(delay, cancellationToken);
+                }
+            }
+        }
+        finally
+        {
+            _authLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// 内部认证实现
+    /// </summary>
+    private async Task AuthenticateInternalAsync(string appAccessToken, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (_authRetryCount > 0)
+            {
+                _logger.LogInformation("正在进行WebSocket认证（重试第 {RetryCount} 次）...", _authRetryCount);
+            }
+            else
+            {
+                _logger.LogInformation("正在进行WebSocket认证...");
+            }
+
             _isAuthenticated = false; // 重置认证状态
 
             // 创建认证消息
@@ -73,7 +136,9 @@ public class AuthenticationManager
                 Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                 Data = new AuthData
                 {
-                    AppAccessToken = appAccessToken
+                    AppAccessToken = appAccessToken,
+                    // 尝试使用缓存的 session_id 进行会话恢复
+                    SessionId = _sessionManager?.GetSessionIdForReconnect()
                 }
             };
 
@@ -88,7 +153,7 @@ public class AuthenticationManager
         catch (Exception ex)
         {
             _isAuthenticated = false;
-           _logger.LogError(ex, "WebSocket认证失败");
+            _logger.LogError(ex, "WebSocket认证失败（第 {Attempt} 次尝试）", _authRetryCount + 1);
 
             var errorArgs = new WebSocketErrorEventArgs
             {
@@ -99,6 +164,13 @@ public class AuthenticationManager
             };
 
             AuthenticationFailed?.Invoke(this, errorArgs);
+
+            // 如果是最后一次尝试，抛出异常；否则由外层重试
+            if (_authRetryCount >= _options.MaxReconnectAttempts)
+            {
+                throw new InvalidOperationException($"WebSocket认证失败，已达到最大重试次数 {_options.MaxReconnectAttempts}", ex);
+            }
+
             throw;
         }
     }
@@ -115,14 +187,24 @@ public class AuthenticationManager
             if (authResponse?.Code == 0)
             {
                 _isAuthenticated = true;
-                 _logger.LogInformation("WebSocket认证成功: {Message}", authResponse.Message);
+                _logger.LogInformation("WebSocket认证成功: {Message}", authResponse.Message);
+
+                // 如果响应中包含 session_id，保存到会话管理器
+                if (!string.IsNullOrEmpty(authResponse.SessionId) && _sessionManager != null)
+                {
+                    _sessionManager.SetSessionId(authResponse.SessionId);
+                }
+
                 Authenticated?.Invoke(this, EventArgs.Empty);
             }
             else
             {
                 _isAuthenticated = false;
                 _logger.LogError("WebSocket认证失败: {Code} - {Message}", authResponse?.Code, authResponse?.Message);
-                
+
+                // 认证失败时重置会话
+                _sessionManager?.ResetSession();
+
 
                 var errorArgs = new WebSocketErrorEventArgs
                 {
@@ -171,6 +253,12 @@ public class AuthenticationManager
     public void ResetAuthentication()
     {
         _isAuthenticated = false;
-       _logger.LogDebug("已重置认证状态");
+        _authRetryCount = 0;
+        _logger.LogDebug("已重置认证状态");
     }
+
+    /// <summary>
+    /// 获取认证重试次数
+    /// </summary>
+    public int AuthRetryCount => _authRetryCount;
 }

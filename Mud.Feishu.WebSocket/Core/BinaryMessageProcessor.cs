@@ -28,6 +28,7 @@ public class BinaryMessageProcessor : IDisposable
     private readonly WebSocketConnectionManager? _connectionManager;
     private readonly List<Task> _activeProcessingTasks = new();
     private readonly IFeishuSeqIDDeduplicator? _seqIdDeduplicator;
+    private readonly MessageSequenceValidator? _sequenceValidator;
 
     /// <summary>
     /// 二进制消息接收事件
@@ -47,13 +48,15 @@ public class BinaryMessageProcessor : IDisposable
         WebSocketConnectionManager? webSocketConnectionManager,
         FeishuWebSocketOptions options,
         MessageRouter messageRouter,
-        IFeishuSeqIDDeduplicator? seqIdDeduplicator = null)
+        IFeishuSeqIDDeduplicator? seqIdDeduplicator = null,
+        MessageSequenceValidator? sequenceValidator = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? new FeishuWebSocketOptions();
         _connectionManager = webSocketConnectionManager ?? throw new ArgumentNullException(nameof(_connectionManager));
         _messageRouter = messageRouter ?? throw new ArgumentNullException(nameof(messageRouter));
         _seqIdDeduplicator = seqIdDeduplicator;
+        _sequenceValidator = sequenceValidator;
     }
 
     /// <summary>
@@ -181,6 +184,22 @@ public class BinaryMessageProcessor : IDisposable
                 if (_options.EnableLogging)
                     _logger.LogDebug("成功反序列化为 Frame 对象: Service={Service}, Method={Method}, PayloadType={PayloadType}, SeqID={SeqID}",
                         frame.Service, frame.Method, frame.PayloadType, frame.SeqID);
+
+                // 消息序号验证
+                if (_sequenceValidator != null)
+                {
+                    var validationResult = _sequenceValidator.ValidateSequence(frame.SeqID, eventArgs.MessageType);
+                    if (validationResult == SequenceValidationResult.Duplicate ||
+                        validationResult == SequenceValidationResult.Rollback)
+                    {
+                        if (_options.EnableLogging)
+                            _logger.LogWarning("消息序号验证失败: {ValidationResult}, SeqID={SeqID}", validationResult, frame.SeqID);
+                        eventArgs.SkipReason = $"消息序号验证失败: {validationResult}";
+                        BinaryMessageReceived?.Invoke(this, eventArgs);
+                        await SendAckMessageAsync(frame, true, cancellationToken);
+                        return;
+                    }
+                }
 
                 // SeqID 去重检查
                 if (_seqIdDeduplicator != null && _seqIdDeduplicator.TryMarkAsProcessed(frame.SeqID))

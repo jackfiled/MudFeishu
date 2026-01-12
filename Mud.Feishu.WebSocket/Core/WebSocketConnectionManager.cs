@@ -106,6 +106,21 @@ public class WebSocketConnectionManager : IDisposable
             _webSocket = new ClientWebSocket();
             _cancellationTokenSource = new CancellationTokenSource();
 
+            // 配置SSL证书验证
+            // 注意：.NET Core 3.0+ 中 ClientWebSocket 的 Options 没有直接暴露 RemoteCertificateValidationCallback
+            // 这个功能已经在较新的 .NET 版本中被移除或改变
+            // 如果需要自定义证书验证，可以通过以下方式实现：
+            // 1. 在建立连接前使用 HttpClient 或其他方式预验证证书
+            // 2. 使用平台特定的API（如 HttpClientHandler）进行证书验证
+            // 3. 或者使用第三方WebSocket库
+            //
+            // 当前实现：使用默认的证书验证行为
+            if (!_options.EnableCertificateValidation && _options.AllowInvalidCertificates)
+            {
+                _logger.LogWarning("SSL证书验证配置被忽略：.NET Core 3.0+ 中 ClientWebSocket 不支持直接配置证书验证回调");
+                _logger.LogWarning("如需自定义证书验证，请考虑使用平台特定API或第三方WebSocket库");
+            }
+
             // 设置连接超时
             using var timeoutCts = new CancellationTokenSource(_options.ConnectionTimeoutMs);
             using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(

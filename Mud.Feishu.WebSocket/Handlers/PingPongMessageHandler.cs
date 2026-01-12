@@ -14,10 +14,15 @@ namespace Mud.Feishu.WebSocket.Handlers;
 /// <summary>
 /// Ping/Pong消息处理器
 /// </summary>
-public class PingPongMessageHandler : JsonMessageHandler
+public class PingPongMessageHandler : JsonMessageHandler, IPongHandler
 {
     private readonly Func<string, Task> _sendMessageCallback;
     private readonly FeishuWebSocketOptions _options;
+
+    /// <summary>
+    /// 接收到 Pong 消息时触发的事件
+    /// </summary>
+    public event EventHandler? PongReceived;
    
     /// <summary>
     /// 初始化Ping/Pong消息处理器
@@ -90,6 +95,10 @@ public class PingPongMessageHandler : JsonMessageHandler
 
         if (_options.EnableLogging)
             _logger.LogDebug("Pong延迟: {Latency}ms", latencyMs);
+        
+        // 触发PongReceived事件，通知客户端更新最后一次Pong时间
+        PongReceived?.Invoke(this, EventArgs.Empty);
+        
         await Task.CompletedTask;
     }
 

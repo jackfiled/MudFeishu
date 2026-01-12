@@ -5,38 +5,15 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using System.Text.Json.Serialization;
-
-namespace Mud.Feishu.WebSocket.DataModels;
+namespace Mud.Feishu.WebSocket.Handlers;
 
 /// <summary>
-/// 飞书WebSocket认证响应消息
+/// Pong 处理器接口
 /// </summary>
-public class AuthResponseMessage : FeishuWebSocketMessage
+public interface IPongHandler
 {
     /// <summary>
-    /// 构造函数
+    /// 接收到 Pong 消息时触发的事件
     /// </summary>
-    public AuthResponseMessage()
-    {
-        Type = "auth";
-    }
-
-    /// <summary>
-    /// 认证结果码
-    /// </summary>
-    [JsonPropertyName("code")]
-    public int Code { get; set; }
-
-    /// <summary>
-    /// 认证结果消息
-    /// </summary>
-    [JsonPropertyName("msg")]
-    public string Message { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 会话ID（用于断线重连时恢复会话）
-    /// </summary>
-    [JsonPropertyName("session_id")]
-    public string? SessionId { get; set; }
+    event EventHandler? PongReceived;
 }

@@ -31,4 +31,10 @@ public class AuthData
     /// </summary>
     [JsonPropertyName("event_url")]
     public string? EventUrl { get; set; }
+
+    /// <summary>
+    /// 会话ID（用于断线重连时恢复会话）
+    /// </summary>
+    [JsonPropertyName("session_id")]
+    public string? SessionId { get; set; }
 }

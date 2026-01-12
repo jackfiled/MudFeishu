@@ -19,6 +19,7 @@ public class FeishuWebSocketOptions
     private int _healthCheckIntervalMs = 60000;
     private int _eventDeduplicationCacheExpirationMs = 24 * 60 * 60 * 1000; // 默认 24 小时
     private int _eventDeduplicationCleanupIntervalMs = 5 * 60 * 1000;
+    private int _maxConcurrentMessageProcessing = 10; // 默认最大并发消息处理数
 
     /// <summary>
     /// 自动重连，默认为true
@@ -127,6 +128,16 @@ public class FeishuWebSocketOptions
     public bool EnableDistributedDeduplication { get; set; } = false;
 
     /// <summary>
+    /// 最大并发消息处理数，默认为10
+    /// <para>用于控制同时处理的消息数量，防止线程池耗尽</para>
+    /// </summary>
+    public int MaxConcurrentMessageProcessing
+    {
+        get => _maxConcurrentMessageProcessing;
+        set => _maxConcurrentMessageProcessing = Math.Max(1, value);
+    }
+
+    /// <summary>
     /// 事件去重缓存过期时间（毫秒），默认为24小时
     /// <para>建议设置为与飞书官方事件重试窗口期一致，避免长延时场景下的重复处理</para>
     /// </summary>
@@ -144,6 +155,16 @@ public class FeishuWebSocketOptions
         get => _eventDeduplicationCleanupIntervalMs;
         set => _eventDeduplicationCleanupIntervalMs = Math.Max(60000, value);
     }
+
+    /// <summary>
+    /// 是否启用SSL证书验证，默认为true
+    /// </summary>
+    public bool EnableCertificateValidation { get; set; } = true;
+
+    /// <summary>
+    /// 是否允许无效证书（仅限开发环境使用），默认为false
+    /// </summary>
+    public bool AllowInvalidCertificates { get; set; } = false;
 
     /// <summary>
     /// 验证配置项的有效性
@@ -183,6 +204,16 @@ public class FeishuWebSocketOptions
 
         if (EventDeduplicationCleanupIntervalMs < 60000)
             throw new InvalidOperationException("EventDeduplicationCleanupIntervalMs必须至少为60000毫秒");
+
+        if (MaxConcurrentMessageProcessing < 1)
+            throw new InvalidOperationException("MaxConcurrentMessageProcessing必须至少为1");
+
+        // SSL证书配置保护
+        if (AllowInvalidCertificates)
+        {
+            // 注意：在生产环境中应该记录警告，但由于配置类没有依赖ILogger，这里无法直接记录
+            // 建议在配置选项中使用时添加警告日志
+        }
 
         // 去重配置保护
         if (!EnableEventDeduplication && !EnableDistributedDeduplication)

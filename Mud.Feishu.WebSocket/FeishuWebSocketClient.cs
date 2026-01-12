@@ -30,6 +30,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     private readonly AuthenticationManager _authManager;
     private readonly MessageRouter _messageRouter;
     private readonly BinaryMessageProcessor _binaryProcessor;
+    private readonly EventSubscriptionManager _subscriptionManager;
     private readonly ConcurrentQueue<string> _messageQueue = new();
     private readonly List<Func<string, Task>> _messageProcessors = new();
     private Task? _messageProcessingTask;
@@ -37,6 +38,9 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     private bool _disposed = false;
     private CancellationTokenSource? _cancellationTokenSource;
     private readonly IFeishuSeqIDDeduplicator? _seqIdDeduplicator;
+    private readonly MessageSequenceValidator? _sequenceValidator;
+    private readonly SessionManager? _sessionManager;
+    private readonly SemaphoreSlim _messageProcessingSemaphore;
 
     // 保存事件处理器委托引用，用于正确的取消订阅，避免内存泄漏
     private readonly EventHandler<EventArgs> _onConnected;
@@ -46,6 +50,13 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     private readonly EventHandler<WebSocketErrorEventArgs> _onErrorFromAuth;
     private readonly EventHandler<WebSocketBinaryMessageEventArgs> _onBinaryMessageReceived;
     private readonly EventHandler<WebSocketErrorEventArgs> _onErrorFromBinary;
+
+    // 心跳相关状态
+    private DateTime _lastPongTime = DateTime.MinValue;
+    private int _heartbeatMissedCount = 0;
+
+    // 处理器引用
+    private PingPongMessageHandler? _pingPongHandler;
     /// <inheritdoc/>
     public WebSocketState State => _connectionManager.State;
     /// <inheritdoc/>
@@ -72,18 +83,27 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     /// <param name="loggerFactory">日志记录器工厂</param>
     /// <param name="options">WebSocket配置选项</param>
     /// <param name="seqIdDeduplicator">SeqID去重服务（可选）</param>
+    /// <param name="sessionManager">会话管理器（可选）</param>
+    /// <param name="sequenceValidator">消息序号验证器（可选）</param>
     public FeishuWebSocketClient(
         ILogger<FeishuWebSocketClient> logger,
         IFeishuEventHandlerFactory eventHandlerFactory,
         ILoggerFactory loggerFactory,
         FeishuWebSocketOptions? options = null,
-        IFeishuSeqIDDeduplicator? seqIdDeduplicator = null)
+        IFeishuSeqIDDeduplicator? seqIdDeduplicator = null,
+        SessionManager? sessionManager = null,
+        MessageSequenceValidator? sequenceValidator = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _eventHandlerFactory = eventHandlerFactory ?? throw new ArgumentNullException(nameof(eventHandlerFactory));
         _options = options ?? new FeishuWebSocketOptions();
         _loggerFactory = loggerFactory;
         _seqIdDeduplicator = seqIdDeduplicator;
+        _sessionManager = sessionManager;
+        _sequenceValidator = sequenceValidator;
+
+        // 初始化并发控制信号量
+        _messageProcessingSemaphore = new SemaphoreSlim(_options.MaxConcurrentMessageProcessing, _options.MaxConcurrentMessageProcessing);
 
         // 初始化事件处理器委托，保存引用以便正确取消订阅
         _onConnected = (s, e) => Connected?.Invoke(this, e);
@@ -96,9 +116,10 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
 
         // 初始化组件
         _connectionManager = new WebSocketConnectionManager(_loggerFactory.CreateLogger<WebSocketConnectionManager>(), _options);
-        _authManager = new AuthenticationManager(_loggerFactory.CreateLogger<AuthenticationManager>(), _options, (message) => SendMessageAsync(message));
+        _authManager = new AuthenticationManager(_loggerFactory.CreateLogger<AuthenticationManager>(), _options, (message) => SendMessageAsync(message), _sessionManager);
         _messageRouter = new MessageRouter(_loggerFactory.CreateLogger<MessageRouter>(), _options);
-        _binaryProcessor = new BinaryMessageProcessor(_loggerFactory.CreateLogger<BinaryMessageProcessor>(), _connectionManager, _options, _messageRouter, _seqIdDeduplicator);
+        _binaryProcessor = new BinaryMessageProcessor(_loggerFactory.CreateLogger<BinaryMessageProcessor>(), _connectionManager, _options, _messageRouter, _seqIdDeduplicator, _sequenceValidator);
+        _subscriptionManager = new EventSubscriptionManager(_loggerFactory.CreateLogger<EventSubscriptionManager>(), _options, (message) => SendMessageAsync(message));
 
         // 订阅组件事件
         SubscribeToComponentEvents();
@@ -136,6 +157,12 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
             _options,
             (message) => SendMessageAsync(message));
 
+        // 订阅 PongReceived 事件以更新最后一次 Pong 时间
+        if (pingPongHandler is IPongHandler pongHandler)
+        {
+            pongHandler.PongReceived += OnPongReceived;
+        }
+
         var authHandler = new AuthMessageHandler(
             _loggerFactory.CreateLogger<AuthMessageHandler>(),
             (success) =>
@@ -165,6 +192,21 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
         _messageRouter.RegisterHandler(authHandler);
         _messageRouter.RegisterHandler(heartbeatHandler);
         _messageRouter.RegisterHandler(eventHandler);
+
+        // 保存 PingPongHandler 引用以便在 Dispose 时取消订阅
+        _pingPongHandler = pingPongHandler;
+    }
+
+    /// <summary>
+    /// 处理 Pong 消息接收事件
+    /// </summary>
+    private void OnPongReceived(object? sender, EventArgs e)
+    {
+        _lastPongTime = DateTime.UtcNow;
+        _heartbeatMissedCount = 0;
+
+        if (_options.EnableLogging)
+            _logger.LogDebug("已更新最后一次Pong时间");
     }
 
     /// <summary>
@@ -198,6 +240,14 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     {
         await ConnectAsync(endpoint, cancellationToken);
         await _authManager.AuthenticateAsync(appAccessToken, cancellationToken);
+
+        // 认证成功后，自动订阅事件
+        if (_subscriptionManager.HasSubscribed)
+        {
+            if (_options.EnableLogging)
+                _logger.LogInformation("自动重新订阅事件类型...");
+            await _subscriptionManager.SendSubscriptionRequestAsync(cancellationToken);
+        }
     }
 
     /// <summary>
@@ -317,6 +367,9 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     {
         try
         {
+            _lastPongTime = DateTime.UtcNow;
+            _heartbeatMissedCount = 0;
+
             while (_connectionManager.IsConnected && !cancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(_options.HeartbeatIntervalMs, cancellationToken);
@@ -335,10 +388,20 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
 
                         if (_options.EnableLogging)
                             _logger.LogDebug("已发送心跳");
+
+                        // 检查心跳超时
+                        await CheckHeartbeatTimeoutAsync(cancellationToken);
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "发送心跳时发生错误");
+
+                        // 心跳发送失败，尝试触发重连
+                        if (_options.AutoReconnect)
+                        {
+                            _logger.LogWarning("心跳发送失败，准备重连...");
+                            await TriggerReconnectAsync(cancellationToken);
+                        }
                     }
                 }
             }
@@ -346,6 +409,62 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
         catch (OperationCanceledException)
         {
             // 正常取消，不需要处理
+        }
+    }
+
+    /// <summary>
+    /// 检查心跳超时
+    /// </summary>
+    private async Task CheckHeartbeatTimeoutAsync(CancellationToken cancellationToken)
+    {
+        var timeSinceLastPong = DateTime.UtcNow - _lastPongTime;
+        var heartbeatTimeoutMs = _options.HeartbeatIntervalMs * 2; // 超时时间为2倍心跳间隔
+
+        if (timeSinceLastPong.TotalMilliseconds > heartbeatTimeoutMs)
+        {
+            _heartbeatMissedCount++;
+
+            _logger.LogWarning("心跳超时：{TimeSinceLastPong}ms 未收到响应，超时次数：{MissedCount}",
+                timeSinceLastPong.TotalMilliseconds, _heartbeatMissedCount);
+
+            // 如果连续多次超时，触发重连
+            if (_heartbeatMissedCount >= 3 && _options.AutoReconnect)
+            {
+                _logger.LogError("连续 {MissedCount} 次心跳超时，触发重连", _heartbeatMissedCount);
+                await TriggerReconnectAsync(cancellationToken);
+            }
+        }
+        else
+        {
+            // 重置超时计数器
+            _heartbeatMissedCount = 0;
+        }
+    }
+
+    /// <summary>
+    /// 触发重连
+    /// </summary>
+    private async Task TriggerReconnectAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (_connectionManager.IsConnected)
+            {
+                await _connectionManager.DisconnectAsync(cancellationToken);
+            }
+
+            // 触发断开事件，让 HostedService 处理重连逻辑
+            Disconnected?.Invoke(this, new SocketEventArgs.WebSocketCloseEventArgs
+            {
+                CloseStatus = System.Net.WebSockets.WebSocketCloseStatus.EndpointUnavailable,
+                CloseStatusDescription = "心跳超时，触发重连",
+                IsServerInitiated = false,
+                Timestamp = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "触发重连时发生错误");
         }
     }
 
@@ -365,15 +484,26 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
                 {
                     try
                     {
-                        var processingTasks = _messageProcessors.Select(processor =>
-                            ProcessMessageSafely(processor, message, cancellationToken));
+                        // 等待信号量，控制并发数
+                        await _messageProcessingSemaphore.WaitAsync(cancellationToken);
 
-                        await Task.WhenAll(processingTasks);
-                        processedMessages++;
-
-                        if (processedMessages % maxMessagesBeforeYield == 0)
+                        try
                         {
-                            await Task.Yield();
+                            var processingTasks = _messageProcessors.Select(processor =>
+                                ProcessMessageSafely(processor, message, cancellationToken));
+
+                            await Task.WhenAll(processingTasks);
+                            processedMessages++;
+
+                            if (processedMessages % maxMessagesBeforeYield == 0)
+                            {
+                                await Task.Yield();
+                            }
+                        }
+                        finally
+                        {
+                            // 释放信号量
+                            _messageProcessingSemaphore.Release();
                         }
                     }
                     catch (Exception ex)
@@ -409,6 +539,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
         }
     }
 
+
     /// <summary>
     /// <inheritdoc/>
     /// </summary>
@@ -421,6 +552,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
         {
             _cancellationTokenSource?.Cancel();
             UnsubscribeFromComponentEvents();
+            UnsubscribeFromHandlerEvents();
             _connectionManager?.Dispose();
             _binaryProcessor?.Dispose();
         }
@@ -432,6 +564,24 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
         {
             _disposed = true;
         }
+    }
+
+    /// <summary>
+    /// 取消处理器事件订阅
+    /// </summary>
+    private void UnsubscribeFromHandlerEvents()
+    {
+        if (_pingPongHandler != null)
+        {
+            _pingPongHandler.PongReceived -= OnPongReceived;
+            _pingPongHandler = null;
+        }
+
+        // 清理订阅管理器
+        _subscriptionManager?.ClearSubscriptions();
+
+        // 释放并发控制信号量
+        _messageProcessingSemaphore?.Dispose();
     }
 
     /// <summary>
