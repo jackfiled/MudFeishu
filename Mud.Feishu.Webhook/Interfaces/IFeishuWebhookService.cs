@@ -27,9 +27,10 @@ public interface IFeishuWebhookService
     /// 处理飞书事件推送
     /// </summary>
     /// <param name="request">Webhook 请求</param>
+    /// <param name="encryptKey">加密密钥（可选，用于多密钥场景）</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>处理结果</returns>
-    Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, CancellationToken cancellationToken = default);
+    Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, string? encryptKey = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 验证请求签名

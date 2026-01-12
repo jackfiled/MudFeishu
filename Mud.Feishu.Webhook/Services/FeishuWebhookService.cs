@@ -29,6 +29,11 @@ public class FeishuWebhookService : IFeishuWebhookService
     private readonly IFeishuEventDistributedDeduplicator? _distributedDeduplicator;
 
     /// <summary>
+    /// 提供的加密密钥（支持多密钥场景）
+    /// </summary>
+    private string? _providedEncryptKey;
+
+    /// <summary>
     /// 获取当前配置选项（支持热更新）
     /// </summary>
     private FeishuWebhookOptions Options => _optionsMonitor.CurrentValue;
@@ -93,32 +98,43 @@ public class FeishuWebhookService : IFeishuWebhookService
     }
 
     /// <inheritdoc />
-    public async Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, CancellationToken cancellationToken = default)
+    public async Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, string? encryptKey = null, CancellationToken cancellationToken = default)
     {
-        if (Options.EnablePerformanceMonitoring)
+        // 保存提供的密钥
+        _providedEncryptKey = encryptKey;
+
+        try
         {
-            using var activity = _metrics.StartEventHandlingActivity();
-            try
+            if (Options.EnablePerformanceMonitoring)
             {
-                var result = await HandleEventInternalAsync(request, cancellationToken);
-                activity?.SetTag("success", result.Success);
-                activity?.SetTag("error_reason", result.ErrorReason);
-                if (!result.Success)
+                using var activity = _metrics.StartEventHandlingActivity();
+                try
                 {
-                    activity?.SetStatus(ActivityStatusCode.Error, result.ErrorReason ?? "Unknown error");
+                    var result = await HandleEventInternalAsync(request, cancellationToken);
+                    activity?.SetTag("success", result.Success);
+                    activity?.SetTag("error_reason", result.ErrorReason);
+                    if (!result.Success)
+                    {
+                        activity?.SetStatus(ActivityStatusCode.Error, result.ErrorReason ?? "Unknown error");
+                    }
+                    return result;
                 }
-                return result;
+                catch (Exception ex)
+                {
+                    activity?.SetTag("exception", ex.Message);
+                    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                    throw;
+                }
             }
-            catch (Exception ex)
+            else
             {
-                activity?.SetTag("exception", ex.Message);
-                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                throw;
+                return await HandleEventInternalAsync(request, cancellationToken);
             }
         }
-        else
+        finally
         {
-            return await HandleEventInternalAsync(request, cancellationToken);
+            // 清理密钥
+            _providedEncryptKey = null;
         }
     }
 
@@ -265,7 +281,7 @@ public class FeishuWebhookService : IFeishuWebhookService
                 request.Nonce,
                 request.Encrypt!,
                 request.Signature,
-                Options.EncryptKey);
+                _providedEncryptKey ?? Options.EncryptKey);
         }
         catch (Exception ex)
         {
@@ -279,7 +295,7 @@ public class FeishuWebhookService : IFeishuWebhookService
     {
         try
         {
-            return await _decryptor.DecryptAsync(encryptedData, Options.EncryptKey, cancellationToken);
+            return await _decryptor.DecryptAsync(encryptedData, _providedEncryptKey ?? Options.EncryptKey, cancellationToken);
         }
         catch (Exception ex)
         {

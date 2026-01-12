@@ -24,6 +24,12 @@ public static class ApplicationBuilderExtensions
     {
         var options = builder.ApplicationServices.GetRequiredService<IOptions<FeishuWebhookOptions>>().Value;
 
+        // 限流中间件必须在主中间件之前
+        if (options.RateLimit.EnableRateLimit)
+        {
+            builder.UseMiddleware<FeishuRateLimitMiddleware>();
+        }
+
         if (options.AutoRegisterEndpoint)
         {
             builder.UseMiddleware<FeishuWebhookMiddleware>();

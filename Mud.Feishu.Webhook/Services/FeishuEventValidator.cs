@@ -96,8 +96,10 @@ public class FeishuEventValidator : IFeishuEventValidator
             var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(signString));
             var computedSignature = Convert.ToBase64String(hashBytes);
 
-            // 比较签名
-            var isValid = computedSignature == signature;
+            // 使用固定时间比较防止计时攻击
+            var computedBytes = Encoding.UTF8.GetBytes(computedSignature);
+            var expectedBytes = Encoding.UTF8.GetBytes(signature);
+            var isValid = FixedTimeEquals(computedBytes, expectedBytes);
 
             if (!isValid)
             {
@@ -163,8 +165,11 @@ public class FeishuEventValidator : IFeishuEventValidator
             var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(signString));
             var computedSignature = Convert.ToBase64String(hashBytes);
 
-            // 比较签名
-            var isValid = computedSignature == headerSignature;
+            // 使用固定时间比较防止计时攻击
+            var isValid = !string.IsNullOrEmpty(headerSignature) &&
+                FixedTimeEquals(
+                    Encoding.UTF8.GetBytes(computedSignature),
+                    Encoding.UTF8.GetBytes(headerSignature));
 
             if (!isValid)
             {
@@ -213,5 +218,27 @@ public class FeishuEventValidator : IFeishuEventValidator
             _logger.LogError(ex, "验证时间戳时发生错误");
             return false;
         }
+    }
+
+    /// <summary>
+    /// 固定时间比较方法，防止计时攻击
+    /// </summary>
+    /// <param name="left">第一个字节数组</param>
+    /// <param name="right">第二个字节数组</param>
+    /// <returns>如果两个数组相等返回 true，否则返回 false</returns>
+    private static bool FixedTimeEquals(byte[] left, byte[] right)
+    {
+        if (left.Length != right.Length)
+        {
+            return false;
+        }
+
+        var result = 0;
+        for (var i = 0; i < left.Length; i++)
+        {
+            result |= left[i] ^ right[i];
+        }
+
+        return result == 0;
     }
 }

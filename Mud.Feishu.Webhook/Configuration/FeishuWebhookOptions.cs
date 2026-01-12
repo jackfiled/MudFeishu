@@ -23,6 +23,17 @@ public class FeishuWebhookOptions
     public string EncryptKey { get; set; } = string.Empty;
 
     /// <summary>
+    /// 多机器人密钥配置（AppId -> EncryptKey 映射）
+    /// 支持多个飞书机器人共享同一个 Webhook 端点
+    /// </summary>
+    public Dictionary<string, string> MultiAppEncryptKeys { get; set; } = new();
+
+    /// <summary>
+    /// 默认应用 ID（用于多机器人场景下的回退）
+    /// </summary>
+    public string DefaultAppId { get; set; } = string.Empty;
+
+    /// <summary>
     /// Webhook 路由前缀
     /// </summary>
     public string RoutePrefix { get; set; } = "feishu/Webhook";
@@ -98,6 +109,18 @@ public class FeishuWebhookOptions
     public int TimestampToleranceSeconds { get; set; } = 300;
 
     /// <summary>
+    /// 请求频率限制配置
+    /// </summary>
+    public RateLimitOptions RateLimit { get; set; } = new();
+
+    /// <summary>
+    /// 是否启用异步后台处理模式
+    /// 启用后会立即返回飞书成功响应，然后在后台处理事件
+    /// 这可以避免飞书超时重试，适用于耗时较长的业务逻辑
+    /// </summary>
+    public bool EnableBackgroundProcessing { get; set; } = false;
+
+    /// <summary>
     /// 验证配置项的有效性
     /// </summary>
     /// <exception cref="InvalidOperationException">当配置项无效时抛出</exception>
@@ -125,9 +148,82 @@ public class FeishuWebhookOptions
         if (TimestampToleranceSeconds < 60)
             throw new InvalidOperationException("TimestampToleranceSeconds必须至少为60秒");
 
-        // 验证 EncryptKey 长度（AES-256 需要 32 字节）
-        if (!string.IsNullOrEmpty(EncryptKey) && Encoding.UTF8.GetByteCount(EncryptKey) != 32)
-            throw new InvalidOperationException("EncryptKey 必须是 32 字节长度的字符串（用于 AES-256）");
+        // 验证 EncryptKey 强度（AES-256 需要 32 字节）
+        if (!string.IsNullOrEmpty(EncryptKey))
+        {
+            var keyBytes = Encoding.UTF8.GetByteCount(EncryptKey);
+            if (keyBytes != 32)
+            {
+                throw new InvalidOperationException("EncryptKey 必须是 32 字节长度的字符串（用于 AES-256）");
+            }
+
+            // 检测明显不安全的默认值或弱密钥
+            var weakKeys = new[]
+            {
+                "your_encrypt_key_here",
+                "your_encrypt_key",
+                "encrypt_key",
+                "12345678901234567890123456789012",
+                "00000000000000000000000000000000",
+                "11111111111111111111111111111111",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            };
+
+            if (weakKeys.Contains(EncryptKey))
+            {
+                throw new InvalidOperationException("EncryptKey 使用了明显不安全的默认值，请使用强密钥");
+            }
+
+            // 检查密钥复杂性（至少包含字母和数字）
+            var hasLetter = EncryptKey.Any(char.IsLetter);
+            var hasDigit = EncryptKey.Any(char.IsDigit);
+            var hasSpecial = EncryptKey.Any(ch => !char.IsLetterOrDigit(ch));
+
+            if (!(hasLetter || hasDigit || hasSpecial))
+            {
+                throw new InvalidOperationException("EncryptKey 过于简单，应使用包含字母、数字或特殊字符的复杂密钥");
+            }
+        }
+
+        // 验证请求频率限制配置
+        RateLimit?.Validate();
+
+        // 验证多密钥配置
+        if (MultiAppEncryptKeys.Any())
+        {
+            foreach (var kvp in MultiAppEncryptKeys)
+            {
+                var appId = kvp.Key;
+                var key = kvp.Value;
+
+                if (string.IsNullOrEmpty(key))
+                {
+                    throw new InvalidOperationException($"多密钥配置中应用 {appId} 的 EncryptKey 不能为空");
+                }
+
+                var keyBytes = Encoding.UTF8.GetByteCount(key);
+                if (keyBytes != 32)
+                {
+                    throw new InvalidOperationException($"多密钥配置中应用 {appId} 的 EncryptKey 必须是 32 字节长度");
+                }
+
+                // 检测弱密钥
+                var weakKeys = new[]
+                {
+                    "your_encrypt_key_here",
+                    "your_encrypt_key",
+                    "encrypt_key",
+                    "12345678901234567890123456789012",
+                    "00000000000000000000000000000000"
+                };
+
+                if (weakKeys.Contains(key))
+                {
+                    throw new InvalidOperationException($"多密钥配置中应用 {appId} 的 EncryptKey 使用了不安全的默认值");
+                }
+            }
+        }
     }
 }
 
@@ -213,4 +309,10 @@ public class FeishuWebhookRequest
     /// </summary>
     [JsonPropertyName("challenge")]
     public string? Challenge { get; set; }
+
+    /// <summary>
+    /// 应用 ID（解密后从事件中获取，用于多密钥场景）
+    /// </summary>
+    [JsonIgnore]
+    public string AppId { get; set; } = string.Empty;
 }
