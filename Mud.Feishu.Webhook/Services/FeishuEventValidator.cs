@@ -19,13 +19,15 @@ public class FeishuEventValidator : IFeishuEventValidator
     private readonly IFeishuNonceDistributedDeduplicator _nonceDeduplicator;
     private readonly IOptions<FeishuWebhookOptions> _options;
     private readonly ISecurityAuditService? _securityAuditService;
+    private readonly IThreatDetectionService? _threatDetectionService;
 
     /// <inheritdoc />
     public FeishuEventValidator(
         ILogger<FeishuEventValidator> logger,
         IFeishuNonceDistributedDeduplicator nonceDeduplicator,
         IOptions<FeishuWebhookOptions> options,
-        ISecurityAuditService? securityAuditService)
+        ISecurityAuditService? securityAuditService,
+        IThreatDetectionService? threatDetectionService = null)
     {
         _logger = logger;
         _nonceDeduplicator = nonceDeduplicator;
@@ -112,7 +114,7 @@ public class FeishuEventValidator : IFeishuEventValidator
                 _logger.LogWarning("签名验证失败: 计算 {ComputedSignaturePrefix}..., 期望 {ExpectedSignaturePrefix}...",
                     computedPrefix + "...",
                     signaturePrefix + "...");
-                
+
                 // 记录安全审计日志
                 _ = _securityAuditService?.LogSecurityFailureAsync(
                     SecurityEventType.SignatureValidation,
@@ -124,7 +126,7 @@ public class FeishuEventValidator : IFeishuEventValidator
             else
             {
                 _logger.LogDebug("签名验证成功");
-                
+
                 // 记录安全审计日志
                 _ = _securityAuditService?.LogSecuritySuccessAsync(
                     SecurityEventType.SignatureValidation,
@@ -199,7 +201,7 @@ public class FeishuEventValidator : IFeishuEventValidator
                 _logger.LogWarning("请求头签名验证失败: 计算 {ComputedSignaturePrefix}..., 期望 {ExpectedSignaturePrefix}...",
                     computedPrefix + "...",
                     headerPrefix + "...");
-                
+
                 // 记录安全审计日志
                 _ = _securityAuditService?.LogSecurityFailureAsync(
                     SecurityEventType.SignatureValidation,
@@ -211,7 +213,7 @@ public class FeishuEventValidator : IFeishuEventValidator
             else
             {
                 _logger.LogDebug("请求头签名验证成功");
-                
+
                 // 记录安全审计日志
                 _ = _securityAuditService?.LogSecuritySuccessAsync(
                     SecurityEventType.SignatureValidation,

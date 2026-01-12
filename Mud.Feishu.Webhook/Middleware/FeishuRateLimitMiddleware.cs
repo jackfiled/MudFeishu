@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Webhook.Configuration;
+using Mud.Feishu.Webhook.Services;
 using System.Collections.Concurrent;
 
 namespace Mud.Feishu.Webhook.Middleware;
@@ -18,13 +19,15 @@ public class FeishuRateLimitMiddleware(
     IOptions<FeishuWebhookOptions> webhookOptions,
     IOptions<RateLimitOptions> rateLimitOptions,
     ILogger<FeishuRateLimitMiddleware> logger,
-    ISecurityAuditService? securityAuditService)
+    ISecurityAuditService? securityAuditService,
+    IThreatDetectionService? threatDetectionService = null)
 {
     private readonly RequestDelegate _next = next;
     private readonly FeishuWebhookOptions _webhookOptions = webhookOptions.Value;
     private readonly RateLimitOptions _rateLimitOptions = rateLimitOptions.Value;
     private readonly ILogger<FeishuRateLimitMiddleware> _logger = logger;
     private readonly ISecurityAuditService? _securityAuditService = securityAuditService;
+    private readonly IThreatDetectionService? _threatDetectionService = threatDetectionService;
 
     // 使用并发字典和滑动窗口计数器：ConcurrentDictionary<IP, (Count, WindowStart)>
     private readonly ConcurrentDictionary<string, (int Count, DateTime WindowStart)> _requestCounts = new();
@@ -86,7 +89,7 @@ public class FeishuRateLimitMiddleware(
                 {
                     _logger.LogWarning("客户端 IP {ClientIP} 请求频率超出限制：{Count}/{MaxRequests} 在 {WindowSize}秒内",
                         clientIp, counter.Count, _rateLimitOptions.MaxRequestsPerWindow, _rateLimitOptions.WindowSizeSeconds);
-                    
+
                     // 记录安全审计日志
                     _ = _securityAuditService?.LogSecurityFailureAsync(
                         SecurityEventType.RateLimitExceeded,
@@ -177,7 +180,7 @@ public class FeishuRateLimitMiddleware(
     /// <summary>
     /// 写入 429 响应
     /// </summary>
-    private  async Task WriteTooManyRequestsResponse(HttpContext context, string message)
+    private async Task WriteTooManyRequestsResponse(HttpContext context, string message)
     {
         context.Response.StatusCode = _rateLimitOptions.TooManyRequestsStatusCode;
         context.Response.ContentType = "application/json";

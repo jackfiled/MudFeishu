@@ -5,7 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu.Webhook.Services;
+namespace Mud.Feishu.Webhook;
 
 /// <summary>
 /// 安全审计服务接口
@@ -21,10 +21,10 @@ public interface ISecurityAuditService
     /// <param name="details">详细信息</param>
     /// <param name="requestId">请求ID</param>
     Task LogSecurityFailureAsync(
-        SecurityEventType eventType, 
-        string clientIp, 
-        string requestPath, 
-        string details, 
+        SecurityEventType eventType,
+        string clientIp,
+        string requestPath,
+        string details,
         string? requestId = null);
 
     /// <summary>
@@ -36,10 +36,10 @@ public interface ISecurityAuditService
     /// <param name="details">详细信息</param>
     /// <param name="requestId">请求ID</param>
     Task LogSecuritySuccessAsync(
-        SecurityEventType eventType, 
-        string clientIp, 
-        string requestPath, 
-        string details, 
+        SecurityEventType eventType,
+        string clientIp,
+        string requestPath,
+        string details,
         string? requestId = null);
 }
 
@@ -52,32 +52,32 @@ public enum SecurityEventType
     /// 签名验证
     /// </summary>
     SignatureValidation,
-    
+
     /// <summary>
     /// 时间戳验证
     /// </summary>
     TimestampValidation,
-    
+
     /// <summary>
     /// IP验证
     /// </summary>
     IpValidation,
-    
+
     /// <summary>
     /// 订阅验证
     /// </summary>
     SubscriptionValidation,
-    
+
     /// <summary>
     /// 请求频率限制
     /// </summary>
     RateLimitExceeded,
-    
+
     /// <summary>
     /// 请求大小限制
     /// </summary>
     RequestSizeLimit,
-    
+
     /// <summary>
     /// 其他安全事件
     /// </summary>

@@ -28,6 +28,7 @@ public class FeishuWebhookService : IFeishuWebhookService
     private readonly IFeishuEventDeduplicator _deduplicator;
     private readonly IFeishuEventDistributedDeduplicator? _distributedDeduplicator;
     private readonly ISecurityAuditService? _securityAuditService;
+    private readonly IThreatDetectionService? _threatDetectionService;
 
     /// <summary>
     /// 提供的加密密钥（支持多密钥场景）
@@ -50,7 +51,8 @@ public class FeishuWebhookService : IFeishuWebhookService
         FeishuWebhookConcurrencyService concurrencyService,
         IFeishuEventDeduplicator deduplicator,
         ISecurityAuditService? securityAuditService,
-        IFeishuEventDistributedDeduplicator? distributedDeduplicator = null)
+        IFeishuEventDistributedDeduplicator? distributedDeduplicator = null,
+        IThreatDetectionService? threatDetectionService = null)
     {
         _optionsMonitor = optionsMonitor;
         _validator = validator;
@@ -62,6 +64,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         _deduplicator = deduplicator;
         _distributedDeduplicator = distributedDeduplicator;
         _securityAuditService = securityAuditService;
+        _threatDetectionService = threatDetectionService;
 
         // 监听配置变更
         _optionsMonitor.OnChange((newOptions, name) =>

@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Webhook.Configuration;
+using Mud.Feishu.Webhook.Services;
 using System.Diagnostics;
 
 namespace Mud.Feishu.Webhook.Middleware;
@@ -61,7 +62,7 @@ public class FeishuWebhookMiddleware(
                     context.Request.Path,
                     $"不支持的HTTP方法: {context.Request.Method}",
                     requestId);
-                
+
                 await WriteErrorResponse(context, 405, "Method Not Allowed", requestId);
                 return;
             }
@@ -76,7 +77,7 @@ public class FeishuWebhookMiddleware(
                     context.Request.Path,
                     $"请求体大小 {context.Request.ContentLength ?? 0} 超过限制 {_options.MaxRequestBodySize}",
                     requestId);
-                
+
                 await WriteErrorResponse(context, 413, "Request Entity Too Large", requestId);
                 return;
             }
@@ -91,7 +92,7 @@ public class FeishuWebhookMiddleware(
                     context.Request.Path,
                     $"IP地址不在白名单中: {clientIp}",
                     requestId);
-                
+
                 await WriteErrorResponse(context, 403, "Forbidden", requestId);
                 return;
             }
@@ -148,7 +149,7 @@ public class FeishuWebhookMiddleware(
             }
 
             // 处理请求
-            await ProcessWebhookRequest(context, requestBody, requestId);
+            await ProcessWebhookRequest(context, requestBody, requestId, clientIp);
         }
         catch (Exception ex)
         {
@@ -238,7 +239,7 @@ public class FeishuWebhookMiddleware(
     /// <summary>
     /// 处理 Webhook 请求
     /// </summary>
-    private async Task ProcessWebhookRequest(HttpContext context, string requestBody, string requestId)
+    private async Task ProcessWebhookRequest(HttpContext context, string requestBody, string requestId, string clientIp)
     {
         using var scope = _scopeFactory.CreateScope();
         var webhookService = scope.ServiceProvider.GetRequiredService<IFeishuWebhookService>();
@@ -284,7 +285,7 @@ public class FeishuWebhookMiddleware(
                         context.Request.Path,
                         "X-Lark-Signature 请求头签名验证失败",
                         requestId);
-                    
+
                     await WriteErrorResponse(context, 401, "Unauthorized: Invalid X-Lark-Signature", requestId);
                     return;
                 }

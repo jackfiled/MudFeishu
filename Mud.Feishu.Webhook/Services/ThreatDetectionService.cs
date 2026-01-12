@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.Feishu.Webhook.Configuration;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
@@ -82,10 +83,10 @@ public class ThreatDetectionService : IThreatDetectionService
         long responseTimeMs)
     {
         var behavior = _ipBehaviors.GetOrAdd(clientIp, _ => new IpBehavior());
-        
+
         // 更新行为统计
         behavior.UpdateStats(success, responseTimeMs);
-        
+
         await Task.CompletedTask;
     }
 
@@ -156,7 +157,7 @@ public class ThreatDetectionService : IThreatDetectionService
         };
 
         var behavior = _ipBehaviors.GetOrAdd(clientIp, _ => new IpBehavior());
-        
+
         // 检查频率异常
         var recentRequests = behavior.GetRecentRequests(TimeSpan.FromMinutes(1));
         if (recentRequests > 50) // 1分钟内超过50次请求
@@ -220,7 +221,7 @@ public class ThreatDetectionService : IThreatDetectionService
 
             foreach (var suspiciousAgent in suspiciousUserAgents)
             {
-                if (userAgent.Contains(suspiciousAgent, StringComparison.OrdinalIgnoreCase))
+                if (userAgent.IndexOf(suspiciousAgent, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     result.IsThreat = true;
                     result.ThreatLevel = 3; // 中高威胁
@@ -235,8 +236,8 @@ public class ThreatDetectionService : IThreatDetectionService
 
         // 检查 Content-Type 异常
         var contentType = requestHeaders["Content-Type"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(contentType) && 
-            !contentType.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(contentType) &&
+            contentType.IndexOf("application/json", StringComparison.OrdinalIgnoreCase) < 0)
         {
             // 非JSON内容类型可能需要关注
             result.IsThreat = false; // 不直接标记为威胁，但记录日志
@@ -266,14 +267,14 @@ internal class IpBehavior
     public void RecordRequest(string path)
     {
         var now = DateTimeOffset.UtcNow;
-        
+
         // 记录总请求时间
         _requestTimestamps.Enqueue(now);
-        
+
         // 记录特定路径访问时间
         var pathQueue = _pathAccessTimes.GetOrAdd(path, _ => new ConcurrentQueue<DateTimeOffset>());
         pathQueue.Enqueue(now);
-        
+
         // 清理超过时间窗口的记录
         CleanupOldRecords();
     }
