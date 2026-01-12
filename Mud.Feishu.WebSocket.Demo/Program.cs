@@ -5,6 +5,8 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.Feishu.Redis.Configuration;
+using Mud.Feishu.Redis.Extensions;
 using Mud.Feishu.WebSocket;
 using Mud.Feishu.WebSocket.Demo.Handlers;
 using Mud.Feishu.WebSocket.Services;
@@ -16,6 +18,9 @@ builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
                 .AddAuthenticationApi()
                 .AddTokenManagers()
                 .Build();
+
+// 配置Redis分布式去重服务
+builder.Services.AddFeishuRedisDeduplicators(builder.Configuration); // 再注册去重服务
 
 // 配置飞书WebSocket服务
 builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)

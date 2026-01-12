@@ -23,7 +23,7 @@ public static class RedisFeishuServiceBuilderExtensions
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <returns>服务集合</returns>
-    public static IServiceCollection AddFeishuRedis(this IServiceCollection services)
+    private static IServiceCollection AddFeishuRedis(this IServiceCollection services)
     {
         // 注册 RedisOptions 配置
         services.AddSingleton(sp =>
@@ -45,14 +45,15 @@ public static class RedisFeishuServiceBuilderExtensions
             var options = sp.GetRequiredService<RedisOptions>();
             var logger = sp.GetService<ILogger<ConnectionMultiplexer>>();
 
-            logger?.LogInformation("正在初始化 Redis 连接，地址: {ConnectionString}", options.ConnectionString);
+            logger?.LogInformation("正在初始化 Redis 连接，地址: {ConnectionString}", options.ServerAddress);
 
             var redis = ConnectionMultiplexer.Connect(new ConfigurationOptions
             {
-                EndPoints = { options.ConnectionString },
+                EndPoints = { options.ServerAddress },
                 ConnectTimeout = options.ConnectTimeout,
                 SyncTimeout = options.SyncTimeout,
                 Ssl = options.Ssl,
+                Password = "letmein",
                 AllowAdmin = options.AllowAdmin,
                 AbortOnConnectFail = true,
                 ConnectRetry = 3
@@ -70,7 +71,7 @@ public static class RedisFeishuServiceBuilderExtensions
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <returns>服务集合</returns>
-    public static IServiceCollection AddFeishuRedisEventDeduplicator(
+    private static IServiceCollection AddFeishuRedisEventDeduplicator(
         this IServiceCollection services)
     {
         services.AddSingleton<IFeishuEventDistributedDeduplicator>(sp =>
@@ -94,7 +95,7 @@ public static class RedisFeishuServiceBuilderExtensions
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <returns>服务集合</returns>
-    public static IServiceCollection AddFeishuRedisNonceDeduplicator(
+    private static IServiceCollection AddFeishuRedisNonceDeduplicator(
         this IServiceCollection services)
     {
         services.AddSingleton<IFeishuNonceDistributedDeduplicator>(sp =>
@@ -118,7 +119,7 @@ public static class RedisFeishuServiceBuilderExtensions
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <returns>服务集合</returns>
-    public static IServiceCollection AddFeishuRedisSeqIDDeduplicator(
+    private static IServiceCollection AddFeishuRedisSeqIDDeduplicator(
         this IServiceCollection services)
     {
         services.AddSingleton<IFeishuSeqIDDeduplicator>(sp =>
@@ -141,14 +142,20 @@ public static class RedisFeishuServiceBuilderExtensions
     /// 注册所有 Redis 分布式去重服务（事件去重、Nonce 去重、SeqID 去重）
     /// </summary>
     /// <param name="services">服务集合</param>
+    /// <param name="configuration">配置</param>
+    /// <param name="sectionName">配置节名称</param>
     /// <returns>服务集合</returns>
     public static IServiceCollection AddFeishuRedisDeduplicators(
-        this IServiceCollection services)
+        this IServiceCollection services,IConfiguration configuration,string sectionName="Redis")
     {
-        services.AddFeishuRedisEventDeduplicator();
-        services.AddFeishuRedisNonceDeduplicator();
-        services.AddFeishuRedisSeqIDDeduplicator();
+        if (configuration == null)
+            throw new ArgumentNullException(nameof(configuration));        
 
-        return services;
+        var section = sectionName ?? "Redis";
+        return services.Configure<RedisOptions>(options => configuration.GetSection(section).Bind(options))
+                        .AddFeishuRedis()
+                        .AddFeishuRedisEventDeduplicator()
+                        .AddFeishuRedisNonceDeduplicator()
+                        .AddFeishuRedisSeqIDDeduplicator();
     }
 }

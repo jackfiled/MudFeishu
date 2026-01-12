@@ -14,9 +14,14 @@ public class RedisOptions
 {
     /// <summary>
     /// Redis 连接字符串
-    /// <para>示例: "localhost:6379", "127.0.0.1:6379,password=xxx", "rediss://secure.redis.com:6380"</para>
+    /// <para>示例: "localhost:6379", "127.0.0.1:6379", "rediss://secure.redis.com:6380"</para>
     /// </summary>
-    public string ConnectionString { get; set; } = "localhost:6379";
+    public string ServerAddress { get; set; } = "localhost:6379";
+
+    /// <summary>
+    /// Redis 密码
+    /// </summary>
+    public string Password { get; set; } = string.Empty;
 
     /// <summary>
     /// 事件去重缓存过期时间，默认 24 小时

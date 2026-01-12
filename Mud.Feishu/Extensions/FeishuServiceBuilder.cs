@@ -42,7 +42,7 @@ public class FeishuServiceBuilder
             throw new ArgumentNullException(nameof(configuration));
 
         var section = sectionName ?? "Feishu";
-        _services.Configure<FeishuOptions>(options => configuration.GetSection(sectionName).Bind(options));
+        _services.Configure<FeishuOptions>(options => configuration.GetSection(section).Bind(options));
 
         _configuration.IsConfigured = true;
         return this;
