@@ -27,6 +27,7 @@ public class FeishuWebhookService : IFeishuWebhookService
     private readonly FeishuWebhookConcurrencyService _concurrencyService;
     private readonly IFeishuEventDeduplicator _deduplicator;
     private readonly IFeishuEventDistributedDeduplicator? _distributedDeduplicator;
+    private readonly ISecurityAuditService? _securityAuditService;
 
     /// <summary>
     /// 提供的加密密钥（支持多密钥场景）
@@ -48,6 +49,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         MetricsCollector metrics,
         FeishuWebhookConcurrencyService concurrencyService,
         IFeishuEventDeduplicator deduplicator,
+        ISecurityAuditService? securityAuditService,
         IFeishuEventDistributedDeduplicator? distributedDeduplicator = null)
     {
         _optionsMonitor = optionsMonitor;
@@ -59,6 +61,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         _concurrencyService = concurrencyService;
         _deduplicator = deduplicator;
         _distributedDeduplicator = distributedDeduplicator;
+        _securityAuditService = securityAuditService;
 
         // 监听配置变更
         _optionsMonitor.OnChange((newOptions, name) =>
@@ -154,6 +157,15 @@ public class FeishuWebhookService : IFeishuWebhookService
             {
                 _logger.LogWarning("请求体签名验证失败");
                 _metrics.IncrementSignatureValidationFailures();
+                
+                // 记录安全审计日志
+                _ = _securityAuditService?.LogSecurityFailureAsync(
+                    SecurityEventType.SignatureValidation,
+                    "unknown", // 在服务层无法获取客户端IP
+                    "FeishuWebhookService",
+                    "请求体签名验证失败",
+                    "");
+                
                 return (false, "Signature validation failed");
             }
 

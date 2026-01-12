@@ -17,12 +17,16 @@ public class FeishuWebhookMiddleware(
     RequestDelegate next,
     IServiceScopeFactory scopeFactory,
     ILogger<FeishuWebhookMiddleware> logger,
-    IOptions<FeishuWebhookOptions> options)
+    IOptions<FeishuWebhookOptions> options,
+    ISecurityAuditService? securityAuditService = null,
+    IThreatDetectionService? threatDetectionService = null)
 {
     private readonly RequestDelegate _next = next;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly ILogger<FeishuWebhookMiddleware> _logger = logger;
     private readonly FeishuWebhookOptions _options = options.Value;
+    private readonly ISecurityAuditService? _securityAuditService = securityAuditService;
+    private readonly IThreatDetectionService? _threatDetectionService = threatDetectionService;
 
     /// <summary>
     /// 处理 HTTP 请求
@@ -44,9 +48,20 @@ public class FeishuWebhookMiddleware(
                 return;
             }
 
+            // 记录请求信息
+            var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
             // 检查 HTTP 方法
             if (!_options.AllowedHttpMethods.Contains(context.Request.Method))
             {
+                // 记录安全审计日志
+                _ = _securityAuditService?.LogSecurityFailureAsync(
+                    SecurityEventType.Other,
+                    clientIp,
+                    context.Request.Path,
+                    $"不支持的HTTP方法: {context.Request.Method}",
+                    requestId);
+                
                 await WriteErrorResponse(context, 405, "Method Not Allowed", requestId);
                 return;
             }
@@ -54,6 +69,14 @@ public class FeishuWebhookMiddleware(
             // 检查请求体大小
             if (context.Request.ContentLength > _options.MaxRequestBodySize)
             {
+                // 记录安全审计日志
+                _ = _securityAuditService?.LogSecurityFailureAsync(
+                    SecurityEventType.RequestSizeLimit,
+                    clientIp,
+                    context.Request.Path,
+                    $"请求体大小 {context.Request.ContentLength ?? 0} 超过限制 {_options.MaxRequestBodySize}",
+                    requestId);
+                
                 await WriteErrorResponse(context, 413, "Request Entity Too Large", requestId);
                 return;
             }
@@ -61,6 +84,14 @@ public class FeishuWebhookMiddleware(
             // 验证来源 IP（如果启用）
             if (_options.ValidateSourceIP && !ValidateSourceIP(context.Connection.RemoteIpAddress?.ToString()))
             {
+                // 记录安全审计日志
+                _ = _securityAuditService?.LogSecurityFailureAsync(
+                    SecurityEventType.IpValidation,
+                    clientIp,
+                    context.Request.Path,
+                    $"IP地址不在白名单中: {clientIp}",
+                    requestId);
+                
                 await WriteErrorResponse(context, 403, "Forbidden", requestId);
                 return;
             }
@@ -71,6 +102,42 @@ public class FeishuWebhookMiddleware(
             {
                 await WriteErrorResponse(context, 400, "Bad Request: Empty request body", requestId);
                 return;
+            }
+
+            // 进行威胁检测
+            if (_threatDetectionService != null)
+            {
+                var threatResult = await _threatDetectionService.AnalyzeRequestAsync(
+                    clientIp,
+                    context.Request.Path,
+                    context.Request.Method,
+                    context.Request.Headers,
+                    requestBody,
+                    requestId);
+
+                if (threatResult.IsThreat)
+                {
+                    _logger.LogWarning("检测到威胁: {Description}, 等级: {Level}, 建议操作: {Action}",
+                        threatResult.Description, threatResult.ThreatLevel, threatResult.RecommendedAction);
+
+                    // 根据威胁等级和建议操作采取相应措施
+                    switch (threatResult.RecommendedAction)
+                    {
+                        case ThreatAction.Block:
+                            await WriteErrorResponse(context, 403, "Forbidden: Potential threat detected", requestId);
+                            return;
+                        case ThreatAction.RateLimit:
+                            // 这里可以触发额外的限流措施
+                            break;
+                        case ThreatAction.Log:
+                            // 已经记录了日志，继续处理
+                            break;
+                        case ThreatAction.Allow:
+                        default:
+                            // 允许请求继续
+                            break;
+                    }
+                }
             }
 
             // 记录请求日志
@@ -152,7 +219,7 @@ public class FeishuWebhookMiddleware(
     /// <summary>
     /// 读取请求体
     /// </summary>
-    private static async Task<string> ReadRequestBodyAsync(HttpRequest request)
+    private async Task<string> ReadRequestBodyAsync(HttpRequest request)
     {
         request.EnableBuffering();
 
@@ -210,8 +277,26 @@ public class FeishuWebhookMiddleware(
                     headerSignature,
                     encryptKey))
                 {
+                    // 记录安全审计日志
+                    _ = _securityAuditService?.LogSecurityFailureAsync(
+                        SecurityEventType.SignatureValidation,
+                        clientIp,
+                        context.Request.Path,
+                        "X-Lark-Signature 请求头签名验证失败",
+                        requestId);
+                    
                     await WriteErrorResponse(context, 401, "Unauthorized: Invalid X-Lark-Signature", requestId);
                     return;
+                }
+                else
+                {
+                    // 记录签名验证成功日志
+                    _ = _securityAuditService?.LogSecuritySuccessAsync(
+                        SecurityEventType.SignatureValidation,
+                        clientIp,
+                        context.Request.Path,
+                        "X-Lark-Signature 请求头签名验证成功",
+                        requestId);
                 }
 
                 // 处理事件请求
@@ -271,7 +356,7 @@ public class FeishuWebhookMiddleware(
     /// <summary>
     /// 获取安全的错误消息（不泄露内部信息）
     /// </summary>
-    private static string GetSafeErrorMessage(string errorReason)
+    private string GetSafeErrorMessage(string errorReason)
     {
         // 开发环境可以返回详细错误，生产环境返回通用错误
         var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
@@ -317,7 +402,7 @@ public class FeishuWebhookMiddleware(
     /// <summary>
     /// 写入 JSON 响应
     /// </summary>
-    private static async Task WriteJsonResponse<T>(HttpContext context, int statusCode, T data)
+    private async Task WriteJsonResponse<T>(HttpContext context, int statusCode, T data)
     {
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
@@ -329,7 +414,7 @@ public class FeishuWebhookMiddleware(
     /// <summary>
     /// 写入错误响应
     /// </summary>
-    private static async Task WriteErrorResponse(HttpContext context, int statusCode, string message, string? requestId = null)
+    private async Task WriteErrorResponse(HttpContext context, int statusCode, string message, string? requestId = null)
     {
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";

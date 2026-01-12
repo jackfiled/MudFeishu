@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Webhook.Configuration;
+using System.Collections.Concurrent;
 
 namespace Mud.Feishu.Webhook.Middleware;
 
@@ -16,16 +17,17 @@ public class FeishuRateLimitMiddleware(
     RequestDelegate next,
     IOptions<FeishuWebhookOptions> webhookOptions,
     IOptions<RateLimitOptions> rateLimitOptions,
-    ILogger<FeishuRateLimitMiddleware> logger)
+    ILogger<FeishuRateLimitMiddleware> logger,
+    ISecurityAuditService? securityAuditService)
 {
     private readonly RequestDelegate _next = next;
     private readonly FeishuWebhookOptions _webhookOptions = webhookOptions.Value;
     private readonly RateLimitOptions _rateLimitOptions = rateLimitOptions.Value;
     private readonly ILogger<FeishuRateLimitMiddleware> _logger = logger;
+    private readonly ISecurityAuditService? _securityAuditService = securityAuditService;
 
-    // 使用滑动窗口计数器：Dictionary<IP, (Count, WindowStart)>
-    private readonly Dictionary<string, (int Count, DateTime WindowStart)> _requestCounts = [];
-    private readonly object _lock = new();
+    // 使用并发字典和滑动窗口计数器：ConcurrentDictionary<IP, (Count, WindowStart)>
+    private readonly ConcurrentDictionary<string, (int Count, DateTime WindowStart)> _requestCounts = new();
 
     /// <summary>
     /// 处理 HTTP 请求
@@ -63,56 +65,70 @@ public class FeishuRateLimitMiddleware(
             return;
         }
 
-        // 检查请求频率
-        lock (_lock)
+        var now = DateTime.UtcNow;
+
+        // 清理过期的窗口记录（超过窗口大小）
+        CleanupExpiredWindows(now);
+
+        // 获取或创建计数器
+        if (_requestCounts.TryGetValue(clientIp, out var counter))
         {
-            var now = DateTime.UtcNow;
-
-            // 清理过期的窗口记录（超过窗口大小）
-            CleanupExpiredWindows(now);
-
-            // 获取或创建计数器
-            if (_requestCounts.TryGetValue(clientIp, out var counter))
+            // 检查是否超出时间窗口
+            if ((now - counter.WindowStart).TotalSeconds > _rateLimitOptions.WindowSizeSeconds)
             {
-                // 检查是否超出时间窗口
-                if ((now - counter.WindowStart).TotalSeconds > _rateLimitOptions.WindowSizeSeconds)
-                {
-                    // 新窗口，重置计数
-                    _requestCounts[clientIp] = (1, now);
-                }
-                else
-                {
-                    // 同一窗口，增加计数
-                    if (counter.Count >= _rateLimitOptions.MaxRequestsPerWindow)
-                    {
-                        _logger.LogWarning("客户端 IP {ClientIP} 请求频率超出限制：{Count}/{MaxRequests} 在 {WindowSize}秒内",
-                            clientIp, counter.Count, _rateLimitOptions.MaxRequestsPerWindow, _rateLimitOptions.WindowSizeSeconds);
-
-                        _ = Task.Run(async () =>
-                        {
-                            await Task.Delay(_rateLimitOptions.WindowSizeSeconds * 1000);
-                            lock (_lock)
-                            {
-                                if (!_requestCounts.ContainsKey(clientIp))
-                                {
-                                    _requestCounts[clientIp] = (1, DateTime.UtcNow);
-                                }
-                            }
-                        });
-
-                        WriteTooManyRequestsResponse(context,
-                            $"{_rateLimitOptions.TooManyRequestsMessage}，请在 {_rateLimitOptions.WindowSizeSeconds} 秒后重试").GetAwaiter().GetResult();
-                        return;
-                    }
-
-                    _requestCounts[clientIp] = (counter.Count + 1, counter.WindowStart);
-                }
+                // 新窗口，重置计数
+                _requestCounts[clientIp] = (1, now);
             }
             else
             {
-                // 新 IP，创建计数器
-                _requestCounts[clientIp] = (1, now);
+                // 同一窗口，增加计数
+                if (counter.Count >= _rateLimitOptions.MaxRequestsPerWindow)
+                {
+                    _logger.LogWarning("客户端 IP {ClientIP} 请求频率超出限制：{Count}/{MaxRequests} 在 {WindowSize}秒内",
+                        clientIp, counter.Count, _rateLimitOptions.MaxRequestsPerWindow, _rateLimitOptions.WindowSizeSeconds);
+                    
+                    // 记录安全审计日志
+                    _ = _securityAuditService?.LogSecurityFailureAsync(
+                        SecurityEventType.RateLimitExceeded,
+                        clientIp,
+                        context.Request.Path,
+                        $"请求频率超出限制：{counter.Count}/{_rateLimitOptions.MaxRequestsPerWindow} 在 {_rateLimitOptions.WindowSizeSeconds}秒内",
+                        context.Items["RequestId"]?.ToString());
+
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(_rateLimitOptions.WindowSizeSeconds * 1000);
+                        // 重新检查是否仍然不存在，然后添加新的计数器
+                        if (!_requestCounts.ContainsKey(clientIp))
+                        {
+                            _requestCounts.TryAdd(clientIp, (1, DateTime.UtcNow));
+                        }
+                    });
+
+                    await WriteTooManyRequestsResponse(context,
+                        $"{_rateLimitOptions.TooManyRequestsMessage}，请在 {_rateLimitOptions.WindowSizeSeconds} 秒后重试");
+                    return;
+                }
+
+                // 使用 CompareExchange 确保原子性更新
+                var newCounter = (counter.Count + 1, counter.WindowStart);
+                while (!_requestCounts.TryUpdate(clientIp, newCounter, counter))
+                {
+                    // 如果更新失败，重新获取当前值
+                    if (!_requestCounts.TryGetValue(clientIp, out counter))
+                    {
+                        // 如果键不存在，添加新条目
+                        _requestCounts.TryAdd(clientIp, (1, now));
+                        break;
+                    }
+                    newCounter = (counter.Count + 1, counter.WindowStart);
+                }
             }
+        }
+        else
+        {
+            // 新 IP，尝试添加计数器，如果已存在则获取现有值并递增
+            _requestCounts.TryAdd(clientIp, (1, now));
         }
 
         await _next(context);
@@ -154,7 +170,7 @@ public class FeishuRateLimitMiddleware(
 
         foreach (var key in expiredKeys)
         {
-            _requestCounts.Remove(key);
+            _requestCounts.TryRemove(key, out _);
         }
     }
 

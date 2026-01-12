@@ -306,6 +306,8 @@ public class FeishuWebhookServiceBuilder
         _services.TryAddScoped<IFeishuEventValidator, FeishuEventValidator>();
         _services.TryAddScoped<IFeishuEventDecryptor, FeishuEventDecryptor>();
         _services.TryAddScoped<IFeishuWebhookService, FeishuWebhookService>();
+        _services.TryAddScoped<ISecurityAuditService, SecurityAuditService>();
+        _services.TryAddScoped<IThreatDetectionService, ThreatDetectionService>();
     }
 
     /// <summary>
