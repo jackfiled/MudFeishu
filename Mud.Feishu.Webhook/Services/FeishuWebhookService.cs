@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using System.Diagnostics;
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook.Configuration;
@@ -97,7 +98,23 @@ public class FeishuWebhookService : IFeishuWebhookService
         if (Options.EnablePerformanceMonitoring)
         {
             using var activity = _metrics.StartEventHandlingActivity();
-            return await HandleEventInternalAsync(request, cancellationToken);
+            try
+            {
+                var result = await HandleEventInternalAsync(request, cancellationToken);
+                activity?.SetTag("success", result.Success);
+                activity?.SetTag("error_reason", result.ErrorReason);
+                if (!result.Success)
+                {
+                    activity?.SetStatus(ActivityStatusCode.Error, result.ErrorReason ?? "Unknown error");
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                activity?.SetTag("exception", ex.Message);
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                throw;
+            }
         }
         else
         {
@@ -155,8 +172,8 @@ public class FeishuWebhookService : IFeishuWebhookService
 
             if (isProcessing)
             {
-                _logger.LogInformation("事件 {EventId} 已在处理中或已处理，跳过（幂等性）", eventData.EventId);
-                return (true, null); // 已处理，返回成功避免飞书重试
+                _logger.LogWarning("检测到重复事件 {EventId}，跳过处理（幂等性）", eventData.EventId);
+                return (true, null); // 幂等性：返回成功避免飞书重试
             }
 
             // 使用全局并发控制服务

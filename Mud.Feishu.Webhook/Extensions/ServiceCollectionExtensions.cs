@@ -7,7 +7,7 @@
 
 using Mud.Feishu.Webhook.Configuration;
 
-namespace Mud.Feishu.Webhook;
+namespace Mud.Feishu.Webhook.Extensions;
 
 /// <summary>
 /// 服务集合扩展方法

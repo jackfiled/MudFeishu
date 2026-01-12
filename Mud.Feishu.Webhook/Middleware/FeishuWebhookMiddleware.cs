@@ -8,7 +8,7 @@
 using Mud.Feishu.Webhook.Configuration;
 using System.Diagnostics;
 
-namespace Mud.Feishu.Webhook;
+namespace Mud.Feishu.Webhook.Middleware;
 
 /// <summary>
 /// 飞书 Webhook 中间件
@@ -19,6 +19,18 @@ public class FeishuWebhookMiddleware(
     ILogger<FeishuWebhookMiddleware> logger,
     IOptions<FeishuWebhookOptions> options)
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private static readonly JsonSerializerOptions ResponseJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false
+    };
+
     private readonly RequestDelegate _next = next;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly ILogger<FeishuWebhookMiddleware> _logger = logger;
@@ -125,26 +137,9 @@ public class FeishuWebhookMiddleware(
     }
 
     /// <summary>
-    /// 验证请求头签名
-    /// </summary>
-    private async Task<bool> ValidateHeaderSignature(HttpContext context, string requestBody, FeishuWebhookRequest eventRequest, IFeishuEventValidator validator)
-    {
-        // 获取 X-Lark-Signature 请求头
-        var headerSignature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault();
-
-        // 验证请求头签名
-        return await validator.ValidateHeaderSignatureAsync(
-            eventRequest.Timestamp,
-            eventRequest.Nonce,
-            requestBody,
-            headerSignature,
-            _options.EncryptKey);
-    }
-
-    /// <summary>
     /// 读取请求体
     /// </summary>
-    private async Task<string> ReadRequestBodyAsync(HttpRequest request)
+    private static async Task<string> ReadRequestBodyAsync(HttpRequest request)
     {
         request.EnableBuffering();
 
@@ -172,11 +167,7 @@ public class FeishuWebhookMiddleware(
         try
         {
             // 尝试反序列化为验证请求
-            var verificationRequest = JsonSerializer.Deserialize<EventVerificationRequest>(requestBody, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            var verificationRequest = JsonSerializer.Deserialize<EventVerificationRequest>(requestBody, JsonOptions);
 
             if (verificationRequest?.Type == "url_verification")
             {
@@ -190,16 +181,18 @@ public class FeishuWebhookMiddleware(
             }
 
             // 尝试反序列化为事件请求
-            var eventRequest = JsonSerializer.Deserialize<FeishuWebhookRequest>(requestBody, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            var eventRequest = JsonSerializer.Deserialize<FeishuWebhookRequest>(requestBody, JsonOptions);
 
             if (eventRequest != null)
             {
                 // 验证 X-Lark-Signature 请求头签名
-                if (!await ValidateHeaderSignature(context, requestBody, eventRequest, validator))
+                var headerSignature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault();
+                if (!await validator.ValidateHeaderSignatureAsync(
+                    eventRequest.Timestamp,
+                    eventRequest.Nonce,
+                    requestBody,
+                    headerSignature,
+                    _options.EncryptKey))
                 {
                     await WriteErrorResponse(context, 401, "Unauthorized: Invalid X-Lark-Signature");
                     return;
@@ -237,24 +230,19 @@ public class FeishuWebhookMiddleware(
     /// <summary>
     /// 写入 JSON 响应
     /// </summary>
-    private async Task WriteJsonResponse<T>(HttpContext context, int statusCode, T data)
+    private static async Task WriteJsonResponse<T>(HttpContext context, int statusCode, T data)
     {
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
 
-        var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        });
-
+        var json = JsonSerializer.Serialize(data, ResponseJsonOptions);
         await context.Response.WriteAsync(json);
     }
 
     /// <summary>
     /// 写入错误响应
     /// </summary>
-    private async Task WriteErrorResponse(HttpContext context, int statusCode, string message)
+    private static async Task WriteErrorResponse(HttpContext context, int statusCode, string message)
     {
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
@@ -269,12 +257,7 @@ public class FeishuWebhookMiddleware(
             }
         };
 
-        var json = JsonSerializer.Serialize(errorResponse, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        });
-
+        var json = JsonSerializer.Serialize(errorResponse, ResponseJsonOptions);
         await context.Response.WriteAsync(json);
     }
 }

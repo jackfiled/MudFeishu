@@ -6,8 +6,9 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Webhook.Configuration;
+using Mud.Feishu.Webhook.Middleware;
 
-namespace Mud.Feishu.Webhook;
+namespace Mud.Feishu.Webhook.Extensions;
 
 /// <summary>
 /// 应用程序构建器扩展方法

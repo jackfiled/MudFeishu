@@ -18,9 +18,10 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable
     private readonly IOptionsMonitor<FeishuWebhookOptions> _optionsMonitor;
     private readonly ILogger<FeishuWebhookConcurrencyService> _logger;
     private readonly SemaphoreSlim _semaphoreLock = new(1, 1);
-    private SemaphoreSlim _semaphore;
+    private volatile SemaphoreSlim _semaphore;
     private bool _disposed;
     private volatile int _currentMaxConcurrentEvents;
+    private volatile bool _semaphoreUpgraded = false;
 
     /// <summary>
     /// 构造函数
@@ -65,15 +66,28 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable
             _logger.LogInformation("并发控制配置已更新，最大并发数: {OldMax} -> {NewMax}",
                 oldMax, newMaxConcurrent);
 
-            // 创建新的信号量
-            var oldSemaphore = _semaphore;
-            _semaphore = new SemaphoreSlim(_currentMaxConcurrentEvents, _currentMaxConcurrentEvents);
+            if (_semaphoreUpgraded)
+            {
+                // 已经升级过，清理旧信号量
+                var oldSemaphore = Interlocked.Exchange(ref _semaphore,
+                    new SemaphoreSlim(_currentMaxConcurrentEvents, _currentMaxConcurrentEvents));
 
-            _logger.LogInformation("信号量已重新创建，新的最大并发数: {NewMax}", newMaxConcurrent);
+                _logger.LogInformation("信号量已重新创建，新的最大并发数: {NewMax}", newMaxConcurrent);
 
-            // 注意：旧的信号量不会被立即释放，因为可能还有等待者
-            // 旧信号量的 Dispose 会延迟到对象被 GC 回收
-            // 这是设计上的权衡：配置变更即时生效，但旧请求仍使用旧配置
+                // 延迟释放旧信号量，等待可能正在使用的请求完成
+                Task.Run(async () =>
+                {
+                    await Task.Delay(60000); // 等待 60 秒
+                    oldSemaphore.Dispose();
+                });
+            }
+            else
+            {
+                // 首次升级，替换但不立即释放旧信号量（保持向后兼容）
+                _semaphore = new SemaphoreSlim(_currentMaxConcurrentEvents, _currentMaxConcurrentEvents);
+                _semaphoreUpgraded = true;
+                _logger.LogInformation("信号量首次创建，最大并发数: {NewMax}", newMaxConcurrent);
+            }
         }
         finally
         {
@@ -107,7 +121,9 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable
     /// </summary>
     private SemaphoreSlim GetCurrentSemaphore()
     {
-        return Volatile.Read(ref _semaphore);
+        // 使用 Volatile.Read 确保读取最新值
+        var semaphore = Interlocked.CompareExchange(ref _semaphore, null!, null!);
+        return semaphore;
     }
 
     /// <summary>
@@ -122,14 +138,17 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable
     public ValueTask DisposeAsync()
     {
         if (_disposed)
+        {
 #if NETSTANDARD2_0
             return default;
 #else
             return ValueTask.CompletedTask;
 #endif
+        }
 
         _disposed = true;
         _semaphore.Dispose();
+        GC.SuppressFinalize(this);
 #if NETSTANDARD2_0
         return default;
 #else

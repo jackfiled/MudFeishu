@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Mud.Feishu.Webhook.Models;
 
@@ -16,7 +17,7 @@ public class MetricsCollector
 {
     private readonly ActivitySource _activitySource;
     private readonly object _lock = new();
-    private readonly Dictionary<string, long> _counters = new();
+    private readonly Dictionary<string, long> _counters = [];
 
     /// <summary>
     /// 性能指标收集器
@@ -32,7 +33,12 @@ public class MetricsCollector
     /// <returns>活动对象</returns>
     public Activity? StartEventHandlingActivity()
     {
-        return _activitySource.StartActivity("HandleFeishuEvent");
+        var activity = _activitySource.StartActivity("HandleFeishuEvent");
+        if (activity is not null)
+        {
+            activity.SetTag("component", "Mud.Feishu.Webhook");
+        }
+        return activity;
     }
 
     /// <summary>
@@ -112,14 +118,11 @@ public class MetricsCollector
     {
         lock (_lock)
         {
-            if (_counters.ContainsKey(name))
+            if (!_counters.TryGetValue(name, out long count))
             {
-                _counters[name]++;
+                count = 0;
             }
-            else
-            {
-                _counters[name] = 1;
-            }
+            _counters[name] = count + 1;
         }
     }
 }

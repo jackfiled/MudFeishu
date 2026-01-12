@@ -61,7 +61,7 @@ public class FeishuWebhookOptions
     /// <summary>
     /// 支持的 HTTP 方法
     /// </summary>
-    public HashSet<string> AllowedHttpMethods { get; set; } = new(new[] { "POST" });
+    public HashSet<string> AllowedHttpMethods { get; set; } = ["POST"];
 
     /// <summary>
     /// 最大请求体大小（字节）
@@ -76,7 +76,7 @@ public class FeishuWebhookOptions
     /// <summary>
     /// 允许的源 IP 地址列表
     /// </summary>
-    public HashSet<string> AllowedSourceIPs { get; set; } = new();
+    public HashSet<string> AllowedSourceIPs { get; set; } = [];
 
     /// <summary>
     /// 是否在服务层再次验证请求体签名
@@ -90,6 +90,12 @@ public class FeishuWebhookOptions
     /// 生产环境建议设置为 true 以提高安全性
     /// </summary>
     public bool EnforceHeaderSignatureValidation { get; set; } = true;
+
+    /// <summary>
+    /// 时间戳验证容错范围（秒）
+    /// 用于验证请求时间戳是否在有效范围内，默认为 300 秒
+    /// </summary>
+    public int TimestampToleranceSeconds { get; set; } = 300;
 
     /// <summary>
     /// 验证配置项的有效性
@@ -113,8 +119,15 @@ public class FeishuWebhookOptions
         if (MaxRequestBodySize < 1024)
             throw new InvalidOperationException("MaxRequestBodySize必须至少为1024字节");
 
-        if (AllowedHttpMethods == null || !AllowedHttpMethods.Any())
+        if (AllowedHttpMethods == null || AllowedHttpMethods.Count == 0)
             throw new InvalidOperationException("AllowedHttpMethods不能为空");
+
+        if (TimestampToleranceSeconds < 60)
+            throw new InvalidOperationException("TimestampToleranceSeconds必须至少为60秒");
+
+        // 验证 EncryptKey 长度（AES-256 需要 32 字节）
+        if (!string.IsNullOrEmpty(EncryptKey) && Encoding.UTF8.GetByteCount(EncryptKey) != 32)
+            throw new InvalidOperationException("EncryptKey 必须是 32 字节长度的字符串（用于 AES-256）");
     }
 }
 

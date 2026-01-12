@@ -82,7 +82,7 @@ public class FeishuEventValidator : IFeishuEventValidator
             }
 
             // 验证时间戳
-            if (!ValidateTimestamp(timestamp))
+            if (!ValidateTimestamp(timestamp, _options.Value.TimestampToleranceSeconds))
             {
                 _logger.LogWarning("请求时间戳无效: {Timestamp}", timestamp);
                 return false;
@@ -101,7 +101,11 @@ public class FeishuEventValidator : IFeishuEventValidator
 
             if (!isValid)
             {
-                _logger.LogWarning("签名验证失败: 计算 {ComputedSignature}, 期望 {ExpectedSignature}", computedSignature, signature);
+                var computedPrefix = computedSignature.Length > 8 ? computedSignature.Substring(0, 8) : computedSignature;
+                var signaturePrefix = signature.Length > 8 ? signature.Substring(0, 8) : signature;
+                _logger.LogWarning("签名验证失败: 计算 {ComputedSignaturePrefix}..., 期望 {ExpectedSignaturePrefix}...",
+                    computedPrefix + "...",
+                    signaturePrefix + "...");
             }
             else
             {
@@ -145,7 +149,7 @@ public class FeishuEventValidator : IFeishuEventValidator
             }
 
             // 验证时间戳
-            if (!ValidateTimestamp(timestamp))
+            if (!ValidateTimestamp(timestamp, _options.Value.TimestampToleranceSeconds))
             {
                 _logger.LogWarning("请求时间戳无效: {Timestamp}", timestamp);
                 return false;
@@ -164,7 +168,12 @@ public class FeishuEventValidator : IFeishuEventValidator
 
             if (!isValid)
             {
-                _logger.LogWarning("请求头签名验证失败: 计算 {ComputedSignature}, 期望 {ExpectedSignature}", computedSignature, headerSignature);
+                var computedPrefix = computedSignature.Length > 8 ? computedSignature.Substring(0, 8) : computedSignature;
+                var headerPrefix = headerSignature is null ? "null" :
+                    (headerSignature.Length > 8 ? headerSignature.Substring(0, 8) : headerSignature);
+                _logger.LogWarning("请求头签名验证失败: 计算 {ComputedSignaturePrefix}..., 期望 {ExpectedSignaturePrefix}...",
+                    computedPrefix + "...",
+                    headerPrefix + "...");
             }
             else
             {
@@ -181,7 +190,7 @@ public class FeishuEventValidator : IFeishuEventValidator
     }
 
     /// <inheritdoc />
-    public bool ValidateTimestamp(long timestamp, int toleranceSeconds = 300)
+    public bool ValidateTimestamp(long timestamp, int toleranceSeconds)
     {
         try
         {
