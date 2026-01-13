@@ -48,7 +48,8 @@ public abstract class DefaultFeishuEventHandler<T> : IFeishuEventHandler
     {
         ExceptionUtils.ThrowIfNull(eventData, nameof(eventData));
 
-        _logger.LogInformation("开始处理事件，事件类型: {EventType}, 应用ID: {AppId}, 租户: {TenantKey}",
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("开始处理事件，事件类型: {EventType}, 应用ID: {AppId}, 租户: {TenantKey}",
             eventData.EventType, eventData.AppId, eventData.TenantKey);
 
         try
@@ -77,7 +78,7 @@ public abstract class DefaultFeishuEventHandler<T> : IFeishuEventHandler
     /// <exception cref="InvalidOperationException">当事件数据为空或反序列化失败时抛出</exception>
     protected T? DeserializeEvent(EventData eventData)
     {
-        if (eventData.Event == null)
+        if (eventData.Event == null && _logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogWarning("事件数据为空，事件ID：{EventId}，事件类型: {EventType}", eventData.EventId, eventData.EventType);
             return default;
@@ -86,7 +87,7 @@ public abstract class DefaultFeishuEventHandler<T> : IFeishuEventHandler
         try
         {
             var eventJson = eventData.Event?.ToString();
-            if (string.IsNullOrWhiteSpace(eventJson))
+            if (string.IsNullOrWhiteSpace(eventJson) && _logger.IsEnabled(LogLevel.Debug))
             {
                 _logger.LogWarning("事件JSON数据为空，事件ID：{EventId}，事件类型: {EventType}", eventData.EventId, eventData.EventType);
                 return default;

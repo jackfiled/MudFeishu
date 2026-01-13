@@ -70,14 +70,14 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                 }
             }
 
-            if (!string.IsNullOrEmpty(eventData.EventType))
+            if (!string.IsNullOrEmpty(eventData.EventType) && _logger.IsEnabled(LogLevel.Information))
             {
-                _logger.LogInformation("✅ 事件数据解密成功 - EventType: [{EventType}], EventId: [{EventId}], Schema: {Schema}",
+                _logger.LogInformation("事件数据解密成功 - EventType: [{EventType}], EventId: [{EventId}], Schema: {Schema}",
                     eventData.EventType, eventData.EventId, schemaVersion ?? "v1.0");
             }
             else
             {
-                _logger.LogError("❌ 事件数据解密后EventType为空！原始JSON前500字符: {Json}",
+                _logger.LogError("事件数据解密后EventType为空！原始JSON前500字符: {Json}",
                     decryptedJson!.Length > 500 ? decryptedJson!.Substring(0, 500) + "..." : decryptedJson);
                 _logger.LogError("完整的解密JSON数据: {FullJson}", decryptedJson);
             }

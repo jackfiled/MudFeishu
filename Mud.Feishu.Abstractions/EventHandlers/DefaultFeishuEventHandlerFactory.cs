@@ -49,14 +49,15 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
                 }
                 handlersList.Add(handler);
 
-                _logger.LogInformation("已注册事件处理器: {EventType} → {HandlerType}",
+                if (_logger.IsEnabled(LogLevel.Information))
+                    _logger.LogInformation("已注册事件处理器: {EventType} → {HandlerType}",
                     handler.SupportedEventType, handler.GetType().Name);
             }
         }
 
         var totalHandlers = _handlers.Values.Sum(list => list.Count);
-        _logger.LogInformation("默认事件处理器工厂初始化完成，共注册 {Count} 个事件处理器，覆盖 {TypeCount} 种事件类型",
-            totalHandlers, _handlers.Count);
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("默认事件处理器工厂初始化完成，共注册 {Count} 个事件处理器，覆盖 {TypeCount} 种事件类型", totalHandlers, _handlers.Count);
     }
 
     /// <summary>
@@ -66,7 +67,7 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
     /// <returns>事件处理器列表，如果未找到则返回包含默认处理器的列表</returns>
     public IReadOnlyList<IFeishuEventHandler> GetHandlers(string eventType)
     {
-        if (string.IsNullOrEmpty(eventType))
+        if (string.IsNullOrEmpty(eventType) && _logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogWarning("事件类型为空，使用默认处理器");
             return [_defaultHandler];
@@ -74,12 +75,13 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
 
         if (_handlers.TryGetValue(eventType, out var handlers) && handlers.Count > 0)
         {
-            _logger.LogInformation("找到 {Count} 个事件处理器: [{EventType}] → {HandlerNames}",
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("找到 {Count} 个事件处理器: [{EventType}] → {HandlerNames}",
                 handlers.Count, eventType, string.Join(", ", handlers.Select(h => h.GetType().Name)));
             return handlers.AsReadOnly();
         }
-
-        _logger.LogWarning("未找到事件类型 [{EventType}] 的处理器，使用默认处理器。已注册的事件类型: {RegisteredTypes}",
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogWarning("未找到事件类型 [{EventType}] 的处理器，使用默认处理器。已注册的事件类型: {RegisteredTypes}",
             eventType, string.Join(", ", GetRegisteredEventTypes()));
         return [_defaultHandler];
     }
@@ -104,7 +106,7 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
         if (handler == null)
             throw new ArgumentNullException(nameof(handler));
 
-        if (string.IsNullOrEmpty(handler.SupportedEventType))
+        if (string.IsNullOrEmpty(handler.SupportedEventType) && _logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogWarning("尝试注册不支持任何事件类型的处理器");
             return;
@@ -117,8 +119,10 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
         }
 
         handlersList.Add(handler);
-        _logger.LogInformation("已注册事件处理器: {EventType}，该类型现在有 {Count} 个处理器",
-            handler.SupportedEventType, _handlers[handler.SupportedEventType].Count);
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogInformation("已注册事件处理器: {EventType}，该类型现在有 {Count} 个处理器",
+                handler.SupportedEventType, _handlers[handler.SupportedEventType].Count);
     }
 
     /// <summary>
@@ -140,15 +144,15 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
                 _handlers.Remove(handler.SupportedEventType);
             }
 
-            if (result)
+            if (result && _logger.IsEnabled(LogLevel.Information))
             {
                 _logger.LogInformation("已取消注册事件处理器: {EventType}", handler.SupportedEventType);
             }
 
             return result;
         }
-
-        _logger.LogWarning("未找到要取消注册的事件类型处理器: {EventType}", handler.SupportedEventType);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogWarning("未找到要取消注册的事件类型处理器: {EventType}", handler.SupportedEventType);
         return false;
     }
 
@@ -164,15 +168,14 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
 
         var result = _handlers.Remove(eventType);
 
-        if (result)
+        if (result && _logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation("已取消注册事件类型的所有处理器: {EventType}", eventType);
         }
-        else
+        else if (_logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogWarning("未找到要取消注册的事件类型处理器: {EventType}", eventType);
         }
-
         return result;
     }
 
@@ -218,7 +221,8 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
         try
         {
             await Task.WhenAll(tasks);
-            _logger.LogInformation("事件 {EventType} 处理完成，共 {HandlerCount} 个处理器", eventType, handlers.Count);
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("事件 {EventType} 处理完成，共 {HandlerCount} 个处理器", eventType, handlers.Count);
         }
         catch (Exception ex)
         {
@@ -238,8 +242,10 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
         try
         {
             await handler.HandleAsync(eventData, cancellationToken);
-            _logger.LogDebug("事件处理器 {HandlerType} 成功处理事件 {EventId}",
-                handler.GetType().Name, eventData.EventId);
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("事件处理器 {HandlerType} 成功处理事件 {EventId}",
+                 handler.GetType().Name, eventData.EventId);
         }
         catch (Exception ex)
         {

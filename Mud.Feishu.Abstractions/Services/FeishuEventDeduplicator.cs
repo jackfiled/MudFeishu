@@ -32,6 +32,7 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
     /// <param name="logger">日志记录器（可选）</param>
     /// <param name="cacheExpiration">缓存过期时间</param>
     /// <param name="cleanupInterval">清理间隔时间</param>
+    /// <param name="processingTimeout">处理中超时时间</param>
     public FeishuEventDeduplicator(
         ILogger<FeishuEventDeduplicator>? logger = null,
         TimeSpan? cacheExpiration = null,
@@ -47,14 +48,15 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
         // 启动定期清理任务
         _cleanupTimer = new Timer(CleanupExpiredEntries, null, _cleanupInterval, _cleanupInterval);
 
-        _logger?.LogInformation("飞书事件去重服务初始化完成，缓存过期时间: {Expiration}, 清理间隔: {CleanupInterval}, 处理中超时: {ProcessingTimeout}",
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+            _logger?.LogInformation("飞书事件去重服务初始化完成，缓存过期时间: {Expiration}, 清理间隔: {CleanupInterval}, 处理中超时: {ProcessingTimeout}",
             _cacheExpiration, _cleanupInterval, _processingTimeout);
     }
 
     /// <inheritdoc/>
     public bool TryMarkAsProcessed(string eventId)
     {
-        if (string.IsNullOrEmpty(eventId))
+        if (string.IsNullOrEmpty(eventId) && _logger != null && _logger.IsEnabled(LogLevel.Warning))
         {
             _logger?.LogWarning("事件ID为空，跳过去重检查");
             return false;
@@ -63,7 +65,7 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
         lock (_lock)
         {
             // 检查是否已存在
-            if (_eventCache.ContainsKey(eventId))
+            if (_eventCache.ContainsKey(eventId) && _logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
                 _logger?.LogDebug("事件 {EventId} 已处理过，跳过", eventId);
                 return true; // 已处理
@@ -76,8 +78,8 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
                 EventId = eventId,
                 Status = DeduplicationStatus.Completed
             };
-
-            _logger?.LogDebug("事件 {EventId} 标记为已处理", eventId);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                _logger?.LogDebug("事件 {EventId} 标记为已处理", eventId);
             return false; // 未处理，新事件
         }
     }
@@ -85,7 +87,7 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
     /// <inheritdoc/>
     public bool TryMarkAsProcessing(string eventId)
     {
-        if (string.IsNullOrEmpty(eventId))
+        if (string.IsNullOrEmpty(eventId) && _logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
             _logger?.LogWarning("事件ID为空，跳过去重检查");
             return false;
@@ -97,7 +99,7 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
             if (_eventCache.TryGetValue(eventId, out var entry))
             {
                 // 如果已处理，返回 true
-                if (entry.Status == DeduplicationStatus.Completed)
+                if (entry.Status == DeduplicationStatus.Completed && _logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
                     _logger?.LogDebug("事件 {EventId} 已处理过，跳过", eventId);
                     return true;
@@ -109,13 +111,15 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
                     if (DateTimeOffset.UtcNow - entry.ProcessedAt > _processingTimeout)
                     {
                         // 处理中超时，允许重新处理
-                        _logger?.LogWarning("事件 {EventId} 处理中超时，允许重新处理", eventId);
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                            _logger?.LogWarning("事件 {EventId} 处理中超时，允许重新处理", eventId);
                         _eventCache.Remove(eventId);
                         // 继续处理
                     }
                     else
                     {
-                        _logger?.LogDebug("事件 {EventId} 正在处理中，跳过", eventId);
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                            _logger?.LogDebug("事件 {EventId} 正在处理中，跳过", eventId);
                         return true;
                     }
                 }
@@ -128,8 +132,8 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
                 EventId = eventId,
                 Status = DeduplicationStatus.Processing
             };
-
-            _logger?.LogDebug("事件 {EventId} 标记为处理中", eventId);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                _logger?.LogDebug("事件 {EventId} 标记为处理中", eventId);
             return false; // 未处理，新事件
         }
     }
@@ -148,7 +152,9 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
             {
                 entry.Status = DeduplicationStatus.Completed;
                 entry.ProcessedAt = DateTimeOffset.UtcNow; // 更新完成时间
-                _logger?.LogDebug("事件 {EventId} 标记为已完成", eventId);
+
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                    _logger?.LogDebug("事件 {EventId} 标记为已完成", eventId);
             }
         }
     }
@@ -168,11 +174,13 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
                 if (entry.Status == DeduplicationStatus.Processing)
                 {
                     _eventCache.Remove(eventId);
-                    _logger?.LogDebug("事件 {EventId} 处理回滚，允许重新处理", eventId);
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                        _logger?.LogDebug("事件 {EventId} 处理回滚，允许重新处理", eventId);
                 }
                 else
                 {
-                    _logger?.LogDebug("事件 {EventId} 状态为 {Status}，无需回滚", eventId, entry.Status);
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                        _logger?.LogDebug("事件 {EventId} 状态为 {Status}，无需回滚", eventId, entry.Status);
                 }
             }
         }
@@ -254,7 +262,8 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
 
             if (expiredKeys.Count > 0)
             {
-                _logger?.LogDebug("清理了 {Count} 个过期的事件缓存条目", expiredKeys.Count);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                    _logger?.LogDebug("清理了 {Count} 个过期的事件缓存条目", expiredKeys.Count);
             }
         }
     }
@@ -268,7 +277,9 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
         {
             var count = _eventCache.Count;
             _eventCache.Clear();
-            _logger?.LogInformation("清空了 {Count} 个事件缓存条目", count);
+
+            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+                _logger?.LogInformation("清空了 {Count} 个事件缓存条目", count);
         }
     }
 
