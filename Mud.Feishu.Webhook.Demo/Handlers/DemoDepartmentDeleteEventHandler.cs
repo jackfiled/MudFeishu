@@ -39,7 +39,7 @@ public class DemoDepartmentDeleteEventHandler : DepartmentDeleteEventHandler
             return;
         }
 
-        _logger.LogInformation("🗑️ [部门删除事件] 开始处理部门删除事件: EventId={EventId}, AppId={AppId}, TenantKey={TenantKey}",
+        _logger.LogInformation(">> [部门删除事件] 开始处理部门删除事件: EventId={EventId}, AppId={AppId}, TenantKey={TenantKey}",
             eventData.EventId, eventData.AppId, eventData.TenantKey);
 
         _logger.LogDebug("部门删除事件详情: {@EventEntity}", eventEntity);

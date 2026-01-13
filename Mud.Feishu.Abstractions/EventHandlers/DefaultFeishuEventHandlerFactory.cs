@@ -5,8 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.Extensions.Logging;
-
 namespace Mud.Feishu.Abstractions.EventHandlers;
 
 /// <summary>
@@ -51,7 +49,7 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
                 }
                 handlersList.Add(handler);
 
-                _logger.LogInformation("✅ 已注册事件处理器: {EventType} → {HandlerType}",
+                _logger.LogInformation("已注册事件处理器: {EventType} → {HandlerType}",
                     handler.SupportedEventType, handler.GetType().Name);
             }
         }
@@ -70,20 +68,20 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
     {
         if (string.IsNullOrEmpty(eventType))
         {
-            _logger.LogWarning("⚠️ 事件类型为空，使用默认处理器");
-            return [ _defaultHandler ];
+            _logger.LogWarning("事件类型为空，使用默认处理器");
+            return [_defaultHandler];
         }
 
         if (_handlers.TryGetValue(eventType, out var handlers) && handlers.Count > 0)
         {
-            _logger.LogInformation("🔍 找到 {Count} 个事件处理器: [{EventType}] → {HandlerNames}",
+            _logger.LogInformation("找到 {Count} 个事件处理器: [{EventType}] → {HandlerNames}",
                 handlers.Count, eventType, string.Join(", ", handlers.Select(h => h.GetType().Name)));
             return handlers.AsReadOnly();
         }
 
-        _logger.LogWarning("⚠️ 未找到事件类型 [{EventType}] 的处理器，使用默认处理器。已注册的事件类型: {RegisteredTypes}",
+        _logger.LogWarning("未找到事件类型 [{EventType}] 的处理器，使用默认处理器。已注册的事件类型: {RegisteredTypes}",
             eventType, string.Join(", ", GetRegisteredEventTypes()));
-        return [ _defaultHandler ];
+        return [_defaultHandler];
     }
 
     /// <summary>
@@ -240,12 +238,12 @@ public class DefaultFeishuEventHandlerFactory : IFeishuEventHandlerFactory
         try
         {
             await handler.HandleAsync(eventData, cancellationToken);
-            _logger.LogDebug("事件处理器 {HandlerType} 成功处理事件 {EventId}", 
+            _logger.LogDebug("事件处理器 {HandlerType} 成功处理事件 {EventId}",
                 handler.GetType().Name, eventData.EventId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "事件处理器 {HandlerType} 处理事件 {EventId} 时发生错误", 
+            _logger.LogError(ex, "事件处理器 {HandlerType} 处理事件 {EventId} 时发生错误",
                 handler.GetType().Name, eventData.EventId);
             // 不重新抛出异常，避免影响其他处理器
         }

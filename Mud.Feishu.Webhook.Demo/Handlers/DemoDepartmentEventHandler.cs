@@ -30,7 +30,7 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
         if (eventData == null)
             throw new ArgumentNullException(nameof(eventData));
 
-        _logger.LogInformation("[部门事件] 开始处理部门创建事件: {EventId}", eventData.EventId);
+        _logger.LogInformation(">> [部门事件] 开始处理部门创建事件: {EventId}", eventData.EventId);
 
         try
         {
@@ -41,19 +41,19 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
             // 模拟业务处理
             await ProcessDepartmentEventAsync(eventEntity, cancellationToken);
 
-            _logger.LogInformation("[部门事件] 部门创建事件处理完成: 部门ID {DepartmentId}, 部门名 {DepartmentName}",
+            _logger.LogInformation(">> [部门事件] 部门创建事件处理完成: 部门ID {DepartmentId}, 部门名 {DepartmentName}",
                 eventEntity.DepartmentId, eventEntity.Name);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[部门事件] 处理部门创建事件失败: {EventId}", eventData.EventId);
+            _logger.LogError(ex, ">> [部门事件] 处理部门创建事件失败: {EventId}", eventData.EventId);
             throw;
         }
     }
 
     private async Task ProcessDepartmentEventAsync(DepartmentCreatedResult departmentData, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("🔄 [部门事件] 开始处理部门数据: {DepartmentId}", departmentData.DepartmentId);
+        _logger.LogDebug(">> [部门事件] 开始处理部门数据: {DepartmentId}", departmentData.DepartmentId);
 
         // 模拟异步业务操作
         await Task.Delay(100, cancellationToken);
@@ -65,12 +65,12 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
         }
 
         // 模拟权限初始化
-        _logger.LogInformation("[部门事件] 初始化部门权限: {DepartmentName}", departmentData.Name);
+        _logger.LogInformation(">> [部门事件] 初始化部门权限: {DepartmentName}", departmentData.Name);
 
         // 模拟通知部门主管
         if (!string.IsNullOrWhiteSpace(departmentData.LeaderUserId))
         {
-            _logger.LogInformation("[部门事件] 通知部门主管: {LeaderUserId}", departmentData.LeaderUserId);
+            _logger.LogInformation(">>[部门事件] 通知部门主管: {LeaderUserId}", departmentData.LeaderUserId);
         }
 
         // 模拟更新统计信息
@@ -79,7 +79,7 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
         // 模拟层级关系处理
         if (!string.IsNullOrWhiteSpace(departmentData.ParentDepartmentId))
         {
-            _logger.LogInformation("[部门事件] 建立层级关系: {DepartmentId} -> {ParentDepartmentId}",
+            _logger.LogInformation(">>[部门事件] 建立层级关系: {DepartmentId} -> {ParentDepartmentId}",
                 departmentData.DepartmentId, departmentData.ParentDepartmentId);
         }
 
