@@ -7,9 +7,9 @@
 
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Webhook.Configuration;
+using Mud.Feishu.Webhook.Models;
 using Mud.Feishu.Webhook.Utils;
 using System.Diagnostics;
-using System.Linq;
 
 namespace Mud.Feishu.Webhook.Middleware;
 

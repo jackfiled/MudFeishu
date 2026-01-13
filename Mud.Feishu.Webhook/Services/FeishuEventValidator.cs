@@ -7,6 +7,7 @@
 
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook.Configuration;
+using Mud.Feishu.Webhook.Models;
 
 namespace Mud.Feishu.Webhook.Services;
 

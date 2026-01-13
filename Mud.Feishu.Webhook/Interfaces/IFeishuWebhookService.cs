@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions;
-using Mud.Feishu.Webhook.Configuration;
+using Mud.Feishu.Webhook.Models;
 
 namespace Mud.Feishu.Webhook;
 
