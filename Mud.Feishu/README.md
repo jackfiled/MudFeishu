@@ -1,57 +1,120 @@
 # MudFeishu
 
-MudFeishu 是一个用于简化与飞书（Feishu）API 集成的现代化 .NET 库。它基于特性驱动的 HTTP 客户端设计，提供了一套类型安全的接口和强类型化的数据模型，使开发人员能够轻松地在 .NET 应用程序中调用飞书 API。
+<div align="center">
 
-## 功能特性
+![NuGet](https://img.shields.io/nuget/v/Mud.Feishu)
+![NuGet](https://img.shields.io/nuget/dt/Mud.Feishu)
+![.NET](https://img.shields.io/badge/.NET-6.0%20%7C%207.0%20%7C%208.0%20%7C%209.0%20%7C%2010.0-purple)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-- **特性驱动的 HTTP 客户端**：使用 `[HttpClientApi]` 特性自动生成 HTTP 客户端，简化 API 调用
-- **强类型数据模型**：完整的飞书 API 数据模型，包含详细的 XML 文档注释
-- **智能令牌管理**：内置自动令牌缓存和刷新机制，支持租户令牌和用户令牌
-- **统一的响应处理**：基于 `FeishuApiResult<T>` 的响应包装，简化错误处理
-- **依赖注入友好**：提供 `IServiceCollection` 扩展方法，易于集成到现代 .NET 应用
-- **多版本 .NET 支持**：支持.NET4.6+、.NET 6.0、.NET 7.0、.NET 8.0、.NET 9.0、.NET 10.0，使用最新的 C# 13.0 语言特性
-- **完整的飞书 API 覆盖**：支持认证、用户管理、部门管理、用户组管理、人员类型管理、职级管理、职位序列管理、角色管理、单位管理、职务管理、工作城市管理
-- **高性能缓存机制**：解决缓存击穿和竞态条件，支持令牌自动刷新
-- **企业级错误处理**：统一的异常处理和日志记录
+**现代化 .NET 飞书 API 集成 SDK**
 
-## 支持的 .NET 版本
+极简 API · 类型安全 · 企业级特性 · 事件驱动
 
-- **.NET 6.0** - LTS 长期支持版本
-- **.NET 7.0** - 稳定版本
-- **.NET 8.0** - LTS 长期支持版本
-- **.NET 9.0** - 稳定版本  
-- **.NET 10.0** - LTS 长期支持版本
+[快速开始](#快速开始) · [文档](https://www.mudtools.cn/documents/guides/feishu/) · [示例代码](#示例项目) · [贡献指南](#贡献指南)
 
-## 与原生飞书SDK的对比分析
+</div>
 
-以下表格清晰地展示Mud.Feishu组件相对于原生SDK的优势：
+---
 
-| 对比维度 | 原生SDK调用 | Mud.Feishu组件 | 优势说明 |
-|---------|------------|---------------|----------|
-| 开发效率 | 需要手动构造HTTP请求、处理响应、解析JSON等大量样板代码 | 只需调用简洁的接口方法，一行代码完成操作 | 大幅减少代码量，提高开发效率 |
-| 类型安全 | 手动处理JSON序列化/反序列化，容易出现类型转换错误 | 提供完整的强类型支持，编译时就能发现类型错误 | 提高代码健壮性，减少运行时错误 |
-| 令牌管理 | 需要手动获取、刷新和管理访问令牌 | 自动处理令牌获取和刷新机制 | 减少开发者负担，避免令牌管理错误 |
-| 异常处理 | 需要手动处理各种网络异常和业务异常 | 提供统一的异常处理机制和明确的异常类型 | 简化异常处理逻辑，提高代码可读性 |
-| 重试机制 | 需要手动实现重试逻辑 | 内置智能重试机制，自动处理网络抖动等问题 | 提高系统稳定性 |
-| 可测试性 | 直接调用HTTP接口，难以进行单元测试 | 基于接口设计，易于进行Mock测试 | 提高代码质量和可维护性 |
-| 文档完善度 | 需要在飞书官方文档中查找各个接口的详细说明 | 提供完整的中文API文档和示例代码 | 降低学习成本，快速上手 |
-| 依赖管理 | 需要自行引入和管理各种第三方库 | 统一管理所有依赖，避免版本冲突 | 简化项目依赖管理 |
+## 📖 简介
 
-## 快速开始
+MudFeishu 是一套现代化的企业级 .NET 飞书 API 集成 SDK，提供完整的 HTTP API 调用、WebSocket 实时事件订阅和 Webhook 事件处理能力。SDK 采用策略模式和工厂模式设计，内置自动令牌管理、智能重试、高性能缓存等企业级特性。
+
+### ✨ 核心特性
+
+- **极简 API** - 一行代码完成服务注册
+- **类型安全** - 完整的强类型数据模型，编译时检查
+- **自动令牌管理** - 智能缓存和自动刷新机制
+- **企业级稳定** - 统一异常处理、智能重试、高性能缓存
+- **事件驱动架构** - WebSocket + Webhook 双模式支持
+- **多框架支持** - .NET Standard 2.0 / .NET 6.0 / .NET 8.0 / .NET 10.0
+- **分布式支持** - Redis 分布式去重，多实例部署
+- **安全增强** - 签名验证、时间戳验证、IP 白名单
+
+---
+
+## 🏗️ 架构概览
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Mud.Feishu SDK                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │  HTTP API   │  │  WebSocket   │  │   Webhook    │          │
+│  │   Client    │  │   Events     │  │   Handler    │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│         │                  │                  │                 │
+│         └──────────────────┼──────────────────┘                 │
+│                            │                                    │
+│                 ┌──────────▼──────────┐                         │
+│                 │  Event Handler     │                         │
+│                 │  Abstraction Layer │                         │
+│                 └──────────┬──────────┘                         │
+│                            │                                    │
+│                 ┌──────────▼──────────┐                         │
+│                 │  Token Management  │                         │
+│                 │  Smart Cache &     │                         │
+│                 │  Auto Refresh      │                         │
+│                 └──────────┬──────────┘                         │
+│                            │                                    │
+│                 ┌──────────▼──────────┐                         │
+│                 │ Distributed        │                         │
+│                 │ Deduplication      │                         │
+│                 │ (Redis Support)    │                         │
+│                 └────────────────────┘                         │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📦 模块组成
+
+| 模块 | NuGet 包 | 功能定位 |
+|------|---------|---------|
+| **Mud.Feishu.Abstractions** | `Mud.Feishu.Abstractions` | 事件处理抽象层，提供统一的处理器接口和数据模型 |
+| **Mud.Feishu** | `Mud.Feishu` | HTTP API 客户端核心，支持组织架构、消息、审批、任务等 |
+| **Mud.Feishu.WebSocket** | `Mud.Feishu.WebSocket` | 实时事件订阅，支持自动重连、心跳检测、消息队列 |
+| **Mud.Feishu.Webhook** | `Mud.Feishu.Webhook` | HTTP 回调事件处理，支持签名验证、加密解密 |
+| **Mud.Feishu.Redis** | `Mud.Feishu.Redis` | 分布式去重扩展，支持多实例部署 |
+
+### 功能覆盖矩阵
+
+```
+功能模块          │ HTTP API │ WebSocket │ Webhook │ Redis 扩展
+─────────────────┼──────────┼──────────┼─────────┼───────────
+认证授权          │    ✅     │    ✅     │    ✅    │     ✅
+组织架构          │    ✅     │    ✅     │    ✅    │     ✅
+用户管理          │    ✅     │    ✅     │    ✅    │     ✅
+部门管理          │    ✅     │    ✅     │    ✅    │     ✅
+消息服务          │    ✅     │    ✅     │    ✅    │     ✅
+群聊管理          │    ✅     │    ✅     │    ✅    │     ✅
+审批流程          │    ✅     │    ✅     │    ✅    │     ✅
+任务管理          │    ✅     │    ✅     │    ✅    │     ✅
+卡片管理          │    ✅     │    ✅     │    ✅    │     ✅
+```
+
+---
+
+## 🚀 快速开始
 
 ### 安装
 
-你可以通过 NuGet 安装 MudFeishu：
-
 ```bash
+# 核心包
 dotnet add package Mud.Feishu --version 1.1.0
+
+# 可选模块
+dotnet add package Mud.Feishu.WebSocket --version 1.1.0
+dotnet add package Mud.Feishu.Webhook --version 1.1.0
+dotnet add package Mud.Feishu.Redis --version 1.1.0
 ```
 
-### 配置依赖注入（ASP.NET Core）
+### 配置依赖注入
 
-在 `Program.cs` 中注册服务：
-
-#### 🚀 一键完整注册（推荐新手）
+#### 🎯 一键完整注册（推荐新手）
 
 ```csharp
 using Mud.Feishu;
@@ -60,34 +123,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 一行代码注册所有飞书 API 服务（懒人模式）
 builder.Services.AddFeishuServices(builder.Configuration);
-
-// 按需灵活注册服务（构造者模式）
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
-    .AddTokenManagers()                   // 令牌管理
-    .AddOrganizationApi()                 // 组织架构
-    .AddMessageApi()                      // 消息服务
-    .AddChatGroupApi()                    // 群组服务
-    .Build();
-
-// 快速单模块注册
-builder.Services.AddFeishuTokenManagers(builder.Configuration);     // 令牌管理
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
-    .AddOrganizationApi()                 // 组织架构
-    .AddMessageApi()                      // 消息服务
-    .AddChatGroupApi()                    // 群组服务
-    .AddApprovalApi()                     // 流程审批
-    .AddTaskApi()                         // 任务管理
-    .AddCardApi()                         // 卡片管理
-    .Build();
-
-// 模块化注册
-builder.Services.AddFeishuServices(builder.Configuration, new[]
-{
-    FeishuModule.TokenManagement,
-    FeishuModule.Organization,
-    FeishuModule.Message,
-    FeishuModule.ChatGroup
-});
 
 var app = builder.Build();
 ```
@@ -98,8 +133,13 @@ var app = builder.Build();
 // 按需灵活注册服务（使用配置文件）
 builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
     .AddTokenManagers()                   // 令牌管理
+    .AddAuthenticationApi()               // 认证 API
     .AddOrganizationApi()                 // 组织架构
     .AddMessageApi()                      // 消息服务
+    .AddChatGroupApi()                    // 群组服务
+    .AddApprovalApi()                     // 流程审批
+    .AddTaskApi()                         // 任务管理
+    .AddCardApi()                         // 卡片管理
     .Build();
 
 // 按需灵活注册服务（使用代码配置）
@@ -108,37 +148,48 @@ builder.Services.CreateFeishuServicesBuilder(options =>
     options.AppId = "your_app_id";
     options.AppSecret = "your_app_secret";
     options.BaseUrl = "https://open.feishu.cn";
+    options.TimeOut = 30;
+    options.RetryCount = 3;
 })
-    .AddTokenManagers()                   // 令牌管理
-    .AddOrganizationApi()                 // 组织架构
-    .AddMessageApi()                      // 消息服务
-    .Build();
-    .AddTokenManagers()                   // 令牌管理
-    .AddOrganizationApi()                 // 组织架构
-    .AddMessageApi()                      // 消息服务
-    .Build();
-```
-
-#### ⚡ 快速单模块注册
-
-```csharp
-// 只注册需要的服务
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
-    .AddOrganizationApi()                 // 组织架构
-    .AddMessageApi()                      // 消息服务
-    .AddTokenManagers()                   // 令牌管理
+    .AddOrganizationApi()
+    .AddMessageApi()
     .Build();
 ```
 
 #### 📦 模块化注册
 
 ```csharp
-builder.Services.AddFeishuModules(builder.Configuration, new[]
+// 仅注册需要的模块
+builder.Services.AddFeishuServices(builder.Configuration, new[]
 {
-    FeishuModule.TokenManagement,
-    FeishuModule.Organization,
-    FeishuModule.Message
+    FeishuModule.TokenManagement,  // 令牌管理
+    FeishuModule.Organization,      // 组织架构
+    FeishuModule.Message,          // 消息服务
+    FeishuModule.ChatGroup         // 群组服务
 });
+```
+
+### 配置文件
+
+#### appsettings.json
+
+```json
+{
+  "Feishu": {
+    "AppId": "your_feishu_app_id",
+    "AppSecret": "your_feishu_app_secret",
+    "BaseUrl": "https://open.feishu.cn",
+    "TimeOut": 30,
+    "RetryCount": 3,
+    "EnableLogging": true
+  },
+  "Feishu:Redis": {
+    "ServerAddress": "localhost:6379",
+    "Password": "",
+    "DefaultDatabase": 0,
+    "EventCacheExpiration": "08:00:00"
+  }
+}
 ```
 
 ### Controller 注入示例
@@ -153,157 +204,69 @@ public class FeishuController : ControllerBase
 {
     private readonly IFeishuTenantV3User _userApi;
     private readonly IFeishuTenantV3Departments _departmentsApi;
-    private readonly IFeishuTenantV3UserGroup _userGroupApi;
-    private readonly IFeishuTenantV3EmployeeType _employeeTypeApi;
-    private readonly IFeishuTenantV3JobLevel _jobLevelApi;
-    private readonly IFeishuTenantV3JobFamilies _jobFamiliesApi;
     private readonly IFeishuTenantV1Message _messageApi;
 
     public FeishuController(
         IFeishuTenantV3User userApi,
         IFeishuTenantV3Departments departmentsApi,
-        IFeishuTenantV3UserGroup userGroupApi,
-        IFeishuTenantV3EmployeeType employeeTypeApi,
-        IFeishuTenantV3JobLevel jobLevelApi,
-        IFeishuTenantV3JobFamilies jobFamiliesApi,
         IFeishuTenantV1Message messageApi)
     {
         _userApi = userApi;
         _departmentsApi = departmentsApi;
-        _userGroupApi = userGroupApi;
-        _employeeTypeApi = employeeTypeApi;
-        _jobLevelApi = jobLevelApi;
-        _jobFamiliesApi = jobFamiliesApi;
         _messageApi = messageApi;
     }
 }
 ```
 
-## 使用示例
+---
 
-### 🚀 快速上手
+## 💡 使用示例
 
- Mud.Feishu 提供了两种主要的使用方式：
+### 📧 消息通知
 
-#### 自动令牌管理（推荐）
-
-使用带 `[HttpClientApi]` 特性的接口，令牌自动管理：
+#### 发送文本消息
 
 ```csharp
-public class UserController : ControllerBase
+public class MessageService
 {
-    private readonly IFeishuTenantV3User _userApi;
-    private readonly IFeishuTenantV3Departments _deptApi;
+    private readonly IFeishuTenantV1Message _messageApi;
 
-    public UserController(
-        IFeishuTenantV3User userApi,
-        IFeishuTenantV3Departments deptApi)
+    public MessageService(IFeishuTenantV1Message messageApi)
     {
-        _userApi = userApi;
-        _deptApi = deptApi;
+        _messageApi = messageApi;
     }
 
-    [HttpPost("users")]
-    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
+    public async Task SendMessageAsync(string userId, string text)
     {
-        // 令牌自动处理，无需手动获取
-        var result = await _userApi.CreateUserAsync(request);
-
-        if (result.Code == 0)
+        var content = new MessageTextContent { Text = text };
+        var result = await _messageApi.SendMessageAsync(new SendMessageRequest
         {
-            return Ok(new { success = true, userId = result.Data?.User?.UserId });
-        }
-        return BadRequest(new { error = result.Msg });
-    }
+            ReceiveId = userId,
+            MsgType = "text",
+            Content = JsonSerializer.Serialize(content)
+        }, receive_id_type: "user_id");
 
-    [HttpGet("departments/{departmentId}/users")]
-    public async Task<IActionResult> GetDepartmentUsers(string departmentId)
-    {
-        var result = await _deptApi.GetUserByDepartmentIdAsync(departmentId);
-        return Ok(result.Data);
+        if (result.Code != 0)
+        {
+            throw new Exception($"发送失败: {result.Msg}");
+        }
+
+        Console.WriteLine($"消息发送成功，消息ID: {result.Data?.MessageId}");
     }
 }
 ```
 
-### 📋 业务场景实战
-
-#### 场景1：用户全生命周期管理
-
-```csharp
-public class UserManagementService
-{
-    private readonly IFeishuTenantV3User _userApi;
-    private readonly IFeishuTenantV3Departments _deptApi;
-    private readonly IFeishuTenantV3UserGroup _groupApi;
-
-    public UserManagementService(
-        IFeishuTenantV3User userApi,
-        IFeishuTenantV3Departments deptApi,
-        IFeishuTenantV3UserGroup groupApi)
-    {
-        _userApi = userApi;
-        _deptApi = deptApi;
-        _groupApi = groupApi;
-    }
-
-    // 创建新员工并加入指定部门和用户组
-    public async Task<string> OnboardNewEmployeeAsync(CreateUserRequest userRequest, string departmentId, string[] groupIds)
-    {
-        try
-        {
-            // 1. 创建用户
-            var userResult = await _userApi.CreateUserAsync(userRequest);
-            if (userResult.Code != 0)
-                throw new Exception($"创建用户失败: {userResult.Msg}");
-
-            var userId = userResult.Data!.User!.UserId;
-
-            // 2. 获取部门信息用于验证
-            var deptResult = await _deptApi.GetDepartmentInfoByIdAsync(departmentId);
-            if (deptResult.Code != 0)
-                throw new Exception($"部门不存在: {deptResult.Msg}");
-
-            // 3. 将用户加入用户组
-            foreach (var groupId in groupIds)
-            {
-                var addMemberResult = await _groupApi.AddUserGroupMemberAsync(new AddUserGroupMemberRequest
-                {
-                    UserGroupId = groupId,
-                    UserIds = new[] { userId }
-                });
-
-                if (addMemberResult.Code != 0)
-                {
-                    // 记录警告但不中断流程
-                    Console.WriteLine($"加入用户组 {groupId} 失败: {addMemberResult.Msg}");
-                }
-            }
-
-            return userId;
-        }
-        catch (FeishuException ex)
-        {
-            // 记录飞书 API 错误
-            throw new Exception($"飞书 API 调用失败 (错误码: {ex.ErrorCode}): {ex.Message}");
-        }
-    }
-}
-```
-
-#### 场景2：批量消息发送
+#### 批量发送通知
 
 ```csharp
 public class NotificationService
 {
     private readonly IFeishuTenantV1BatchMessage _batchMessageApi;
 
-    public NotificationService(IFeishuTenantV1BatchMessage batchMessageApi)
-    {
-        _batchMessageApi = batchMessageApi;
-    }
-
-    // 发送系统通知给多个部门
-    public async Task<string> SendSystemNotificationAsync(string[] departmentIds, string title, string content)
+    public async Task<string> SendSystemNotificationAsync(
+        string[] departmentIds,
+        string title,
+        string content)
     {
         var request = new BatchSenderTextMessageRequest
         {
@@ -321,7 +284,7 @@ public class NotificationService
             var messageId = result.Data!.MessageId;
             Console.WriteLine($"批量消息发送成功，任务ID: {messageId}");
 
-            // 可以异步查询发送进度
+            // 异步查询发送进度
             _ = Task.Run(async () => await MonitorProgressAsync(messageId));
 
             return messageId;
@@ -332,215 +295,252 @@ public class NotificationService
 
     private async Task MonitorProgressAsync(string messageId)
     {
-        var delay = TimeSpan.FromSeconds(5);
-        var maxAttempts = 20; // 最多等待100秒
-        
-        for (int i = 0; i < maxAttempts; i++)
+        for (int i = 0; i < 20; i++)
         {
             var progress = await _batchMessageApi.GetBatchMessageProgressAsync(messageId);
-            
+
             if (progress.Code == 0)
             {
                 var progressData = progress.Data!;
                 Console.WriteLine($"发送进度: {progressData.SentCount}/{progressData.TotalCount}");
-                
+
                 if (progressData.IsFinished)
                 {
                     Console.WriteLine($"发送完成！成功: {progressData.SentCount}, 失败: {progressData.FailedCount}");
                     break;
                 }
             }
-            
-            await Task.Delay(delay);
+
+            await Task.Delay(TimeSpan.FromSeconds(5));
         }
     }
 }
-```
-
-#### 场景3：组织架构同步
-
-```csharp
-public class OrganizationSyncService
-{
-    private readonly IFeishuTenantV3Departments _deptApi;
-    private readonly IFeishuTenantV3User _userApi;
-
-    public OrganizationSyncService(
-        IFeishuTenantV3Departments deptApi,
-        IFeishuTenantV3User userApi)
-    {
-        _deptApi = deptApi;
-        _userApi = userApi;
-    }
-
-    // 同步组织架构数据到本地系统
-    public async Task SyncOrganizationAsync()
-    {
-        try
-        {
-            // 1. 获取根部门
-            var rootDeptResult = await _deptApi.GetDepartmentsByParentIdAsync("0");
-            if (rootDeptResult.Code != 0)
-                throw new Exception($"获取根部门失败: {rootDeptResult.Msg}");
-
-            var allDepartments = new List<DepartmentInfo>();
-            var allUsers = new List<UserInfo>();
-
-            // 2. 递归获取所有部门
-            foreach (var rootDept in rootDeptResult.Data!.Items!)
-            {
-                await LoadDepartmentTreeAsync(rootDept.DepartmentId!, allDepartments);
-            }
-
-            // 3. 获取所有用户
-            foreach (var dept in allDepartments)
-            {
-                var usersResult = await _userApi.GetUserByDepartmentIdAsync(dept.DepartmentId!);
-                if (usersResult.Code == 0 && usersResult.Data?.Items != null)
-                {
-                    allUsers.AddRange(usersResult.Data.Items);
-                }
-            }
-
-            Console.WriteLine($"同步完成: {allDepartments.Count} 个部门, {allUsers.Count} 个用户");
-
-            // TODO: 保存到数据库
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"组织架构同步失败: {ex.Message}");
-            throw;
-        }
-    }
-
-    private async Task LoadDepartmentTreeAsync(string departmentId, List<DepartmentInfo> departments)
-    {
-        var result = await _deptApi.GetDepartmentsByParentIdAsync(departmentId, fetch_child: true);
-
-        if (result.Code == 0 && result.Data?.Items != null)
-        {
-            foreach (var dept in result.Data.Items)
-            {
-                departments.Add(dept);
-                await LoadDepartmentTreeAsync(dept.DepartmentId!, departments);
-            }
-        }
-    }
-}
-```
-
-## 🎯 常见操作快速参考
-
-### 📧 消息通知
-
-```csharp
-// 发送文本消息
-var textContent = new MessageTextContent { Text = "Hello World!" };
-await messageApi.SendMessageAsync(new SendMessageRequest
-{
-    ReceiveId = "user_123",
-    MsgType = "text",
-    Content = JsonSerializer.Serialize(textContent)
-}, receive_id_type: "user_id");
-
-// 批量发送通知
-var batchContent = new MessageTextContent { Text = "系统通知：重要更新已发布" };
-await batchMessageApi.BatchSendTextMessageAsync(new BatchSenderTextMessageRequest
-{
-    DeptIds = new[] { "dept_1", "dept_2" },
-    Content = batchContent
-});
 ```
 
 ### 👤 用户管理
 
-```csharp
-// 创建用户
-var userResult = await userApi.CreateUserAsync(new CreateUserRequest
-{
-    Name = "张三",
-    Mobile = "13800138000",
-    DepartmentIds = new[] { "dept_1" },
-    Emails = new[] { new EmailValue { Email = "zhangsan@company.com" } }
-});
+#### 创建用户
 
-// 批量获取用户信息
-var users = await userApi.GetUserByIdsAsync(new[] { "user_1", "user_2", "user_3" });
+```csharp
+public async Task<string> CreateUserAsync()
+{
+    var userResult = await _userApi.CreateUserAsync(new CreateUserRequest
+    {
+        Name = "张三",
+        Mobile = "13800138000",
+        DepartmentIds = new[] { "dept_1" },
+        Emails = new[] { new EmailValue { Email = "zhangsan@company.com" } }
+    });
+
+    if (userResult.Code != 0)
+    {
+        throw new Exception($"创建用户失败: {userResult.Msg}");
+    }
+
+    return userResult.Data!.User!.UserId;
+}
+```
+
+#### 批量获取用户信息
+
+```csharp
+public async Task<List<UserInfo>> GetUsersAsync(string[] userIds)
+{
+    var result = await _userApi.GetUserByIdsAsync(userIds);
+
+    if (result.Code == 0)
+    {
+        return result.Data!.Users!;
+    }
+
+    throw new Exception($"获取用户失败: {result.Msg}");
+}
 ```
 
 ### 🏢 组织架构
 
+#### 获取部门树
+
 ```csharp
-// 获取部门树
-var departments = await deptApi.GetDepartmentsByParentIdAsync("0", fetch_child: true);
-
-// 获取部门下的用户
-var users = await deptApi.GetUserByDepartmentIdAsync("dept_123");
-
-// 创建子部门
-var newDept = await deptApi.CreateDepartmentAsync(new DepartmentCreateRequest
+public async Task<List<DepartmentInfo>> GetDepartmentTreeAsync()
 {
-    Name = "新部门",
-    ParentDepartmentId = "parent_dept_123"
-});
+    var result = await _deptApi.GetDepartmentsByParentIdAsync("0", fetch_child: true);
+
+    if (result.Code != 0)
+    {
+        throw new Exception($"获取部门树失败: {result.Msg}");
+    }
+
+    return result.Data!.Items!;
+}
 ```
 
-### 🛠️ 令牌管理
+#### 获取部门下的用户
 
 ```csharp
-// 直接获取有效令牌（自动处理刷新）
-var token = await tokenManager.GetTokenAsync();
+public async Task<List<UserInfo>> GetDepartmentUsersAsync(string departmentId)
+{
+    var result = await _deptApi.GetUserByDepartmentIdAsync(departmentId);
 
-// 监控令牌缓存状态
-var (total, expired) = tokenManager.GetCacheStatistics();
-logger.LogInformation("令牌缓存状态: 总数 {Total}, 过期 {Expired}", total, expired);
+    if (result.Code == 0)
+    {
+        return result.Data!.Items!;
+    }
 
-// 清理过期令牌
-tokenManager.CleanExpiredTokens();
+    throw new Exception($"获取部门用户失败: {result.Msg}");
+}
 ```
 
-### 🔧 完整配置示例
+---
 
-#### appsettings.json
+## 🌐 事件处理
+
+### WebSocket 实时事件订阅
+
+#### 服务注册
+
+```csharp
+// 配置基础令牌服务
+builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
+    .AddAuthenticationApi()
+    .AddTokenManagers()
+    .Build();
+
+// 配置 Redis 分布式去重（可选）
+builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
+
+// 配置 WebSocket 服务
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+    .AddHandler<MessageEventHandler>()        // 消息事件
+    .AddHandler<UserEventHandler>()           // 用户事件
+    .AddHandler<DepartmentCreatedEventHandler>()  // 部门创建事件
+    .AddHandler<DepartmentDeletedEventHandler>()  // 部门删除事件
+    .Build();
+```
+
+#### 配置选项
 
 ```json
 {
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning",
-      "Mud.Feishu": "Debug"
-    }
-  },
-  "AllowedHosts": "*",
-  "Feishu": {
-    "AppId": "your_feishu_app_id",
-    "AppSecret": "your_feishu_app_secret",
-    "BaseUrl": "https://open.feishu.cn",
-    "TimeOut": 30,
-    "RetryCount": 3,
-    "EnableLogging": true
+  "FeishuWebSocket": {
+    "AutoReconnect": true,
+    "MaxReconnectAttempts": 5,
+    "ReconnectDelayMs": 5000,
+    "HeartbeatIntervalMs": 30000,
+    "MaxConcurrentMessageProcessing": 10,
+    "EnableEventDeduplication": true,
+    "EnableDistributedDeduplication": true,
+    "EventDeduplicationCacheExpirationMs": 86400000
   }
 }
 ```
 
-#### Program.cs 完整配置
+#### 事件处理器示例
 
 ```csharp
-using Mud.Feishu;
+using Mud.Feishu.Abstractions.EventHandlers;
 
-var builder = WebApplication.CreateBuilder(args);
+public class MessageEventHandler : MessageReceiveEventBaseHandler
+{
+    private readonly ILogger<MessageEventHandler> _logger;
 
-// 选择注册方式
-builder.Services.AddFeishuServices(builder.Configuration);
+    public MessageEventHandler(ILogger<MessageEventHandler> logger)
+    {
+        _logger = logger;
+    }
+
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        MessageReceiveResult? messageData,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "收到消息: {MessageId}, 发送者: {SenderId}, 内容: {Content}",
+            messageData?.Message?.MessageId,
+            messageData?.Sender?.SenderId,
+            messageData?.Message?.Content);
+
+        // 处理业务逻辑
+        await ProcessMessageAsync(messageData, cancellationToken);
+    }
+}
+```
+
+### Webhook 事件处理
+
+#### 服务注册
+
+```csharp
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<MessageReceiveEventHandler>()
+    .AddHandler<DepartmentCreatedEventHandler>()
+    .AddHandler<DepartmentDeleteEventHandler>()
+    .EnableHealthChecks()    // 启用健康检查
+    .EnableMetrics()         // 启用性能监控
+    .Build();
 
 var app = builder.Build();
-
-app.UseSwagger();
-app.UseSwaggerUI();
-app.MapControllers();
-app.Run();
+app.UseFeishuWebhook();
 ```
+
+#### 配置选项
+
+```json
+{
+  "FeishuWebhook": {
+    "VerificationToken": "your_verification_token",
+    "EncryptKey": "your_encrypt_key_32_bytes",
+    "DefaultAppId": "your_app_id",
+    "RoutePrefix": "feishu/Webhook",
+    "EnforceHeaderSignatureValidation": true,
+    "EnableBodySignatureValidation": true,
+    "EventHandlingTimeoutMs": 30000,
+    "MaxConcurrentEvents": 10
+  }
+}
+```
+
+#### 事件处理器示例
+
+```csharp
+using Mud.Feishu.Abstractions.EventHandlers;
+
+public class DepartmentCreatedEventHandler :
+    DefaultFeishuEventHandler<DepartmentCreatedResult>
+{
+    private readonly IDepartmentService _departmentService;
+
+    public DepartmentCreatedEventHandler(IDepartmentService departmentService)
+    {
+        _departmentService = departmentService;
+    }
+
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        DepartmentCreatedResult? departmentData,
+        CancellationToken cancellationToken = default)
+    {
+        if (departmentData == null)
+        {
+            return;
+        }
+
+        // 1. 记录事件到数据库
+        await _departmentService.RecordDepartmentEventAsync(
+            departmentData, cancellationToken);
+
+        // 2. 处理业务逻辑
+        await _departmentService.InitializeDepartmentPermissionsAsync(
+            departmentData.Department!.DepartmentId!, cancellationToken);
+
+        // 3. 通知部门主管
+        await _departmentService.NotifyDepartmentLeaderAsync(
+            departmentData.Department!, cancellationToken);
+    }
+}
+```
+
+---
 
 ## ⚙️ 配置选项
 
@@ -554,6 +554,44 @@ app.Run();
 | `TimeOut` | int | 30 | HTTP 请求超时时间（秒），范围：1-300 |
 | `RetryCount` | int | 3 | 失败重试次数，范围：0-10 |
 | `EnableLogging` | bool | true | 是否启用日志记录 |
+
+### FeishuWebSocketOptions 配置项
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|-------|------|--------|------|
+| **连接管理** | | | |
+| `AutoReconnect` | bool | true | 是否自动重连 |
+| `MaxReconnectAttempts` | int | 5 | 最大重连次数 |
+| `ReconnectDelayMs` | int | 5000 | 重连延迟（毫秒） |
+| `ConnectionTimeoutMs` | int | 10000 | 连接超时（毫秒） |
+| **心跳检测** | | | |
+| `HeartbeatIntervalMs` | int | 30000 | 心跳间隔（毫秒） |
+| `HealthCheckIntervalMs` | int | 60000 | 健康检查间隔（毫秒） |
+| **消息处理** | | | |
+| `MaxConcurrentMessageProcessing` | int | 10 | 最大并发消息处理数 |
+| `EnableMessageQueue` | bool | true | 启用消息队列 |
+| `MessageQueueCapacity` | int | 1000 | 队列容量 |
+| **事件去重** | | | |
+| `EnableEventDeduplication` | bool | true | 启用事件去重 |
+| `EnableDistributedDeduplication` | bool | false | 启用分布式去重 |
+| `EventDeduplicationCacheExpirationMs` | int | 86400000 | 缓存过期时间（毫秒） |
+
+### FeishuWebhookOptions 配置项
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|-------|------|--------|------|
+| **安全配置** | | | |
+| `VerificationToken` | string | - | 验证 Token |
+| `EncryptKey` | string | - | 事件加密 Key（32字节） |
+| `DefaultAppId` | string | - | 默认应用ID |
+| `EnforceHeaderSignatureValidation` | bool | true | 强制签名验证 |
+| `ValidateSourceIP` | bool | false | 验证来源IP |
+| **路由配置** | | | |
+| `RoutePrefix` | string | "feishu/Webhook" | 路由前缀 |
+| `AutoRegisterEndpoint` | bool | true | 自动注册端点 |
+| **事件处理** | | | |
+| `EventHandlingTimeoutMs` | int | 30000 | 事件处理超时（毫秒） |
+| `MaxConcurrentEvents` | int | 10 | 最大并发事件数 |
 
 ### 配置验证
 
@@ -569,20 +607,76 @@ app.Run();
 - 建议使用环境变量或安全的配置管理系统来存储敏感信息
 - 不要在代码中硬编码敏感信息
 - 在生产环境中，建议使用 HTTPS 协议以确保通信安全
+- 生产环境必须启用签名验证和时间戳验证
 
-## 🔄 错误处理最佳实践
+---
+
+## 🎯 常见操作快速参考
+
+### 令牌管理
+
+```csharp
+// 直接获取有效令牌（自动处理刷新）
+var token = await tokenManager.GetTokenAsync();
+
+// 监控令牌缓存状态
+var (total, expired) = tokenManager.GetCacheStatistics();
+logger.LogInformation("令牌缓存状态: 总数 {Total}, 过期 {Expired}", total, expired);
+
+// 清理过期令牌
+tokenManager.CleanExpiredTokens();
+```
+
+### 分页处理
+
+```csharp
+public async Task<List<T>> GetAllItemsAsync<T>(
+    Func<string?, Task<FeishuApiPageListResult<T>>> pageFetcher)
+{
+    var allItems = new List<T>();
+    string? pageToken = null;
+
+    do
+    {
+        var result = await pageFetcher(pageToken);
+
+        if (result.Code == 0 && result.Data?.Items != null)
+        {
+            allItems.AddRange(result.Data.Items);
+            pageToken = result.Data.PageToken;
+        }
+        else
+        {
+            break;
+        }
+
+    } while (!string.IsNullOrEmpty(pageToken));
+
+    return allItems;
+}
+
+// 使用示例
+var allUsers = await GetAllItemsAsync(pageToken =>
+    userApi.GetUserByDepartmentIdAsync("dept_123", page_size: 50, page_token: pageToken));
+```
+
+---
+
+## 🔒 错误处理最佳实践
 
 ### 统一错误处理
 
 ```csharp
 public class FeishuServiceBase
 {
-    protected async Task<T> ExecuteWithErrorHandling<T>(Func<Task<T>> operation, string operationName)
+    protected async Task<T> ExecuteWithErrorHandling<T>(
+        Func<Task<T>> operation,
+        string operationName)
     {
         try
         {
             var result = await operation();
-            
+
             if (result.Code != 0)
             {
                 throw new FeishuServiceException(
@@ -590,20 +684,23 @@ public class FeishuServiceBase
                     result.Code,
                     result.Msg);
             }
-            
+
             return result.Data!;
         }
         catch (FeishuException ex)
         {
             // 飞书 API 错误
-            logger.LogError(ex, "飞书 API 错误 (代码: {ErrorCode}): {Message}", ex.ErrorCode, ex.Message);
+            logger.LogError(ex,
+                "飞书 API 错误 (代码: {ErrorCode}): {Message}",
+                ex.ErrorCode, ex.Message);
             throw;
         }
         catch (HttpRequestException ex)
         {
             // 网络错误
             logger.LogError(ex, "网络请求失败: {Message}", ex.Message);
-            throw new FeishuServiceException($"网络连接失败: {operationName}", -1, ex.Message);
+            throw new FeishuServiceException(
+                $"网络连接失败: {operationName}", -1, ex.Message);
         }
     }
 }
@@ -617,40 +714,90 @@ public async Task<UserInfo> GetUserSafelyAsync(string userId)
 }
 ```
 
-### 分页处理
+---
 
-```csharp
-public async Task<List<T>> GetAllItemsAsync<T>(Func<string?, Task<FeishuApiPageListResult<T>>> pageFetcher)
-{
-    var allItems = new List<T>();
-    string? pageToken = null;
-    const int pageSize = 50;
+## 📊 与原生飞书 SDK 的对比
 
-    do
-    {
-        var result = await pageFetcher(pageToken);
-        
-        if (result.Code == 0 && result.Data?.Items != null)
-        {
-            allItems.AddRange(result.Data.Items);
-            pageToken = result.Data.PageToken;
-        }
-        else
-        {
-            break;
-        }
-        
-    } while (!string.IsNullOrEmpty(pageToken));
+| 对比维度 | 原生 SDK 调用 | Mud.Feishu 组件 | 优势说明 |
+|---------|--------------|----------------|----------|
+| **开发效率** | 需要手动构造 HTTP 请求、处理响应、解析 JSON 等大量样板代码 | 只需调用简洁的接口方法，一行代码完成操作 | 大幅减少代码量，提高开发效率 |
+| **类型安全** | 手动处理 JSON 序列化/反序列化，容易出现类型转换错误 | 提供完整的强类型支持，编译时就能发现类型错误 | 提高代码健壮性，减少运行时错误 |
+| **令牌管理** | 需要手动获取、刷新和管理访问令牌 | 自动处理令牌获取和刷新机制 | 减少开发者负担，避免令牌管理错误 |
+| **异常处理** | 需要手动处理各种网络异常和业务异常 | 提供统一的异常处理机制和明确的异常类型 | 简化异常处理逻辑，提高代码可读性 |
+| **重试机制** | 需要手动实现重试逻辑 | 内置智能重试机制，自动处理网络抖动等问题 | 提高系统稳定性 |
+| **可测试性** | 直接调用 HTTP 接口，难以进行单元测试 | 基于接口设计，易于进行 Mock 测试 | 提高代码质量和可维护性 |
+| **文档完善度** | 需要在飞书官方文档中查找各个接口的详细说明 | 提供完整的中文 API 文档和示例代码 | 降低学习成本，快速上手 |
+| **事件处理** | 需要自行实现 WebSocket 和 Webhook 处理逻辑 | 提供完整的 WebSocket 和 Webhook 事件处理框架 | 简化事件驱动架构的实现 |
+| **分布式支持** | 需要自行实现分布式锁和去重机制 | 内置 Redis 分布式去重，支持多实例部署 | 快速构建高可用系统 |
 
-    return allItems;
-}
+---
 
-// 使用示例
-var allUsers = await GetAllItemsAsync(pageToken => 
-    userApi.GetUserByDepartmentIdAsync("dept_123", page_size: 50, page_token: pageToken));
-```
+## 📁 示例项目
 
-## 贡献指南
+### Mud.Feishu.Test
+
+完整的 HTTP API 功能测试，包含所有模块的演示代码：
+
+- **组织架构**：用户、部门、员工、用户组、职务、职级等
+- **消息服务**：消息发送、批量消息
+- **群聊管理**：群组、成员、菜单、会话标签
+- **审批流程**：审批实例、审批任务、审批评论
+- **任务管理**：任务、任务列表、任务评论
+- **卡片服务**：卡片管理、卡片元素、消息流卡片
+
+### Mud.Feishu.Webhook.Demo
+
+Webhook 事件处理演示，展示如何：
+
+- 注册和配置 Webhook 服务
+- 实现自定义事件处理器
+- 处理部门创建、更新、删除事件
+- 实现事件去重和安全验证
+
+### Mud.Feishu.WebSocket.Demo
+
+WebSocket 实时事件订阅演示，展示如何：
+
+- 注册和配置 WebSocket 服务
+- 实现自定义事件处理器
+- 处理实时用户和部门事件
+- 使用 Redis 实现分布式去重
+
+---
+
+## 🛠️ 技术架构
+
+### 设计模式
+
+- **策略模式** - 事件处理器接口和实现
+- **工厂模式** - 处理器工厂和表单组件工厂
+- **建造者模式** - 服务注册构造者
+- **中间件模式** - Webhook 中间件和限流中间件
+
+### 企业级特性
+
+- **自动令牌管理** - 智能缓存（提前 5 分钟刷新），解决缓存击穿和竞态条件
+- **智能重试** - 基于 Polly 策略，指数退避算法
+- **统一异常处理** - `FeishuException` 和详细日志记录
+- **高性能缓存** - `ConcurrentDictionary` + `Lazy<Task>`，并发安全
+- **分布式支持** - Redis 去重，支持集群和哨兵模式
+
+---
+
+## 📚 支持的 .NET 版本
+
+| .NET 版本 | 支持状态 | 说明 |
+|----------|---------|------|
+| .NET Standard 2.0 | ✅ | 兼容性版本 |
+| .NET 6.0 | ✅ LTS | 长期支持版本 |
+| .NET 7.0 | ✅ | 稳定版本 |
+| .NET 8.0 | ✅ LTS | 长期支持版本 |
+| .NET 9.0 | ✅ | 稳定版本 |
+| .NET 10.0 | ✅ LTS | 长期支持版本 |
+
+---
+
+## 🤝 贡献指南
 
 我们欢迎社区贡献！请遵循以下指南：
 
@@ -665,7 +812,7 @@ var allUsers = await GetAllItemsAsync(pageToken =>
 - 遵循 Microsoft 编码规范
 - 所有公共 API 必须包含 XML 文档注释
 - 异步方法命名以 `Async` 结尾
-- 所有接口必须指定飞书API原始文档URL
+- 所有接口必须指定飞书 API 原始文档 URL
 
 ### 测试要求
 
@@ -673,15 +820,29 @@ var allUsers = await GetAllItemsAsync(pageToken =>
 - 确保 Controller 示例能够正常工作
 - 添加相应的 Swagger 文档注释
 
-## 许可证
+---
+
+## 📄 许可证
 
 MudFeishu 遵循 [MIT 许可证](LICENSE)。
 
-## 相关链接
+---
 
-- [项目Gitee主页](https://gitee.com/mudtools/MudFeishu)
-- [项目Github主页](https://github.com/mudtools/MudFeishu)
+## 🔗 相关链接
+
+- [项目 Gitee 主页](https://gitee.com/mudtools/MudFeishu)
+- [项目 Github 主页](https://github.com/mudtools/MudFeishu)
 - [NuGet 包](https://www.nuget.org/packages/Mud.Feishu/)
 - [文档网站](https://www.mudtools.cn/documents/guides/feishu/)
 - [飞书开放平台](https://open.feishu.cn/document/)
 - [问题反馈](https://gitee.com/mudtools/MudFeishu/issues)
+
+---
+
+<div align="center">
+
+**Made with ❤️ by MudTools**
+
+如果你觉得这个项目对你有帮助，请给我们一个 ⭐️ Star！
+
+</div>
