@@ -195,6 +195,44 @@ public sealed class FeishuWebSocketHostedService : BackgroundService, IDisposabl
 
         // 停止心跳检测
         StopHeartbeat();
+
+        // 如果启用自动重连，立即触发重连（不等待下一个健康检查周期）
+        if (_options.AutoReconnect)
+        {
+            _logger.LogInformation("检测到连接断开，立即触发重连逻辑...");
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var maxReconnectAttempts = _options.MaxReconnectAttempts;
+                    var reconnected = false;
+
+                    for (int attempt = 0; attempt < maxReconnectAttempts && !reconnected; attempt++)
+                    {
+                        if (_options.EnableLogging)
+                            _logger.LogInformation("重连尝试 ({Attempt}/{MaxAttempts})...", attempt + 1, maxReconnectAttempts);
+
+                        reconnected = await TryReconnectWithBackoffAsync(attempt, new CancellationTokenSource().Token);
+
+                        if (reconnected)
+                        {
+                            _logger.LogInformation("重连成功");
+                            break;
+                        }
+                    }
+
+                    if (!reconnected)
+                    {
+                        if (_options.EnableLogging)
+                            _logger.LogError("已达到最大重连次数 ({MaxAttempts})，停止重连", maxReconnectAttempts);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "断线重连时发生错误");
+                }
+            }).ConfigureAwait(false);
+        }
     }
 
     /// <summary>

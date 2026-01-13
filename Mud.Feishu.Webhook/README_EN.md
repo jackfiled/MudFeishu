@@ -4,6 +4,9 @@ A webhook component for Feishu event subscription and handling, providing comple
 
 **🚀 New Feature: Minimal API** - Complete service registration with one line of code, ready to use!
 
+[![NuGet](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE-MIT)
+
 ## Features
 
 - ✅ **Minimal API**: Complete service registration with one line of code, ready to use
@@ -40,6 +43,7 @@ In `Program.cs`:
 
 ```csharp
 using Mud.Feishu.Webhook;
+using Mud.Feishu.Webhook.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,30 +53,45 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .Build();
 
 var app = builder.Build();
-app.UseFeishuWebhook(); // Add middleware
+
+// Add Feishu Webhook middleware
+app.UseFeishuWebhook();
+
 app.Run();
 ```
 
-### 3. Complete Configuration (Add Event Handlers)
+> 💡 **Note**: Webhook service uses middleware mode, automatically registering endpoints via `app.UseFeishuWebhook()`. Default route is `/feishu/Webhook`.
+
+### 3. Complete Configuration (Add Multiple Event Handlers)
 
 ```csharp
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Register multiple event handlers
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .AddHandler<MessageEventHandler>()
-    .AddHandler<UserEventHandler>()
+    .AddHandler<MessageReceiveEventHandler>()      // Message receive event
+    .AddHandler<DepartmentCreatedEventHandler>()   // Department created event
+    .AddHandler<DepartmentUpdateEventHandler>()    // Department update event
+    .AddHandler<DepartmentDeleteEventHandler>()    // Department delete event
     .Build();
 
 var app = builder.Build();
+
+// Add Feishu Webhook middleware
 app.UseFeishuWebhook();
+
 app.Run();
 ```
 
-### 4. Configuration File
+### 4. Configuration File (appsettings.json)
 
 ```json
 {
   "FeishuWebhook": {
     "VerificationToken": "your_verification_token",
-    "EncryptKey": "your_encrypt_key",
+    "EncryptKey": "your_encrypt_key_32_bytes_long",
     "RoutePrefix": "feishu/Webhook",
     "AutoRegisterEndpoint": true,
     "EnableRequestLogging": true,
@@ -86,7 +105,7 @@ app.Run();
     "AllowedSourceIPs": [],
     "EnforceHeaderSignatureValidation": true,
     "EnableBodySignatureValidation": true,
-    "TimestampToleranceSeconds": 300,
+    "TimestampToleranceSeconds": 60,
     "EnableBackgroundProcessing": false,
     "MultiAppEncryptKeys": {
       "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
@@ -94,7 +113,7 @@ app.Run();
     },
     "DefaultAppId": "cli_a1b2c3d4e5f6g7h8",
     "RateLimit": {
-      "EnableRateLimit": true,
+      "EnableRateLimit": false,
       "WindowSizeSeconds": 60,
       "MaxRequestsPerWindow": 100,
       "EnableIpRateLimit": true,
@@ -108,37 +127,88 @@ app.Run();
 
 ## 🏗️ Service Registration Methods
 
-### 🚀 Register from Configuration File (Recommended)
+### 🚀 Method 1: Register from Configuration File (Recommended)
 
 ```csharp
-// One line to complete basic configuration (requires at least one event handler)
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Read configuration from appsettings.json
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .AddHandler<MessageReceiveEventHandler>()
     .Build();
+
+var app = builder.Build();
+app.UseFeishuWebhook();
+app.Run();
 ```
 
-### ⚙️ Code Configuration
+### ⚙️ Method 2: Code Configuration
 
 ```csharp
-builder.Services.AddFeishuWebhookServiceBuilder(options =>
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure via code
+builder.Services.CreateFeishuWebhookServiceBuilder(options =>
 {
     options.VerificationToken = "your_verification_token";
-    options.EncryptKey = "your_encrypt_key";
+    options.EncryptKey = "your_encrypt_key_32_bytes_long";
     options.RoutePrefix = "feishu/Webhook";
     options.EnableRequestLogging = true;
-}).AddHandler<MessageEventHandler>()
-    .Build();
+    options.EnableExceptionHandling = true;
+    options.MaxConcurrentEvents = 10;
+})
+.AddHandler<MessageEventHandler>()
+.Build();
+
+var app = builder.Build();
+app.UseFeishuWebhook();
+app.Run();
 ```
 
-### 🔧 Advanced Builder Pattern
+### 🔧 Method 3: Advanced Builder Pattern
 
 ```csharp
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Use builder pattern for complex configuration
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .ConfigureFrom(configuration)
-    .EnableHealthChecks()
-    .EnableMetrics()
+    .ConfigureFrom(builder.Configuration, "FeishuWebhook")
+    .EnableHealthChecks()    // Enable health checks
+    .EnableMetrics()         // Enable performance monitoring
     .AddHandler<MessageReceiveEventHandler>()
+    .AddHandler<DepartmentCreatedEventHandler>()
     .Build();
+
+var app = builder.Build();
+
+// Add health check endpoint
+app.MapHealthChecks("/health");
+
+app.UseFeishuWebhook();
+app.Run();
+```
+
+### 🔥 Method 4: Specify Configuration Section Name
+
+```csharp
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Read from custom configuration section
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "MyFeishuConfig")
+    .AddHandler<MessageEventHandler>()
+    .Build();
+
+var app = builder.Build();
+app.UseFeishuWebhook();
+app.Run();
 ```
 
 ## Usage Modes
@@ -159,35 +229,104 @@ app.Run();
 
 ## Creating Event Handlers
 
+### Method 1: Implement IFeishuEventHandler Interface
+
 ```csharp
 using Microsoft.Extensions.Logging;
 using Mud.Feishu.Abstractions;
+using System.Text.Json;
 
-public class MessageEventHandler : IFeishuEventHandler
+public class MessageReceiveEventHandler : IFeishuEventHandler
 {
-    private readonly ILogger<MessageEventHandler> _logger;
+    private readonly ILogger<MessageReceiveEventHandler> _logger;
 
-    public MessageEventHandler(ILogger<MessageEventHandler> logger)
+    public MessageReceiveEventHandler(ILogger<MessageReceiveEventHandler> logger)
     {
         _logger = logger;
     }
 
+    // Specify supported event type
     public string SupportedEventType => "im.message.receive_v1";
 
     public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Received message event: {EventId}", eventData.EventId);
+        _logger.LogInformation("Received message event: EventId={EventId}, EventType={EventType}", 
+            eventData.EventId, eventData.EventType);
         
         // Handle message logic
-        var messageData = JsonSerializer.Deserialize<object>(
+        var messageData = JsonSerializer.Deserialize<MessageEventData>(
             eventData.Event?.ToString() ?? string.Empty);
         
         // Your business logic...
+        _logger.LogInformation("Processing message: {MessageId}", messageData?.MessageId);
         
         await Task.CompletedTask;
     }
 }
+
+public class MessageEventData
+{
+    public string MessageId { get; set; }
+    public string Content { get; set; }
+    // ... other fields
+}
 ```
+
+### Method 2: Inherit Base Handler Class (Recommended)
+
+Use base handler classes from `Mud.Feishu.Abstractions.EventHandlers` namespace for type safety and automatic deduplication:
+
+```csharp
+using Mud.Feishu.Abstractions;
+using Mud.Feishu.Abstractions.DataModels.Organization;
+using Mud.Feishu.Abstractions.EventHandlers;
+using Mud.Feishu.Abstractions.Services;
+
+/// <summary>
+/// Department created event handler
+/// </summary>
+public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
+{
+    private readonly DemoEventService _eventService;
+
+    public DemoDepartmentEventHandler(
+        IFeishuEventDeduplicator businessDeduplicator, 
+        ILogger<DemoDepartmentEventHandler> logger,
+        DemoEventService eventService) 
+        : base(businessDeduplicator, logger)
+    {
+        _eventService = eventService;
+    }
+
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData, 
+        DepartmentCreatedResult? eventEntity, 
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Processing department created event: DepartmentId={DepartmentId}, Name={DepartmentName}",
+            eventEntity.DepartmentId, eventEntity.Name);
+
+        // Your business logic
+        await _eventService.RecordDepartmentEventAsync(eventEntity, cancellationToken);
+        
+        // Initialize department permissions
+        _logger.LogInformation("Initializing department permissions: {DepartmentName}", eventEntity.Name);
+        
+        // Notify department leader
+        if (!string.IsNullOrWhiteSpace(eventEntity.LeaderUserId))
+        {
+            _logger.LogInformation("Notifying department leader: {LeaderUserId}", eventEntity.LeaderUserId);
+        }
+    }
+}
+```
+
+### Available Base Event Handlers
+
+- `DepartmentCreatedEventHandler` - Department created event
+- `DepartmentUpdateEventHandler` - Department update event
+- `DepartmentDeleteEventHandler` - Department delete event
+- More handlers available in `Mud.Feishu.Abstractions.EventHandlers` namespace
 
 ## Configuration Options
 
@@ -217,7 +356,7 @@ public class MessageEventHandler : IFeishuEventHandler
 | `MaxRequestBodySize` | long | 10MB | Max request body size |
 | `EnforceHeaderSignatureValidation` | bool | true | Whether to enforce header signature validation |
 | `EnableBodySignatureValidation` | bool | true | Whether to validate request body signature at service layer |
-| `TimestampToleranceSeconds` | int | 300 | Timestamp validation tolerance (seconds) |
+| `TimestampToleranceSeconds` | int | 60 | Timestamp validation tolerance (seconds) |
 
 ### Performance Configuration
 
@@ -319,34 +458,76 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 // System will automatically detect and apply new concurrency limits
 ```
 
-## Registering Handlers
+## Registering Event Handlers
+
+### Register Multiple Handlers with Chain Calls
 
 ```csharp
-// Add handlers using chain calls
-builder.Services.AddFeishuWebhookServiceBuilder(builder.Configuration)
-    .AddHandler<MessageEventHandler>()
-    .AddHandler<UserEventHandler>()
-    .AddHandler<DepartmentEventHandler>()
-    .Build();
+using Mud.Feishu.Webhook.Extensions;
 
-// Use builder pattern for complex configuration
-builder.Services.CreateFeishuWebhookServiceBuilder(configuration)
-    .ConfigureFrom(configuration)
-    .AddHandler<MessageEventHandler>()
-    .AddHandler<UserEventHandler>()
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<MessageReceiveEventHandler>()      // Message receive
+    .AddHandler<DepartmentCreatedEventHandler>()   // Department created
+    .AddHandler<DepartmentUpdateEventHandler>()    // Department update
+    .AddHandler<DepartmentDeleteEventHandler>()    // Department delete
+    .Build();
+```
+
+### Register with Factory Method
+
+```csharp
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<MessageEventHandler>(sp => 
+    {
+        var logger = sp.GetRequiredService<ILogger<MessageEventHandler>>();
+        var myService = sp.GetRequiredService<MyCustomService>();
+        return new MessageEventHandler(logger, myService);
+    })
+    .Build();
+```
+
+### Register with Instance
+
+```csharp
+var handler = new MessageEventHandler(loggerFactory.CreateLogger<MessageEventHandler>());
+
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler(handler)
     .Build();
 ```
 
 ## Supported Event Types
 
-The library supports all Feishu event types, including but not limited to:
+This library supports all Feishu Open Platform event types. Common event types include:
 
-- `im.message.receive_v1` - Receive message
-- `im.chat.member_user_added_v1` - User joins group chat
-- `im.chat.member_user_deleted_v1` - User leaves group chat
-- `contact.user.created_v3` - User created
-- `contact.user.updated_v3` - User updated
-- `contact.user.deleted_v3` - User deleted
+### Message Events
+- `im.message.receive_v1` - Receive message event
+- `im.message.recalled_v1` - Message recalled event
+
+### Group Chat Events
+- `im.chat.member_user.added_v1` - User joins group chat
+- `im.chat.member_user.withdrawn_v1` - User leaves group chat
+- `im.chat.disbanded_v1` - Group chat disbanded
+- `im.chat.updated_v1` - Group info updated
+
+### Contact Events
+- `contact.user.created_v3` - Employee onboarded
+- `contact.user.updated_v3` - Employee info updated
+- `contact.user.deleted_v3` - Employee offboarded
+- `contact.department.created_v3` - Department created
+- `contact.department.updated_v3` - Department info updated
+- `contact.department.deleted_v3` - Department deleted
+
+### Approval Events
+- `approval.approval.approved_v1` - Approval approved
+- `approval.approval.rejected_v1` - Approval rejected
+- `approval.approval.updated_v1` - Approval updated
+
+### Task Events
+- `task.task.created_v1` - Task created
+- `task.task.updated_v1` - Task updated
+
+> 💡 **Tip**: For more event types, please refer to [Feishu Open Platform Event List](https://open.feishu.cn/document/ukTMukTMukTM/uUTNz4SN1MjL1UzM)
 
 ## Feishu Platform Configuration
 
@@ -376,55 +557,94 @@ After configuration is complete, publish the application, and Feishu servers wil
 
 ### Performance Monitoring
 
+Enable performance monitoring to collect event processing metrics:
+
 ```csharp
 // Method 1: Enable via builder pattern
-builder.Services.AddFeishuWebhookBuilder()
-    .ConfigureFrom(configuration)
-    .EnableMetrics()
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .EnableMetrics()    // Enable performance metrics collection
+    .AddHandler<MessageEventHandler>()
     .Build();
 
-// Method 2: Enable via configuration options
-builder.Services.CreateFeishuWebhookServiceBuilder(options =>
+// Method 2: Enable via configuration file
 {
-    options.EnablePerformanceMonitoring = true; // Enable performance monitoring
-}).AddHandler<MessageEventHandler>()
-    .Build();
+  "FeishuWebhook": {
+    "EnablePerformanceMonitoring": true
+  }
+}
 ```
 
 ### Health Checks
 
+Built-in health check support to monitor Webhook service status:
+
 ```csharp
-// Enable health checks using builder pattern
-builder.Services.CreateFeishuWebhookBuilder()
-    .ConfigureFrom(configuration)
-    .EnableHealthChecks()
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Enable health checks
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .EnableHealthChecks()    // Enable health checks
+    .AddHandler<MessageEventHandler>()
     .Build();
 
-// Add health check endpoint
-builder.Services.AddHealthChecks();
-
 var app = builder.Build();
-app.MapHealthChecks("/health"); // Health check endpoint
+
+// Add health check endpoint
+app.MapHealthChecks("/health");
+
+app.UseFeishuWebhook();
+app.Run();
+```
+
+Health check configuration options:
+
+```json
+{
+  "FeishuWebhook": {
+    "HealthCheckUnhealthyFailureRateThreshold": 0.1,  // Unhealthy threshold (10%)
+    "HealthCheckDegradedFailureRateThreshold": 0.05,  // Degraded threshold (5%)
+    "HealthCheckMinEventsThreshold": 10  // Minimum events count
+  }
+}
 ```
 
 ### Logging
 
-The library uses the standard .NET logging framework, and you can configure different log levels:
+This library uses the standard .NET logging framework with flexible log level configuration:
 
 ```json
 {
   "Logging": {
     "LogLevel": {
-      "Mud.Feishu.Webhook": "Information",
-      "Mud.Feishu.Webhook.Services": "Debug"
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Mud.Feishu.Webhook": "Debug",
+      "Mud.Feishu.Webhook.Services": "Debug",
+      "Mud.Feishu.Webhook.Middleware": "Information",
+      "Mud.Feishu.Abstractions": "Information"
     }
   }
 }
 ```
 
+### Diagnostics Endpoint (Demo Example)
+
+The Demo project provides diagnostics endpoints to view registered event handlers:
+
+```csharp
+// Use in Demo project
+app.MapDiagnostics();  // Register diagnostics endpoint
+
+// Visit /diagnostics/handlers to view all registered handlers
+```
+
 ## Best Practices
 
 ### 1. Error Handling
+
+Handle exceptions properly in event handlers to avoid affecting other events:
 
 ```csharp
 public class RobustEventHandler : IFeishuEventHandler
@@ -437,28 +657,154 @@ public class RobustEventHandler : IFeishuEventHandler
     {
         try
         {
-            // Business logic
+            _logger.LogInformation("Starting to process event: {EventId}", eventData.EventId);
+            
+            // Your business logic
+            await ProcessBusinessLogicAsync(eventData, cancellationToken);
+            
+            _logger.LogInformation("Event processing completed: {EventId}", eventData.EventId);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Event processing was cancelled: {EventId}", eventData.EventId);
+            throw; // Timeout cancellation should be thrown
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while handling event: {EventId}", eventData.EventId);
             // Do not rethrow exceptions to avoid affecting other handlers
+            // Optionally log to failure queue or alert system
         }
+    }
+    
+    private async Task ProcessBusinessLogicAsync(EventData eventData, CancellationToken cancellationToken)
+    {
+        // Actual business logic
+        await Task.CompletedTask;
     }
 }
 ```
 
-### 2. Async Processing
+### 2. Async Processing and Cancellation Support
+
+Correctly use async programming and cancellation tokens:
 
 ```csharp
 public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
 {
-    // Use async APIs
+    // ✅ Correct: Use async APIs and pass cancellation token
     await ProcessMessageAsync(eventData, cancellationToken);
+    await SaveToDatabaseAsync(eventData, cancellationToken);
     
-    // Avoid blocking calls
-    // Do not use .Result or .Wait()
+    // ❌ Wrong: Don't use blocking calls
+    // var result = ProcessMessageAsync(eventData).Result;
+    // ProcessMessageAsync(eventData).Wait();
+    
+    // ✅ Correct: Respect cancellation token
+    cancellationToken.ThrowIfCancellationRequested();
 }
+```
+
+### 3. Dependency Injection
+
+Use dependency injection properly, ensuring correct service lifetimes:
+
+```csharp
+public class MessageEventHandler : IFeishuEventHandler
+{
+    private readonly ILogger<MessageEventHandler> _logger;
+    private readonly IMessageService _messageService;  // Scoped service
+    private readonly IConfiguration _configuration;    // Singleton service
+
+    public MessageEventHandler(
+        ILogger<MessageEventHandler> logger,
+        IMessageService messageService,
+        IConfiguration configuration)
+    {
+        _logger = logger;
+        _messageService = messageService;
+        _configuration = configuration;
+    }
+
+    public string SupportedEventType => "im.message.receive_v1";
+
+    public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
+    {
+        // Use injected services
+        await _messageService.ProcessAsync(eventData, cancellationToken);
+    }
+}
+```
+
+### 4. Use Base Handler Classes (Recommended)
+
+Inherit base handler classes for automatic deduplication and type safety:
+
+```csharp
+using Mud.Feishu.Abstractions.EventHandlers;
+
+// Inherit base handler class for automatic deduplication and type conversion
+public class MyDepartmentHandler : DepartmentCreatedEventHandler
+{
+    public MyDepartmentHandler(
+        IFeishuEventDeduplicator deduplicator,
+        ILogger<MyDepartmentHandler> logger)
+        : base(deduplicator, logger)
+    {
+    }
+
+    // Only need to implement business logic
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        DepartmentCreatedResult eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        // eventEntity is already a strongly-typed entity object
+        _logger.LogInformation("Processing department: {Name}", eventEntity.Name);
+    }
+}
+```
+
+### 5. Configuration Validation
+
+Validate configuration at startup to catch issues early:
+
+```csharp
+// Configuration is automatically validated during Build()
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<MessageEventHandler>()
+    .Build();  // Configuration is validated here
+
+// Will throw InvalidOperationException if configuration is invalid
+```
+
+### 6. Long-Running Tasks
+
+For time-consuming tasks, enable background processing mode:
+
+```csharp
+// appsettings.json
+{
+  "FeishuWebhook": {
+    "EnableBackgroundProcessing": true,  // Return success immediately, process in background
+    "EventHandlingTimeoutMs": 60000      // Increase timeout duration
+  }
+}
+```
+
+### 7. Testing and Debugging
+
+The Demo project provides test endpoints for debugging:
+
+```csharp
+// In Demo project
+app.MapTestEndpoints();        // Test endpoints
+app.MapDiagnostics();          // Diagnostics endpoints
+
+// Available endpoints:
+// POST /test/capture - Capture raw requests
+// GET /test/captured - View captured requests
+// GET /diagnostics/handlers - View registered handlers
 ```
 
 ## Troubleshooting
@@ -517,35 +863,144 @@ builder.Services.CreateFeishuWebhookServiceBuilder(options =>
     .Build();
 ```
 
-## Quick Reference
+## Complete Examples
 
-### Most Common Registration Methods
+### Basic Example
+
+Complete Program.cs example:
 
 ```csharp
-// Method 1: Minimal (requires at least one event handler)
-builder.Services.CreateFeishuWebhookServiceBuilder(configuration)
-    .AddHandler<MessageReceiveEventHandler>()
+using Mud.Feishu.Webhook.Extensions;
+using Mud.Feishu.Webhook.Demo.Handlers;
+using Mud.Feishu.Webhook.Demo.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Register custom services
+builder.Services.AddSingleton<DemoEventService>();
+
+// Register Feishu Webhook service
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "FeishuWebhook")
+    .AddHandler<DemoDepartmentEventHandler>()
+    .AddHandler<DemoDepartmentDeleteEventHandler>()
+    .AddHandler<DemoDepartmentUpdateEventHandler>()
     .Build();
 
-// Method 2: Minimal + Handlers
-builder.Services.CreateFeishuWebhookServiceBuilder(configuration)
+var app = builder.Build();
+
+// Add Feishu Webhook middleware
+app.UseFeishuWebhook();
+
+app.Run();
+```
+
+### Advanced Example
+
+Including health checks, performance monitoring, and custom endpoints:
+
+```csharp
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure logging
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
+// Register Feishu Webhook service (advanced configuration)
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .EnableHealthChecks()    // Enable health checks
+    .EnableMetrics()         // Enable performance monitoring
     .AddHandler<MessageReceiveEventHandler>()
+    .AddHandler<DepartmentCreatedEventHandler>()
     .Build();
 
-// Method 3: Code Configuration
+var app = builder.Build();
+
+// Health check endpoint
+app.MapHealthChecks("/health");
+
+// Feishu Webhook middleware
+app.UseFeishuWebhook();
+
+app.Run();
+```
+
+### Complete Demo Project Example
+
+The Demo project provides complete testing and diagnostics functionality:
+
+```csharp
+using Mud.Feishu.Webhook.Demo.Handlers;
+using Mud.Feishu.Webhook.Demo.Services;
+using Mud.Feishu.Webhook.Extensions;
+using Mud.Feishu.Webhook.Demo;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Register demo services
+builder.Services.AddSingleton<DemoEventService>();
+
+// Register Feishu Webhook service
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "FeishuWebhook")
+    .AddHandler<DemoDepartmentEventHandler>()
+    .AddHandler<DemoDepartmentDeleteEventHandler>()
+    .AddHandler<DemoDepartmentUpdateEventHandler>()
+    .Build();
+
+var app = builder.Build();
+
+// Add diagnostics endpoints (development environment only)
+if (app.Environment.IsDevelopment())
+{
+    app.MapDiagnostics();      // GET /diagnostics/handlers
+    app.MapTestEndpoints();    // POST /test/capture etc.
+}
+
+// Add Feishu Webhook middleware
+app.UseFeishuWebhook();
+
+app.Run();
+```
+
+## Quick Reference
+
+### Most Common Code Patterns
+
+```csharp
+// ✅ Recommended: Read from configuration file
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<YourEventHandler>()
+    .Build();
+
+// ✅ Code configuration
 builder.Services.CreateFeishuWebhookServiceBuilder(options => {
     options.VerificationToken = "your_token";
-    options.EncryptKey = "your_key";
-}).AddHandler<MessageEventHandler>()
-    .Build();
+    options.EncryptKey = "your_encrypt_key_32_bytes_long";
+})
+.AddHandler<YourEventHandler>()
+.Build();
 
-// Method 4: Builder Pattern (complex configuration)
+// ✅ Advanced configuration
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .ConfigureFrom(configuration)
+    .EnableHealthChecks()
     .EnableMetrics()
-    .AddHandler<Handler>()
+    .AddHandler<Handler1>()
+    .AddHandler<Handler2>()
     .Build();
 ```
+
+### Common Configuration Quick Reference
+
+| Configuration | Default | Description |
+|--------------|---------|-------------|
+| `RoutePrefix` | `"feishu/Webhook"` | Webhook route prefix |
+| `VerificationToken` | - | Verification token (required) |
+| `EncryptKey` | - | Encryption key (32 bytes) |
+| `MaxConcurrentEvents` | `10` | Max concurrent events |
+| `EventHandlingTimeoutMs` | `30000` | Event handling timeout (ms) |
+| `EnableBackgroundProcessing` | `false` | Background processing mode |
+| `EnablePerformanceMonitoring` | `false` | Performance monitoring |
 
 ---
 

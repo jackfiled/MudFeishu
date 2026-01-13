@@ -4,6 +4,9 @@
 
 **🚀 新特性：极简API** - 一行代码完成服务注册，开箱即用！
 
+[![NuGet](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE-MIT)
+
 ## 功能特性
 
 - ✅ **极简API**：一行代码完成服务注册，开箱即用
@@ -40,6 +43,7 @@ dotnet add package Mud.Feishu.Webhook
 
 ```csharp
 using Mud.Feishu.Webhook;
+using Mud.Feishu.Webhook.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,32 +53,45 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .Build();
 
 var app = builder.Build();
-app.UseFeishuWebhook(); // 添加中间件
+
+// 添加飞书Webhook中间件
+app.UseFeishuWebhook();
+
 app.Run();
 ```
 
-> 💡 **说明**：Webhook 服务使用中间件模式，通过 `app.UseFeishuWebhook()` 自动注册端点。
+> 💡 **说明**：Webhook 服务使用中间件模式，通过 `app.UseFeishuWebhook()` 自动注册端点。默认路由为 `/feishu/Webhook`。
 
-### 3. 完整配置（添加事件处理器）
+### 3. 完整配置（添加多个事件处理器）
 
 ```csharp
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 注册多个事件处理器
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .AddHandler<MessageEventHandler>()
-    .AddHandler<UserEventHandler>()
+    .AddHandler<MessageReceiveEventHandler>()      // 消息接收事件
+    .AddHandler<DepartmentCreatedEventHandler>()   // 部门创建事件
+    .AddHandler<DepartmentUpdateEventHandler>()    // 部门更新事件
+    .AddHandler<DepartmentDeleteEventHandler>()    // 部门删除事件
     .Build();
 
 var app = builder.Build();
+
+// 添加飞书Webhook中间件
 app.UseFeishuWebhook();
+
 app.Run();
 ```
 
-### 4. 配置文件
+### 4. 配置文件（appsettings.json）
 
 ```json
 {
   "FeishuWebhook": {
     "VerificationToken": "your_verification_token",
-    "EncryptKey": "your_encrypt_key",
+    "EncryptKey": "your_encrypt_key_32_bytes_long",
     "RoutePrefix": "feishu/Webhook",
     "AutoRegisterEndpoint": true,
     "EnableRequestLogging": true,
@@ -88,7 +105,7 @@ app.Run();
     "AllowedSourceIPs": [],
     "EnforceHeaderSignatureValidation": true,
     "EnableBodySignatureValidation": true,
-    "TimestampToleranceSeconds": 300,
+    "TimestampToleranceSeconds": 60,
     "EnableBackgroundProcessing": false,
     "MultiAppEncryptKeys": {
       "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
@@ -96,7 +113,7 @@ app.Run();
     },
     "DefaultAppId": "cli_a1b2c3d4e5f6g7h8",
     "RateLimit": {
-      "EnableRateLimit": true,
+      "EnableRateLimit": false,
       "WindowSizeSeconds": 60,
       "MaxRequestsPerWindow": 100,
       "EnableIpRateLimit": true,
@@ -110,37 +127,88 @@ app.Run();
 
 ## 🏗️ 服务注册方式
 
-### 🚀 从配置文件注册（推荐）
+### 🚀 方式一：从配置文件注册（推荐）
 
 ```csharp
-// 一行代码完成基础配置（需要至少一个事件处理器）
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 从 appsettings.json 读取配置
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .AddHandler<MessageReceiveEventHandler>()
     .Build();
+
+var app = builder.Build();
+app.UseFeishuWebhook();
+app.Run();
 ```
 
-### ⚙️ 代码配置
+### ⚙️ 方式二：代码配置
 
 ```csharp
-builder.Services.AddFeishuWebhookServiceBuilder(options =>
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 通过代码配置
+builder.Services.CreateFeishuWebhookServiceBuilder(options =>
 {
     options.VerificationToken = "your_verification_token";
-    options.EncryptKey = "your_encrypt_key";
+    options.EncryptKey = "your_encrypt_key_32_bytes_long";
     options.RoutePrefix = "feishu/Webhook";
     options.EnableRequestLogging = true;
-}).AddHandler<MessageEventHandler>()
-    .Build();
+    options.EnableExceptionHandling = true;
+    options.MaxConcurrentEvents = 10;
+})
+.AddHandler<MessageEventHandler>()
+.Build();
+
+var app = builder.Build();
+app.UseFeishuWebhook();
+app.Run();
 ```
 
-### 🔧 高级建造者模式
+### 🔧 方式三：高级建造者模式
 
 ```csharp
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 使用建造者模式进行复杂配置
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .ConfigureFrom(configuration)
-    .EnableHealthChecks()
-    .EnableMetrics()
+    .ConfigureFrom(builder.Configuration, "FeishuWebhook")
+    .EnableHealthChecks()    // 启用健康检查
+    .EnableMetrics()         // 启用性能监控
     .AddHandler<MessageReceiveEventHandler>()
+    .AddHandler<DepartmentCreatedEventHandler>()
     .Build();
+
+var app = builder.Build();
+
+// 添加健康检查端点
+app.MapHealthChecks("/health");
+
+app.UseFeishuWebhook();
+app.Run();
+```
+
+### 🔥 方式四：指定配置节名称
+
+```csharp
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 从自定义配置节读取
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "MyFeishuConfig")
+    .AddHandler<MessageEventHandler>()
+    .Build();
+
+var app = builder.Build();
+app.UseFeishuWebhook();
+app.Run();
 ```
 
 ## 使用模式
@@ -161,35 +229,104 @@ app.Run();
 
 ## 创建事件处理器
 
+### 方式一：实现 IFeishuEventHandler 接口
+
 ```csharp
 using Microsoft.Extensions.Logging;
 using Mud.Feishu.Abstractions;
+using System.Text.Json;
 
-public class MessageEventHandler : IFeishuEventHandler
+public class MessageReceiveEventHandler : IFeishuEventHandler
 {
-    private readonly ILogger<MessageEventHandler> _logger;
+    private readonly ILogger<MessageReceiveEventHandler> _logger;
 
-    public MessageEventHandler(ILogger<MessageEventHandler> logger)
+    public MessageReceiveEventHandler(ILogger<MessageReceiveEventHandler> logger)
     {
         _logger = logger;
     }
 
+    // 指定支持的事件类型
     public string SupportedEventType => "im.message.receive_v1";
 
     public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("收到消息事件: {EventId}", eventData.EventId);
+        _logger.LogInformation("收到消息事件: EventId={EventId}, EventType={EventType}", 
+            eventData.EventId, eventData.EventType);
         
         // 处理消息逻辑
-        var messageData = JsonSerializer.Deserialize<object>(
+        var messageData = JsonSerializer.Deserialize<MessageEventData>(
             eventData.Event?.ToString() ?? string.Empty);
         
         // 你的业务逻辑...
+        _logger.LogInformation("处理消息: {MessageId}", messageData?.MessageId);
         
         await Task.CompletedTask;
     }
 }
+
+public class MessageEventData
+{
+    public string MessageId { get; set; }
+    public string Content { get; set; }
+    // ... 其他字段
+}
 ```
+
+### 方式二：继承基类处理器（推荐）
+
+使用 `Mud.Feishu.Abstractions.EventHandlers` 命名空间下的基类处理器，提供类型安全和自动去重：
+
+```csharp
+using Mud.Feishu.Abstractions;
+using Mud.Feishu.Abstractions.DataModels.Organization;
+using Mud.Feishu.Abstractions.EventHandlers;
+using Mud.Feishu.Abstractions.Services;
+
+/// <summary>
+/// 部门创建事件处理器
+/// </summary>
+public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
+{
+    private readonly DemoEventService _eventService;
+
+    public DemoDepartmentEventHandler(
+        IFeishuEventDeduplicator businessDeduplicator, 
+        ILogger<DemoDepartmentEventHandler> logger,
+        DemoEventService eventService) 
+        : base(businessDeduplicator, logger)
+    {
+        _eventService = eventService;
+    }
+
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData, 
+        DepartmentCreatedResult? eventEntity, 
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("处理部门创建事件: 部门ID={DepartmentId}, 部门名={DepartmentName}",
+            eventEntity.DepartmentId, eventEntity.Name);
+
+        // 你的业务逻辑
+        await _eventService.RecordDepartmentEventAsync(eventEntity, cancellationToken);
+        
+        // 模拟权限初始化
+        _logger.LogInformation("初始化部门权限: {DepartmentName}", eventEntity.Name);
+        
+        // 模拟通知部门主管
+        if (!string.IsNullOrWhiteSpace(eventEntity.LeaderUserId))
+        {
+            _logger.LogInformation("通知部门主管: {LeaderUserId}", eventEntity.LeaderUserId);
+        }
+    }
+}
+```
+
+### 可用的基类事件处理器
+
+- `DepartmentCreatedEventHandler` - 部门创建事件
+- `DepartmentUpdateEventHandler` - 部门更新事件
+- `DepartmentDeleteEventHandler` - 部门删除事件
+- 更多处理器请参考 `Mud.Feishu.Abstractions.EventHandlers` 命名空间
 
 ## 配置选项
 
@@ -219,7 +356,7 @@ public class MessageEventHandler : IFeishuEventHandler
 | `MaxRequestBodySize` | long | 10MB | 最大请求体大小 |
 | `EnforceHeaderSignatureValidation` | bool | true | 是否强制验证请求头签名 |
 | `EnableBodySignatureValidation` | bool | true | 是否在服务层再次验证请求体签名 |
-| `TimestampToleranceSeconds` | int | 300 | 时间戳验证容错范围（秒） |
+| `TimestampToleranceSeconds` | int | 60 | 时间戳验证容错范围（秒） |
 
 ### 性能配置
 
@@ -307,34 +444,76 @@ builder.Services.CreateFeishuWebhookServiceBuilder(options =>
     .Build();
 ```
 
-## 注册处理器
+## 注册事件处理器
+
+### 链式调用注册多个处理器
 
 ```csharp
-// 使用链式调用添加处理器
-builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .AddHandler<MessageEventHandler>()
-    .AddHandler<UserEventHandler>()
-    .AddHandler<DepartmentEventHandler>()
-    .Build();
+using Mud.Feishu.Webhook.Extensions;
 
-// 使用建造者模式进行复杂配置
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .ConfigureFrom(configuration)
-    .AddHandler<MessageEventHandler>()
-    .AddHandler<UserEventHandler>()
+    .AddHandler<MessageReceiveEventHandler>()      // 消息接收
+    .AddHandler<DepartmentCreatedEventHandler>()   // 部门创建
+    .AddHandler<DepartmentUpdateEventHandler>()    // 部门更新
+    .AddHandler<DepartmentDeleteEventHandler>()    // 部门删除
+    .Build();
+```
+
+### 使用工厂方法注册
+
+```csharp
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<MessageEventHandler>(sp => 
+    {
+        var logger = sp.GetRequiredService<ILogger<MessageEventHandler>>();
+        var myService = sp.GetRequiredService<MyCustomService>();
+        return new MessageEventHandler(logger, myService);
+    })
+    .Build();
+```
+
+### 使用实例注册
+
+```csharp
+var handler = new MessageEventHandler(loggerFactory.CreateLogger<MessageEventHandler>());
+
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler(handler)
     .Build();
 ```
 
 ## 支持的事件类型
 
-库支持所有飞书事件类型，包括但不限于：
+本库支持所有飞书开放平台的事件类型。常见事件类型包括：
 
-- `im.message.receive_v1` - 接收消息
-- `im.chat.member_user_added_v1` - 用户加入群聊
-- `im.chat.member_user_deleted_v1` - 用户离开群聊
-- `contact.user.created_v3` - 用户创建
-- `contact.user.updated_v3` - 用户更新
-- `contact.user.deleted_v3` - 用户删除
+### 消息事件
+- `im.message.receive_v1` - 接收消息事件
+- `im.message.recalled_v1` - 消息撤回事件
+
+### 群聊事件
+- `im.chat.member_user.added_v1` - 用户加入群聊
+- `im.chat.member_user.withdrawn_v1` - 用户离开群聊
+- `im.chat.disbanded_v1` - 群聊解散
+- `im.chat.updated_v1` - 群信息变更
+
+### 通讯录事件
+- `contact.user.created_v3` - 员工入职
+- `contact.user.updated_v3` - 员工信息变更
+- `contact.user.deleted_v3` - 员工离职
+- `contact.department.created_v3` - 部门创建
+- `contact.department.updated_v3` - 部门信息变更
+- `contact.department.deleted_v3` - 部门删除
+
+### 审批事件
+- `approval.approval.approved_v1` - 审批通过
+- `approval.approval.rejected_v1` - 审批拒绝
+- `approval.approval.updated_v1` - 审批更新
+
+### 任务事件
+- `task.task.created_v1` - 任务创建
+- `task.task.updated_v1` - 任务更新
+
+> 💡 **提示**：更多事件类型请参考[飞书开放平台事件列表](https://open.feishu.cn/document/ukTMukTMukTM/uUTNz4SN1MjL1UzM)
 
 ## 飞书平台配置
 
@@ -364,55 +543,94 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 ### 性能监控
 
+启用性能监控可以收集事件处理的指标数据：
+
 ```csharp
 // 方式一：通过建造者模式启用
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .ConfigureFrom(configuration)
-    .EnableMetrics()
+    .EnableMetrics()    // 启用性能指标收集
+    .AddHandler<MessageEventHandler>()
     .Build();
 
-// 方式二：通过配置选项启用
-builder.Services.CreateFeishuWebhookServiceBuilder(options =>
+// 方式二：通过配置文件启用
 {
-    options.EnablePerformanceMonitoring = true; // 启用性能监控
-}).AddHandler<MessageEventHandler>()
-    .Build();
+  "FeishuWebhook": {
+    "EnablePerformanceMonitoring": true
+  }
+}
 ```
 
 ### 健康检查
 
+内置健康检查支持，可监控 Webhook 服务的运行状态：
+
 ```csharp
-// 使用建造者模式启用健康检查
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 启用健康检查
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .ConfigureFrom(configuration)
-    .EnableHealthChecks()
+    .EnableHealthChecks()    // 启用健康检查
+    .AddHandler<MessageEventHandler>()
     .Build();
 
-// 添加健康检查端点
-builder.Services.AddHealthChecks();
-
 var app = builder.Build();
-app.MapHealthChecks("/health"); // 健康检查端点
+
+// 添加健康检查端点
+app.MapHealthChecks("/health");
+
+app.UseFeishuWebhook();
+app.Run();
+```
+
+健康检查配置选项：
+
+```json
+{
+  "FeishuWebhook": {
+    "HealthCheckUnhealthyFailureRateThreshold": 0.1,  // 不健康阈值（10%）
+    "HealthCheckDegradedFailureRateThreshold": 0.05,  // 降级阈值（5%）
+    "HealthCheckMinEventsThreshold": 10  // 最小事件数
+  }
+}
 ```
 
 ### 日志记录
 
-库使用标准的 .NET 日志记录框架，可以配置不同的日志级别：
+本库使用标准的 .NET 日志记录框架，可以灵活配置日志级别：
 
 ```json
 {
   "Logging": {
     "LogLevel": {
-      "Mud.Feishu.Webhook": "Information",
-      "Mud.Feishu.Webhook.Services": "Debug"
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Mud.Feishu.Webhook": "Debug",
+      "Mud.Feishu.Webhook.Services": "Debug",
+      "Mud.Feishu.Webhook.Middleware": "Information",
+      "Mud.Feishu.Abstractions": "Information"
     }
   }
 }
 ```
 
+### 诊断端点（Demo 示例）
+
+Demo 项目提供了诊断端点，可以查看已注册的事件处理器：
+
+```csharp
+// 在 Demo 项目中使用
+app.MapDiagnostics();  // 注册诊断端点
+
+// 访问 /diagnostics/handlers 查看所有已注册的处理器
+```
+
 ## 最佳实践
 
 ### 1. 错误处理
+
+在事件处理器中妥善处理异常，避免影响其他事件的处理：
 
 ```csharp
 public class RobustEventHandler : IFeishuEventHandler
@@ -425,28 +643,154 @@ public class RobustEventHandler : IFeishuEventHandler
     {
         try
         {
-            // 业务逻辑
+            _logger.LogInformation("开始处理事件: {EventId}", eventData.EventId);
+            
+            // 你的业务逻辑
+            await ProcessBusinessLogicAsync(eventData, cancellationToken);
+            
+            _logger.LogInformation("事件处理完成: {EventId}", eventData.EventId);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("事件处理被取消: {EventId}", eventData.EventId);
+            throw; // 超时取消应该抛出
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "处理事件时发生错误: {EventId}", eventData.EventId);
             // 不要重新抛出异常，避免影响其他处理器
+            // 可以选择记录到失败队列或告警系统
         }
+    }
+    
+    private async Task ProcessBusinessLogicAsync(EventData eventData, CancellationToken cancellationToken)
+    {
+        // 实际业务逻辑
+        await Task.CompletedTask;
     }
 }
 ```
 
-### 2. 异步处理
+### 2. 异步处理和取消支持
+
+正确使用异步编程和取消令牌：
 
 ```csharp
 public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
 {
-    // 使用异步 API
+    // ✅ 正确：使用异步 API 并传递取消令牌
     await ProcessMessageAsync(eventData, cancellationToken);
+    await SaveToDatabaseAsync(eventData, cancellationToken);
     
-    // 避免阻塞调用
-    // 不要使用 .Result 或 .Wait()
+    // ❌ 错误：不要使用阻塞调用
+    // var result = ProcessMessageAsync(eventData).Result;
+    // ProcessMessageAsync(eventData).Wait();
+    
+    // ✅ 正确：尊重取消令牌
+    cancellationToken.ThrowIfCancellationRequested();
 }
+```
+
+### 3. 依赖注入
+
+合理使用依赖注入，确保服务生命周期正确：
+
+```csharp
+public class MessageEventHandler : IFeishuEventHandler
+{
+    private readonly ILogger<MessageEventHandler> _logger;
+    private readonly IMessageService _messageService;  // Scoped 服务
+    private readonly IConfiguration _configuration;    // Singleton 服务
+
+    public MessageEventHandler(
+        ILogger<MessageEventHandler> logger,
+        IMessageService messageService,
+        IConfiguration configuration)
+    {
+        _logger = logger;
+        _messageService = messageService;
+        _configuration = configuration;
+    }
+
+    public string SupportedEventType => "im.message.receive_v1";
+
+    public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
+    {
+        // 使用注入的服务
+        await _messageService.ProcessAsync(eventData, cancellationToken);
+    }
+}
+```
+
+### 4. 使用基类处理器（推荐）
+
+继承基类处理器可以获得自动去重和类型安全：
+
+```csharp
+using Mud.Feishu.Abstractions.EventHandlers;
+
+// 继承基类处理器，自动处理去重和类型转换
+public class MyDepartmentHandler : DepartmentCreatedEventHandler
+{
+    public MyDepartmentHandler(
+        IFeishuEventDeduplicator deduplicator,
+        ILogger<MyDepartmentHandler> logger)
+        : base(deduplicator, logger)
+    {
+    }
+
+    // 只需要实现业务逻辑
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        DepartmentCreatedResult eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        // eventEntity 已经是强类型的实体对象
+        _logger.LogInformation("处理部门: {Name}", eventEntity.Name);
+    }
+}
+```
+
+### 5. 配置验证
+
+启动时验证配置，尽早发现问题：
+
+```csharp
+// 配置会在 Build() 时自动验证
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<MessageEventHandler>()
+    .Build();  // 这里会验证配置
+
+// 如果配置无效，会抛出 InvalidOperationException
+```
+
+### 6. 长时间运行的任务
+
+对于耗时较长的任务，启用后台处理模式：
+
+```csharp
+// appsettings.json
+{
+  "FeishuWebhook": {
+    "EnableBackgroundProcessing": true,  // 立即返回成功，后台处理
+    "EventHandlingTimeoutMs": 60000      // 增加超时时间
+  }
+}
+```
+
+### 7. 测试和调试
+
+Demo 项目提供了测试端点，可用于调试：
+
+```csharp
+// 在 Demo 项目中
+app.MapTestEndpoints();        // 测试端点
+app.MapDiagnostics();          // 诊断端点
+
+// 可以使用以下端点：
+// POST /test/capture - 捕获原始请求
+// GET /test/captured - 查看捕获的请求
+// GET /diagnostics/handlers - 查看已注册的处理器
 ```
 
 ## 故障排除
@@ -505,35 +849,144 @@ builder.Services.CreateFeishuWebhookServiceBuilder(options =>
     .Build();
 ```
 
-## 快速参考
+## 完整示例
 
-### 最常用的注册方式
+### 基础示例
+
+完整的 Program.cs 示例：
 
 ```csharp
-// 方式一：最简化（需要至少一个事件处理器）
-builder.Services.CreateFeishuWebhookServiceBuilder(configuration)
-    .AddHandler<MessageReceiveEventHandler>()
+using Mud.Feishu.Webhook.Extensions;
+using Mud.Feishu.Webhook.Demo.Handlers;
+using Mud.Feishu.Webhook.Demo.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 注册自定义服务
+builder.Services.AddSingleton<DemoEventService>();
+
+// 注册飞书Webhook服务
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "FeishuWebhook")
+    .AddHandler<DemoDepartmentEventHandler>()
+    .AddHandler<DemoDepartmentDeleteEventHandler>()
+    .AddHandler<DemoDepartmentUpdateEventHandler>()
     .Build();
 
-// 方式二：简化 + 处理器
-builder.Services.CreateFeishuWebhookServiceBuilder(configuration)
+var app = builder.Build();
+
+// 添加飞书Webhook中间件
+app.UseFeishuWebhook();
+
+app.Run();
+```
+
+### 高级示例
+
+包含健康检查、性能监控和自定义端点：
+
+```csharp
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 配置日志
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
+// 注册飞书Webhook服务（高级配置）
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .EnableHealthChecks()    // 启用健康检查
+    .EnableMetrics()         // 启用性能监控
     .AddHandler<MessageReceiveEventHandler>()
+    .AddHandler<DepartmentCreatedEventHandler>()
     .Build();
 
-// 方式三：代码配置
+var app = builder.Build();
+
+// 健康检查端点
+app.MapHealthChecks("/health");
+
+// 飞书Webhook中间件
+app.UseFeishuWebhook();
+
+app.Run();
+```
+
+### Demo 项目完整示例
+
+Demo 项目提供了完整的测试和诊断功能：
+
+```csharp
+using Mud.Feishu.Webhook.Demo.Handlers;
+using Mud.Feishu.Webhook.Demo.Services;
+using Mud.Feishu.Webhook.Extensions;
+using Mud.Feishu.Webhook.Demo;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 注册演示服务
+builder.Services.AddSingleton<DemoEventService>();
+
+// 注册飞书Webhook服务
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "FeishuWebhook")
+    .AddHandler<DemoDepartmentEventHandler>()
+    .AddHandler<DemoDepartmentDeleteEventHandler>()
+    .AddHandler<DemoDepartmentUpdateEventHandler>()
+    .Build();
+
+var app = builder.Build();
+
+// 添加诊断端点（仅开发环境）
+if (app.Environment.IsDevelopment())
+{
+    app.MapDiagnostics();      // GET /diagnostics/handlers
+    app.MapTestEndpoints();    // POST /test/capture 等
+}
+
+// 添加飞书Webhook中间件
+app.UseFeishuWebhook();
+
+app.Run();
+```
+
+## 快速参考
+
+### 最常用的代码模式
+
+```csharp
+// ✅ 推荐：从配置文件读取
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<YourEventHandler>()
+    .Build();
+
+// ✅ 代码配置
 builder.Services.CreateFeishuWebhookServiceBuilder(options => {
     options.VerificationToken = "your_token";
-    options.EncryptKey = "your_key";
-}).AddHandler<MessageEventHandler>()
-    .Build();
+    options.EncryptKey = "your_encrypt_key_32_bytes_long";
+})
+.AddHandler<YourEventHandler>()
+.Build();
 
-// 方式四：建造者模式（复杂配置）
+// ✅ 高级配置
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .ConfigureFrom(configuration)
+    .EnableHealthChecks()
     .EnableMetrics()
-    .AddHandler<Handler>()
+    .AddHandler<Handler1>()
+    .AddHandler<Handler2>()
     .Build();
 ```
+
+### 常用配置项速查
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `RoutePrefix` | `"feishu/Webhook"` | Webhook 路由前缀 |
+| `VerificationToken` | - | 验证令牌（必填） |
+| `EncryptKey` | - | 加密密钥（32字节） |
+| `MaxConcurrentEvents` | `10` | 最大并发事件数 |
+| `EventHandlingTimeoutMs` | `30000` | 事件处理超时（毫秒） |
+| `EnableBackgroundProcessing` | `false` | 后台处理模式 |
+| `EnablePerformanceMonitoring` | `false` | 性能监控 |
 
 ---
 

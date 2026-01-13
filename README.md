@@ -80,8 +80,8 @@ builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
 
 // 注册 Webhook HTTP 回调事件服务
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .AddHandler<UserCreatedEventHandler>()
     .AddHandler<MessageReceiveEventHandler>()
+    .AddHandler<DepartmentCreatedEventHandler>()
     .Build();
 
 var app = builder.Build();
@@ -121,19 +121,37 @@ app.Run();
             "ParallelMultiHandlers": true
         },
         "Webhook": {
+            "VerificationToken": "your_verification_token",
+            "EncryptKey": "your_encrypt_key_32_bytes_long",
             "RoutePrefix": "feishu/Webhook",
             "AutoRegisterEndpoint": true,
-            "VerificationToken": "your_verification_token",
-            "EncryptKey": "your_encrypt_key",
             "EnableRequestLogging": true,
             "EnableExceptionHandling": true,
+            "EnforceHeaderSignatureValidation": true,
+            "EnableBodySignatureValidation": true,
+            "TimestampToleranceSeconds": 60,
             "EventHandlingTimeoutMs": 30000,
             "MaxConcurrentEvents": 10,
             "EnablePerformanceMonitoring": false,
+            "EnableBackgroundProcessing": false,
             "AllowedHttpMethods": ["POST"],
             "MaxRequestBodySize": 10485760,
             "ValidateSourceIP": false,
-            "AllowedSourceIPs": []
+            "AllowedSourceIPs": [],
+            "MultiAppEncryptKeys": {
+                "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
+                "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
+            },
+            "DefaultAppId": "cli_a1b2c3d4e5f6g7h8",
+            "RateLimit": {
+                "EnableRateLimit": false,
+                "WindowSizeSeconds": 60,
+                "MaxRequestsPerWindow": 100,
+                "EnableIpRateLimit": true,
+                "TooManyRequestsStatusCode": 429,
+                "TooManyRequestsMessage": "请求过于频繁，请稍后再试",
+                "WhitelistIPs": ["127.0.0.1", "::1"]
+            }
         }
     }
 }
@@ -215,19 +233,31 @@ app.Run();
 | 功能分类 | 主要功能 | 说明 |
 |---------|---------|------|
 | **🔒 安全验证与解密** | 事件订阅验证 | 支持飞书 URL 验证流程 |
-|  | 请求签名验证 | 验证飞书事件请求的签名真实性 |
-|  | 时间戳验证 | 防止重放攻击的时间戳检查 |
-|  | AES-256-CBC解密 | 内置解密功能，自动处理加密事件 |
-|  | 来源IP验证 | 可配置的IP白名单验证 |
+|  | 请求签名验证 | 验证飞书事件请求的签名真实性，防止伪造请求 |
+|  | 时间戳验证 | 防止重放攻击的时间戳检查，可配置容错范围 |
+|  | AES-256-CBC解密 | 内置解密功能，自动处理飞书加密事件 |
+|  | 来源IP验证 | 可配置的IP白名单验证，增强安全性 |
+|  | 多机器人支持 | 支持多个飞书机器人共享同一 Webhook 端点 |
 | **🚀 事件处理架构** | 中间件模式 | 无缝集成到 ASP.NET Core 管道 |
 |  | 自动事件路由 | 根据事件类型自动分发到对应处理器 |
-|  | 多种使用模式 | 支持中间件模式、控制器模式和混合模式 |
-|  | 异步处理 | 完全异步的事件处理机制 |
-|  | 并发控制 | 可配置的并发事件处理数量限制 |
+|  | 策略模式设计 | 可扩展的事件处理器架构，支持自定义业务逻辑 |
+|  | 基类处理器 | 提供类型安全的基类处理器，自动去重和类型转换 |
+|  | 异步处理 | 完全异步的事件处理机制，支持取消令牌 |
+|  | 后台处理模式 | 支持异步后台处理，避免飞书超时重试 |
+|  | 并发控制 | 可配置的并发事件处理数量限制，支持热更新 |
+| **🛡️ 高级安全特性** | 请求频率限制 | 内置滑动窗口限流中间件，防止恶意请求 |
+|  | 威胁检测 | 自动检测和阻止可疑请求模式 |
+|  | 安全审计 | 详细的安全事件审计日志 |
+|  | 密钥强度验证 | 启动时验证加密密钥强度和安全性 |
 | **📊 监控与运维** | 性能监控 | 可选的性能指标收集和监控 |
-|  | 健康检查 | 内置健康检查端点 |
+|  | 健康检查 | 内置健康检查端点，支持失败率阈值配置 |
 |  | 异常处理 | 完善的异常处理和日志记录 |
 |  | 请求日志 | 详细的请求处理日志记录 |
+|  | 诊断端点 | Demo项目提供诊断端点查看处理器注册情况 |
+| **🔧 配置与扩展** | 配置热更新 | 支持运行时配置变更，无需重启服务 |
+|  | 灵活配置 | 支持配置文件、代码配置和建造者模式 |
+|  | 依赖注入 | 完全集成 .NET 依赖注入容器 |
+|  | 跨平台支持 | 支持 .NET Standard 2.0, .NET 6.0, .NET 8.0, .NET 10.0 |
 
 
 ## 🎯 使用场景
@@ -541,7 +571,12 @@ public class DemoDepartmentDeleteEventHandler : DepartmentDeleteEventHandler
 
 Webhook 事件处理器与 WebSocket 事件处理器使用相同的 `IFeishuEventHandler` 接口，因此代码可以复用。
 
+##### 方式一：实现 IFeishuEventHandler 接口
+
 ```csharp
+using Mud.Feishu.Abstractions;
+using System.Text.Json;
+
 // 用户创建事件处理器 - Webhook 和 WebSocket 都可以使用
 public class UserCreatedEventHandler : IFeishuEventHandler
 {
@@ -562,8 +597,11 @@ public class UserCreatedEventHandler : IFeishuEventHandler
     {
         try
         {
+            _logger.LogInformation("收到用户创建事件: EventId={EventId}", eventData.EventId);
+            
             // 解析用户事件数据
-            var userEvent = JsonSerializer.Deserialize<UserCreatedEvent>(eventData.Event?.ToString() ?? "{}");
+            var userEvent = JsonSerializer.Deserialize<UserCreatedEvent>(
+                eventData.Event?.ToString() ?? "{}");
 
             _logger.LogInformation("新用户创建: {UserName} ({UserId})",
                 userEvent.User.Name, userEvent.User.UserId);
@@ -580,8 +618,59 @@ public class UserCreatedEventHandler : IFeishuEventHandler
             throw;
         }
     }
-}
 
+    private async Task SendWelcomeMessageAsync(string userId)
+    {
+        // 发送欢迎消息逻辑
+        await Task.CompletedTask;
+    }
+}
+```
+
+##### 方式二：继承基类处理器（推荐）
+
+使用基类处理器可以获得自动去重和类型安全：
+
+```csharp
+using Mud.Feishu.Abstractions;
+using Mud.Feishu.Abstractions.DataModels.Organization;
+using Mud.Feishu.Abstractions.EventHandlers;
+using Mud.Feishu.Abstractions.Services;
+
+// 部门创建事件处理器 - 继承基类
+public class DepartmentCreatedHandler : DepartmentCreatedEventHandler
+{
+    private readonly IDepartmentService _deptService;
+
+    public DepartmentCreatedHandler(
+        IFeishuEventDeduplicator deduplicator,
+        ILogger<DepartmentCreatedHandler> logger,
+        IDepartmentService deptService)
+        : base(deduplicator, logger)
+    {
+        _deptService = deptService;
+    }
+
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        DepartmentCreatedResult? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        // eventEntity 已经是强类型的部门数据
+        _logger.LogInformation("处理部门创建: {Name}", eventEntity.Name);
+        
+        // 同步到本地数据库
+        await _deptService.SyncDepartmentAsync(eventEntity, cancellationToken);
+        
+        // 初始化部门权限
+        await _deptService.InitializePermissionsAsync(eventEntity.DepartmentId);
+    }
+}
+```
+
+##### 消息接收事件处理器
+
+```csharp
 // 消息接收事件处理器
 public class MessageReceiveEventHandler : IFeishuEventHandler
 {
@@ -602,7 +691,8 @@ public class MessageReceiveEventHandler : IFeishuEventHandler
     {
         try
         {
-            var messageEvent = JsonSerializer.Deserialize<MessageReceiveEvent>(eventData.Event?.ToString() ?? "{}");
+            var messageEvent = JsonSerializer.Deserialize<MessageReceiveEvent>(
+                eventData.Event?.ToString() ?? "{}");
 
             _logger.LogInformation("收到消息 - 发送者: {SenderId}, 内容: {Content}",
                 messageEvent.Sender.Id, messageEvent.Message.Content);
@@ -612,6 +702,12 @@ public class MessageReceiveEventHandler : IFeishuEventHandler
             {
                 await SendHelpMessageAsync(messageEvent.Sender.Id);
             }
+            
+            // 关键词检测和自动回复
+            if (messageEvent.Message.Content.Contains("报销"))
+            {
+                await SendExpenseGuideAsync(messageEvent.Sender.Id);
+            }
         }
         catch (Exception ex)
         {
@@ -619,7 +715,46 @@ public class MessageReceiveEventHandler : IFeishuEventHandler
             throw;
         }
     }
+    
+    private async Task SendHelpMessageAsync(string userId)
+    {
+        // 发送帮助信息
+        await Task.CompletedTask;
+    }
+    
+    private async Task SendExpenseGuideAsync(string userId)
+    {
+        // 发送报销指南
+        await Task.CompletedTask;
+    }
 }
+```
+
+##### 服务注册
+
+```csharp
+using Mud.Feishu.Webhook.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 注册 Webhook 服务
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddHandler<UserCreatedEventHandler>()      // 用户创建事件
+    .AddHandler<DepartmentCreatedHandler>()     // 部门创建事件
+    .AddHandler<MessageReceiveEventHandler>()   // 消息接收事件
+    .EnableHealthChecks()                       // 启用健康检查
+    .EnableMetrics()                            // 启用性能监控
+    .Build();
+
+var app = builder.Build();
+
+// 添加 Webhook 中间件（自动处理 /feishu/Webhook 路由）
+app.UseFeishuWebhook();
+
+// 添加健康检查端点
+app.MapHealthChecks("/health");
+
+app.Run();
 ```
 
 ## 📖 详细文档

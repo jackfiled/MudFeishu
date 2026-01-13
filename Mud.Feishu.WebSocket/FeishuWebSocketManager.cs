@@ -341,6 +341,12 @@ public class FeishuWebSocketManager : IFeishuWebSocketManager
     /// <returns>重连任务</returns>
     public async Task ReconnectAsync(CancellationToken cancellationToken = default)
     {
+        // 避免重入
+        if (_isReconnecting)
+        {
+            _logger.LogWarning("已有重连操作在进行中，跳过本次重连请求");
+            return;
+        }
 
         _logger.LogInformation("正在重新连接Mud飞书WebSocket服务...");
 

@@ -370,38 +370,57 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
             _lastPongTime = DateTime.UtcNow;
             _heartbeatMissedCount = 0;
 
-            while (_connectionManager.IsConnected && !cancellationToken.IsCancellationRequested)
+            // 保持心跳运行，即使连接断开也要持续检测以便触发重连
+            while (!cancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(_options.HeartbeatIntervalMs, cancellationToken);
 
-                if (_connectionManager.IsConnected)
+                // 如果连接已断开且启用自动重连，尝试触发重连
+                if (!_connectionManager.IsConnected)
                 {
-                    try
+                    if (_options.AutoReconnect)
                     {
-                        var pingMessage = new PingMessage
+                        _logger.LogDebug("连接已断开，触发重连事件...");
+                        // 触发断开事件，让 HostedService 处理重连逻辑
+                        Disconnected?.Invoke(this, new SocketEventArgs.WebSocketCloseEventArgs
                         {
-                            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-                        };
-
-                        var heartbeatMessage = JsonSerializer.Serialize(pingMessage, JsonOptions.Default);
-                        await SendMessageAsync(heartbeatMessage, cancellationToken);
-
-                        if (_options.EnableLogging)
-                            _logger.LogDebug("已发送心跳");
-
-                        // 检查心跳超时
-                        await CheckHeartbeatTimeoutAsync(cancellationToken);
+                            CloseStatus = System.Net.WebSockets.WebSocketCloseStatus.NormalClosure,
+                            CloseStatusDescription = "心跳检测到连接断开，准备重连",
+                            IsServerInitiated = false,
+                            Timestamp = DateTime.UtcNow
+                        });
                     }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "发送心跳时发生错误");
+                    // 连接断开后重置心跳状态
+                    _lastPongTime = DateTime.UtcNow;
+                    _heartbeatMissedCount = 0;
+                    continue;
+                }
 
-                        // 心跳发送失败，尝试触发重连
-                        if (_options.AutoReconnect)
-                        {
-                            _logger.LogWarning("心跳发送失败，准备重连...");
-                            await TriggerReconnectAsync(cancellationToken);
-                        }
+                try
+                {
+                    var pingMessage = new PingMessage
+                    {
+                        Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                    };
+
+                    var heartbeatMessage = JsonSerializer.Serialize(pingMessage, JsonOptions.Default);
+                    await SendMessageAsync(heartbeatMessage, cancellationToken);
+
+                    if (_options.EnableLogging)
+                        _logger.LogDebug("已发送心跳");
+
+                    // 检查心跳超时
+                    await CheckHeartbeatTimeoutAsync(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "发送心跳时发生错误");
+
+                    // 心跳发送失败，尝试触发重连
+                    if (_options.AutoReconnect)
+                    {
+                        _logger.LogWarning("心跳发送失败，准备重连...");
+                        await TriggerReconnectAsync(cancellationToken);
                     }
                 }
             }
