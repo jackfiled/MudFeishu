@@ -18,6 +18,7 @@ builder.Services.AddSingleton<DemoEventService>();
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "FeishuWebhook")
                 .AddHandler<DemoDepartmentEventHandler>()
                 .AddHandler<DemoDepartmentDeleteEventHandler>()
+                .AddHandler<DemoDepartmentUpdateEventHandler>()
                 .Build();
 
 var app = builder.Build();

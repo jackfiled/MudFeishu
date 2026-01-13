@@ -7,10 +7,10 @@
 
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.DataModels.Organization;
-using Mud.Feishu.Webhook.Demo.Demo.Handlers;
 using System.Collections.Concurrent;
 
 namespace Mud.Feishu.Webhook.Demo.Services;
+
 
 /// <summary>
 /// 演示事件服务，用于记录和管理事件统计
@@ -18,7 +18,6 @@ namespace Mud.Feishu.Webhook.Demo.Services;
 public class DemoEventService
 {
     private readonly ILogger<DemoEventService> _logger;
-    private readonly ConcurrentBag<UserData> _userEvents = new();
     private readonly ConcurrentBag<DepartmentCreatedResult> _departmentEvents = new();
 
     private int _userCount = 0;
@@ -32,22 +31,12 @@ public class DemoEventService
     }
 
     /// <summary>
-    /// 记录用户事件
-    /// </summary>
-    public async Task RecordUserEventAsync(UserData userData, CancellationToken cancellationToken = default)
-    {
-        _userEvents.Add(userData);
-        _logger.LogInformation("📊 [统计] 记录用户事件: {UserId} - {UserName}", userData.UserId, userData.UserName);
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
     /// 记录部门事件
     /// </summary>
     public async Task RecordDepartmentEventAsync(DepartmentCreatedResult departmentData, CancellationToken cancellationToken = default)
     {
         _departmentEvents.Add(departmentData);
-        _logger.LogInformation("📊 [统计] 记录部门事件: {DepartmentId} - {DepartmentName}",
+        _logger.LogInformation(">> [统计] 记录部门事件: {DepartmentId} - {DepartmentName}",
             departmentData.DepartmentId, departmentData.Name);
         await Task.CompletedTask;
     }
@@ -80,7 +69,6 @@ public class DemoEventService
     {
         return new EventStatistics
         {
-            UserEventsCount = _userEvents.Count,
             DepartmentEventsCount = _departmentEvents.Count,
             TotalProcessedUsers = _userCount,
             TotalProcessedDepartments = _departmentCount,
@@ -97,7 +85,6 @@ public class DemoEventService
     {
         return new RecentEvents
         {
-            RecentUsers = _userEvents.OrderByDescending(u => u.ProcessedAt).Take(count).ToList(),
             RecentDepartments = _departmentEvents.OrderByDescending(d => d.Order).Take(count).ToList(),
         };
     }
@@ -107,7 +94,6 @@ public class DemoEventService
     /// </summary>
     public void ClearAllEvents()
     {
-        while (_userEvents.TryTake(out _)) { }
         while (_departmentEvents.TryTake(out _)) { }
 
         Interlocked.Exchange(ref _userCount, 0);
@@ -115,7 +101,7 @@ public class DemoEventService
         Interlocked.Exchange(ref _departmentDeleteCount, 0);
         Interlocked.Exchange(ref _approvalCount, 0);
 
-        _logger.LogInformation("🗑️ [统计] 已清空所有事件记录");
+        _logger.LogInformation(">> [统计] 已清空所有事件记录");
     }
 
     /// <summary>
@@ -247,6 +233,5 @@ public class EventStatistics
 /// </summary>
 public class RecentEvents
 {
-    public List<UserData> RecentUsers { get; init; } = new();
     public List<DepartmentCreatedResult> RecentDepartments { get; init; } = new();
 }

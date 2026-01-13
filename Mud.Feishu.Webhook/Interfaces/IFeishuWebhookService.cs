@@ -24,6 +24,14 @@ public interface IFeishuWebhookService
     Task<EventVerificationResponse?> VerifyEventSubscriptionAsync(EventVerificationRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 处理飞书事件推送（已解密）
+    /// </summary>
+    /// <param name="eventData">已解密的事件数据</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>处理结果</returns>
+    Task<(bool Success, string? ErrorReason)> HandleEventAsync(EventData eventData, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 处理飞书事件推送
     /// </summary>
     /// <param name="request">Webhook 请求</param>

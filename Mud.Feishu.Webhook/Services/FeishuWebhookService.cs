@@ -104,6 +104,43 @@ public class FeishuWebhookService : IFeishuWebhookService
     }
 
     /// <inheritdoc />
+    public async Task<(bool Success, string? ErrorReason)> HandleEventAsync(EventData eventData, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (Options.EnablePerformanceMonitoring)
+            {
+                using var activity = _metrics.StartEventHandlingActivity();
+                try
+                {
+                    var result = await HandleEventInternalAsync(eventData, cancellationToken);
+                    activity?.SetTag("success", result.Success);
+                    activity?.SetTag("error_reason", result.ErrorReason);
+                    if (!result.Success)
+                    {
+                        activity?.SetStatus(ActivityStatusCode.Error, result.ErrorReason ?? "Unknown error");
+                    }
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    activity?.SetTag("exception", ex.Message);
+                    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                    throw;
+                }
+            }
+            else
+            {
+                return await HandleEventInternalAsync(eventData, cancellationToken);
+            }
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, string? encryptKey = null, CancellationToken cancellationToken = default)
     {
         // 保存提供的密钥
@@ -145,7 +182,107 @@ public class FeishuWebhookService : IFeishuWebhookService
     }
 
     /// <summary>
-    /// 内部事件处理方法
+    /// 内部事件处理方法（使用已解密的事件数据）
+    /// </summary>
+    private async Task<(bool Success, string? ErrorReason)> HandleEventInternalAsync(EventData eventData, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("开始处理飞书事件");
+
+            // 去重检查 - 优先使用分布式去重
+            bool isProcessing = false;
+
+            if (_distributedDeduplicator != null)
+            {
+                // 使用分布式去重
+                isProcessing = await _distributedDeduplicator.TryMarkAsProcessedAsync(eventData.EventId, cancellationToken: cancellationToken);
+            }
+            else
+            {
+                // 使用内存去重 - 标记为处理中
+                isProcessing = _deduplicator.TryMarkAsProcessing(eventData.EventId);
+            }
+
+            if (isProcessing)
+            {
+                _logger.LogWarning("检测到重复事件 {EventId}，跳过处理（幂等性）", eventData.EventId);
+                return (true, null); // 幂等性：返回成功避免飞书重试
+            }
+
+            // 使用全局并发控制服务
+            using var concurrencyLock = await _concurrencyService.AcquireAsync(cancellationToken);
+
+            // 添加超时控制
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(Options.EventHandlingTimeoutMs);
+
+            try
+            {
+                // 分发事件到处理器
+                await _handlerFactory.HandleEventParallelAsync(eventData.EventType, eventData, timeoutCts.Token);
+
+                // 处理成功，标记为已完成（仅内存去重需要）
+                if (_distributedDeduplicator == null)
+                {
+                    _deduplicator.MarkAsCompleted(eventData.EventId);
+                }
+
+                _metrics.IncrementSuccessfulEvents();
+                _logger.LogInformation("事件处理完成: {EventType}, 事件ID: {EventId}",
+                    eventData.EventType, eventData.EventId);
+
+                return (true, null);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // 处理超时，回滚处理中状态（仅内存去重需要）
+                if (_distributedDeduplicator == null)
+                {
+                    _deduplicator.RollbackProcessing(eventData.EventId);
+                }
+
+                _logger.LogWarning("事件处理超时: {EventType}, 事件ID: {EventId}, 超时时间: {TimeoutMs}ms",
+                    eventData.EventType, eventData.EventId, Options.EventHandlingTimeoutMs);
+                _metrics.IncrementFailedEvents();
+                return (false, "Event handling timeout");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // 处理被取消，回滚处理中状态（仅内存去重需要）
+            if (_distributedDeduplicator == null)
+            {
+                _deduplicator.RollbackProcessing(eventData.EventId);
+            }
+
+            _logger.LogWarning("事件处理被取消");
+            _metrics.IncrementCancelledEvents();
+            return (false, "Operation cancelled");
+        }
+        catch (Exception ex)
+        {
+            // 处理失败，回滚处理中状态（仅内存去重需要）
+            if (_distributedDeduplicator == null)
+            {
+                _deduplicator.RollbackProcessing(eventData.EventId);
+            }
+
+            _logger.LogError(ex, "处理飞书事件时发生错误");
+            _metrics.IncrementFailedEvents();
+
+            if (Options.EnableExceptionHandling)
+            {
+                // 记录异常但不抛出，避免影响整体服务
+                return (false, "Internal server error");
+            }
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 内部事件处理方法（使用加密的请求数据）
     /// </summary>
     private async Task<(bool Success, string? ErrorReason)> HandleEventInternalAsync(FeishuWebhookRequest request, CancellationToken cancellationToken)
     {
@@ -160,7 +297,7 @@ public class FeishuWebhookService : IFeishuWebhookService
             {
                 _logger.LogWarning("请求体签名验证失败");
                 _metrics.IncrementSignatureValidationFailures();
-                
+
                 // 记录安全审计日志
                 _ = _securityAuditService?.LogSecurityFailureAsync(
                     SecurityEventType.SignatureValidation,
@@ -168,7 +305,7 @@ public class FeishuWebhookService : IFeishuWebhookService
                     "FeishuWebhookService",
                     "请求体签名验证失败",
                     "");
-                
+
                 return (false, "Signature validation failed");
             }
 

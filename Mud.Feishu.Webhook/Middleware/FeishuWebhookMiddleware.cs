@@ -309,7 +309,7 @@ public class FeishuWebhookMiddleware
             _logger.LogInformation("开始处理 Webhook 请求, RequestId: {RequestId}", requestId);
 
             // 步骤 1：尝试处理明文 URL 验证请求
-            if (await TryHandlePlaintextVerificationAsync(context, requestBody, webhookService, requestId))
+            if (await TryHandlePlaintextVerificationAsync(context, requestBody, webhookService))
             {
                 return;
             }
@@ -328,7 +328,7 @@ public class FeishuWebhookMiddleware
             // 步骤 3：解密请求数据
             var encryptKey = GetEncryptKey(eventRequest);
             var decryptor = scope.ServiceProvider.GetRequiredService<IFeishuEventDecryptor>();
-            var decryptedData = await decryptor.DecryptAsync(eventRequest.Encrypt, encryptKey);
+            var decryptedData = await decryptor.DecryptAsync(eventRequest.Encrypt!, encryptKey);
 
             if (decryptedData == null)
             {
@@ -354,7 +354,7 @@ public class FeishuWebhookMiddleware
                     return;
                 }
 
-                await HandleEncryptedVerificationAsync(context, decryptedData, requestId);
+                await HandleEncryptedVerificationAsync(context, decryptedData);
                 return;
             }
 
@@ -365,7 +365,7 @@ public class FeishuWebhookMiddleware
             }
 
             // 步骤 6：处理事件请求
-            await HandleEventRequestAsync(context, eventRequest, encryptKey, webhookService, requestId);
+            await HandleEventRequestAsync(context, decryptedData, webhookService, requestId);
         }
         catch (JsonException ex)
         {
@@ -460,7 +460,7 @@ public class FeishuWebhookMiddleware
     /// <summary>
     /// 尝试处理明文 URL 验证请求
     /// </summary>
-    private async Task<bool> TryHandlePlaintextVerificationAsync(HttpContext context, string requestBody, IFeishuWebhookService webhookService, string requestId)
+    private async Task<bool> TryHandlePlaintextVerificationAsync(HttpContext context, string requestBody, IFeishuWebhookService webhookService)
     {
         var verificationRequest = JsonSerializer.Deserialize(
             requestBody,
@@ -488,7 +488,7 @@ public class FeishuWebhookMiddleware
     /// <summary>
     /// 处理加密的 URL 验证请求
     /// </summary>
-    private async Task HandleEncryptedVerificationAsync(HttpContext context, EventData decryptedData, string requestId)
+    private async Task HandleEncryptedVerificationAsync(HttpContext context, EventData decryptedData)
     {
         string? challenge;
         if (decryptedData.Event is JsonElement eventElement)
@@ -548,7 +548,7 @@ public class FeishuWebhookMiddleware
     /// <summary>
     /// 处理事件请求
     /// </summary>
-    private async Task HandleEventRequestAsync(HttpContext context, FeishuWebhookRequest eventRequest, string encryptKey, IFeishuWebhookService webhookService, string requestId)
+    private async Task HandleEventRequestAsync(HttpContext context, EventData eventData, IFeishuWebhookService webhookService, string requestId)
     {
         if (_options.EnableBackgroundProcessing)
         {
@@ -564,7 +564,7 @@ public class FeishuWebhookMiddleware
                 try
                 {
                     var token = CancellationToken.None;
-                    var result = await webhookService.HandleEventAsync(eventRequest, encryptKey, token);
+                    var result = await webhookService.HandleEventAsync(eventData, token);
 
                     if (result.Success)
                     {
@@ -606,7 +606,7 @@ public class FeishuWebhookMiddleware
 
         // 同步处理模式
         var token = CancellationToken.None;
-        var result = await webhookService.HandleEventAsync(eventRequest, encryptKey, token);
+        var result = await webhookService.HandleEventAsync(eventData, token);
         if (result.Success)
         {
             await WriteJsonResponse(context, 200, new { });
