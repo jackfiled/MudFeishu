@@ -15,7 +15,7 @@ namespace Mud.Feishu.Webhook.Services;
 public class FeishuEventDecryptor : IFeishuEventDecryptor
 {
     private readonly ILogger<FeishuEventDecryptor> _logger;
-
+    private const int BlockSize = 16;
     /// <inheritdoc />
     public FeishuEventDecryptor(ILogger<FeishuEventDecryptor> logger)
     {
@@ -126,14 +126,21 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
         return eventData;
     }
 
+    private static byte[] SHA256Hash(string str)
+    {
+        using var sha256 = SHA256.Create();
+        byte[] bytes = Encoding.UTF8.GetBytes(str);
+        return sha256.ComputeHash(bytes);
+    }
+
     /// <summary>
     /// 使用 AES-256-CBC 解密数据
     /// </summary>
     /// <param name="encryptedBytes">加密的字节数组</param>
-    /// <param name="key">加密密钥</param>
+    /// <param name="encryptKey">加密密钥</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>解密后的字符串</returns>
-    private async Task<string?> DecryptAes256CbcAsync(byte[] encryptedBytes, string key, CancellationToken cancellationToken = default)
+    private async Task<string?> DecryptAes256CbcAsync(byte[] encryptedBytes, string encryptKey, CancellationToken cancellationToken = default)
     {
         // 使用 Task.Run 将 CPU 密集型操作放到线程池执行，避免阻塞请求线程
         return await Task.Run(() =>
@@ -143,31 +150,24 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                 // 检查取消令牌
                 cancellationToken.ThrowIfCancellationRequested();
 
-                using var aes = Aes.Create();
-                aes.Key = Encoding.UTF8.GetBytes(key);
-                aes.Padding = PaddingMode.PKCS7;
-                aes.Mode = CipherMode.CBC;
+                _logger.LogInformation("开始解密，密钥长度: {KeyLength}, 加密数据长度: {DataLength}", encryptKey.Length, encryptedBytes.Length);
 
-                // 从加密数据中提取 IV（前16字节）
-                var iv = new byte[16];
-                var actualEncryptedData = new byte[encryptedBytes.Length - 16];
-
-                Array.Copy(encryptedBytes, 0, iv, 0, 16);
-                Array.Copy(encryptedBytes, 16, actualEncryptedData, 0, actualEncryptedData.Length);
-
-                aes.IV = iv;
-
-                using var decryptor = aes.CreateDecryptor();
-                using var msDecrypt = new MemoryStream(actualEncryptedData);
-                using var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
-                using var srDecrypt = new StreamReader(csDecrypt, Encoding.UTF8);
-
-                var result = srDecrypt.ReadToEnd();
-
+                var rijndaelManaged = Aes.Create();
+                rijndaelManaged.Key = SHA256Hash(encryptKey);
+                rijndaelManaged.Mode = CipherMode.CBC;
+                rijndaelManaged.IV = [.. encryptedBytes.Take(BlockSize)];
+                ICryptoTransform transform = rijndaelManaged.CreateDecryptor();
+                var result = transform.TransformFinalBlock(encryptedBytes, BlockSize, encryptedBytes.Length - BlockSize);
                 // 再次检查取消令牌
                 cancellationToken.ThrowIfCancellationRequested();
+                if (result == null)
+                {
+                    _logger.LogError("解密失败，结果为空");
+                    return null;
+                }
 
-                return result;
+                _logger.LogInformation("解密成功，结果长度: {ResultLength}", result?.Length ?? 0);
+                return Encoding.UTF8.GetString(result);
             }
             catch (OperationCanceledException)
             {
