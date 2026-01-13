@@ -150,7 +150,8 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                 // 检查取消令牌
                 cancellationToken.ThrowIfCancellationRequested();
 
-                _logger.LogInformation("开始解密，密钥长度: {KeyLength}, 加密数据长度: {DataLength}", encryptKey.Length, encryptedBytes.Length);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                    _logger.LogDebug("开始解密，密钥长度: {KeyLength}, 加密数据长度: {DataLength}", encryptKey.Length, encryptedBytes.Length);
 
                 var rijndaelManaged = Aes.Create();
                 rijndaelManaged.Key = SHA256Hash(encryptKey);
@@ -165,8 +166,8 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                     _logger.LogError("解密失败，结果为空");
                     return null;
                 }
-
-                _logger.LogInformation("解密成功，结果长度: {ResultLength}", result?.Length ?? 0);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                    _logger.LogDebug("解密成功，结果长度: {ResultLength}", result?.Length ?? 0);
                 return Encoding.UTF8.GetString(result);
             }
             catch (OperationCanceledException)
