@@ -43,14 +43,19 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
 
             // 解析事件数据（支持 v1.0 和 v2.0 版本）
             EventData eventData;
+            string? schemaVersion = null;
 
             using (var jsonDoc = JsonDocument.Parse(decryptedJson!))
             {
                 var root = jsonDoc.RootElement;
 
                 // 检查是否为v2.0版本
-                if (root.TryGetProperty("schema", out var schemaElement) &&
-                    schemaElement.GetString() == "2.0")
+                if (root.TryGetProperty("schema", out var schemaElement))
+                {
+                    schemaVersion = schemaElement.GetString();
+                }
+
+                if (schemaVersion == "2.0")
                 {
                     // v2.0版本解析
                     eventData = ParseV2Event(root);
@@ -67,8 +72,14 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
 
             if (!string.IsNullOrEmpty(eventData.EventType))
             {
-                _logger.LogInformation("事件数据解密成功，事件类型: {EventType}, 事件ID: {EventId}",
-                    eventData.EventType, eventData.EventId);
+                _logger.LogInformation("✅ 事件数据解密成功 - EventType: [{EventType}], EventId: [{EventId}], Schema: {Schema}",
+                    eventData.EventType, eventData.EventId, schemaVersion ?? "v1.0");
+            }
+            else
+            {
+                _logger.LogError("❌ 事件数据解密后EventType为空！原始JSON前500字符: {Json}",
+                    decryptedJson!.Length > 500 ? decryptedJson!.Substring(0, 500) + "..." : decryptedJson);
+                _logger.LogError("完整的解密JSON数据: {FullJson}", decryptedJson);
             }
 
             return eventData;

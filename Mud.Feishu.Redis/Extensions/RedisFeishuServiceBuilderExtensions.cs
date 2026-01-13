@@ -8,6 +8,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Mud.Feishu.Redis.Configuration;
+using Mud.Feishu.Redis.Health;
 using Mud.Feishu.Redis.Services;
 using StackExchange.Redis;
 
@@ -25,17 +26,22 @@ public static class RedisFeishuServiceBuilderExtensions
     /// <returns>服务集合</returns>
     private static IServiceCollection AddFeishuRedis(this IServiceCollection services)
     {
-        // 注册 RedisOptions 配置
+        // 注册 RedisOptions 配置为 IOptions 模式
         services.AddSingleton(sp =>
         {
             var configuration = sp.GetService<IConfiguration>();
+            var logger = sp.GetService<ILogger<RedisOptions>>();
             var options = new RedisOptions();
 
-            if (configuration != null)
+            configuration?.GetSection("Feishu:Redis").Bind(options);
+
+            // 验证必要配置
+            if (string.IsNullOrWhiteSpace(options.ServerAddress))
             {
-                configuration.GetSection("Feishu:Redis").Bind(options);
+                throw new InvalidOperationException("Redis ServerAddress is not configured. Please check your configuration under 'Feishu:Redis' section.");
             }
 
+            logger?.LogInformation("Redis options loaded. Server: {ServerAddress}", options.ServerAddress);
             return options;
         });
 
@@ -45,23 +51,51 @@ public static class RedisFeishuServiceBuilderExtensions
             var options = sp.GetRequiredService<RedisOptions>();
             var logger = sp.GetService<ILogger<ConnectionMultiplexer>>();
 
-            logger?.LogInformation("正在初始化 Redis 连接，地址: {ConnectionString}", options.ServerAddress);
-
-            var redis = ConnectionMultiplexer.Connect(new ConfigurationOptions
+            try
             {
-                EndPoints = { options.ServerAddress },
-                ConnectTimeout = options.ConnectTimeout,
-                SyncTimeout = options.SyncTimeout,
-                Ssl = options.Ssl,
-                Password = "letmein",
-                AllowAdmin = options.AllowAdmin,
-                AbortOnConnectFail = true,
-                ConnectRetry = 3
-            });
+                logger?.LogInformation("Initializing Redis connection to: {ConnectionString}", options.ServerAddress);
 
-            logger?.LogInformation("Redis 连接初始化完成");
-            return redis;
+                var config = new ConfigurationOptions
+                {
+                    EndPoints = { options.ServerAddress },
+                    ConnectTimeout = options.ConnectTimeout,
+                    SyncTimeout = options.SyncTimeout,
+                    Ssl = options.Ssl,
+                    Password = options.Password, // 从配置读取
+                    AllowAdmin = options.AllowAdmin,
+                    AbortOnConnectFail = options.AbortOnConnectFail,
+                    ConnectRetry = options.ConnectRetry,
+                    DefaultDatabase = options.DefaultDatabase,
+                    ClientName = options.ClientName ?? $"Feishu-Deduplicator-{Environment.MachineName}"
+                };
+
+                var redis = ConnectionMultiplexer.Connect(config);
+
+                // 注册连接事件
+                redis.ConnectionFailed += (sender, args) =>
+                {
+                    logger?.LogWarning(args.Exception, "Redis connection failed: {FailureType}", args.FailureType);
+                };
+
+                redis.ConnectionRestored += (sender, args) =>
+                {
+                    logger?.LogInformation("Redis connection restored");
+                };
+
+                logger?.LogInformation("Redis connection initialized successfully");
+                return redis;
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Failed to initialize Redis connection");
+                throw new InvalidOperationException($"Failed to initialize Redis connection to {options.ServerAddress}", ex);
+            }
         });
+
+        // 注册健康检查
+        services.AddSingleton<RedisHealthCheck>();
+        services.AddHealthChecks()
+            .AddCheck<RedisHealthCheck>("feishu-redis", tags: new[] { "redis", "feishu" });
 
         return services;
     }
@@ -69,8 +103,6 @@ public static class RedisFeishuServiceBuilderExtensions
     /// <summary>
     /// 注册 Redis 分布式事件去重服务
     /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <returns>服务集合</returns>
     private static IServiceCollection AddFeishuRedisEventDeduplicator(
         this IServiceCollection services)
     {
@@ -93,8 +125,6 @@ public static class RedisFeishuServiceBuilderExtensions
     /// <summary>
     /// 注册 Redis 分布式 Nonce 去重服务
     /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <returns>服务集合</returns>
     private static IServiceCollection AddFeishuRedisNonceDeduplicator(
         this IServiceCollection services)
     {
@@ -117,8 +147,6 @@ public static class RedisFeishuServiceBuilderExtensions
     /// <summary>
     /// 注册 Redis 分布式 SeqID 去重服务
     /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <returns>服务集合</returns>
     private static IServiceCollection AddFeishuRedisSeqIDDeduplicator(
         this IServiceCollection services)
     {
@@ -146,16 +174,45 @@ public static class RedisFeishuServiceBuilderExtensions
     /// <param name="sectionName">配置节名称</param>
     /// <returns>服务集合</returns>
     public static IServiceCollection AddFeishuRedisDeduplicators(
-        this IServiceCollection services,IConfiguration configuration,string sectionName="Redis")
+        this IServiceCollection services,
+        IConfiguration configuration,
+        string sectionName = "Feishu:Redis")
     {
         if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));        
+            throw new ArgumentNullException(nameof(configuration));
 
-        var section = sectionName ?? "Redis";
-        return services.Configure<RedisOptions>(options => configuration.GetSection(section).Bind(options))
-                        .AddFeishuRedis()
-                        .AddFeishuRedisEventDeduplicator()
-                        .AddFeishuRedisNonceDeduplicator()
-                        .AddFeishuRedisSeqIDDeduplicator();
+        // 使用标准的 IOptions 模式注册配置
+        services.Configure<RedisOptions>(options =>
+        {
+            configuration.GetSection(sectionName).Bind(options);
+        });
+
+        return services
+            .AddFeishuRedis()
+            .AddFeishuRedisEventDeduplicator()
+            .AddFeishuRedisNonceDeduplicator()
+            .AddFeishuRedisSeqIDDeduplicator();
+    }
+
+    /// <summary>
+    /// 注册所有 Redis 分布式去重服务（使用预配置的选项）
+    /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <param name="configureOptions">配置选项的回调</param>
+    /// <returns>服务集合</returns>
+    public static IServiceCollection AddFeishuRedisDeduplicators(
+        this IServiceCollection services,
+        Action<RedisOptions> configureOptions)
+    {
+        if (configureOptions == null)
+            throw new ArgumentNullException(nameof(configureOptions));
+
+        services.Configure(configureOptions);
+
+        return services
+            .AddFeishuRedis()
+            .AddFeishuRedisEventDeduplicator()
+            .AddFeishuRedisNonceDeduplicator()
+            .AddFeishuRedisSeqIDDeduplicator();
     }
 }

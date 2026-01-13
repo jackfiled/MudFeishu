@@ -72,4 +72,24 @@ public class RedisOptions
     /// 是否允许管理员操作，默认 true
     /// </summary>
     public bool AllowAdmin { get; set; } = true;
+
+    /// <summary>
+    /// 是否在连接失败时中止，默认 true
+    /// </summary>
+    public bool AbortOnConnectFail { get; set; } = true;
+
+    /// <summary>
+    /// 连接重试次数，默认 3 次
+    /// </summary>
+    public int ConnectRetry { get; set; } = 3;
+
+    /// <summary>
+    /// 默认数据库索引
+    /// </summary>
+    public int? DefaultDatabase { get; set; }
+
+    /// <summary>
+    /// 客户端名称
+    /// </summary>
+    public string? ClientName { get; set; }
 }

@@ -8,6 +8,7 @@
 using Mud.Feishu.Webhook.Demo.Handlers;
 using Mud.Feishu.Webhook.Demo.Services;
 using Mud.Feishu.Webhook.Extensions;
+using Mud.Feishu.Webhook.Demo;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,12 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "Feish
                 .Build();
 
 var app = builder.Build();
+
+// 添加诊断端点
+app.MapDiagnostics();
+
+// 添加测试端点（用于捕获飞书回调数据）
+app.MapTestEndpoints();
 
 // 添加飞书Webhook中间件（如果已启用端点自动注册）
 app.UseFeishuWebhook();

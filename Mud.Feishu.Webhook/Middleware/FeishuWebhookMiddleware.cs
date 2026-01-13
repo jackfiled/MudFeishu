@@ -56,7 +56,7 @@ public class FeishuWebhookMiddleware
     /// </summary>
     public async Task InvokeAsync(HttpContext context)
     {
-        _logger.LogTrace("进入 FeishuWebhookMiddleware.InvokeAsync 方法");
+        _logger.LogDebug("进入 FeishuWebhookMiddleware.InvokeAsync 方法");
         var stopwatch = Stopwatch.StartNew();
         using var scrope = _scopeFactory.CreateScope();
         _securityAuditService = scrope.ServiceProvider.GetService<ISecurityAuditService>();
@@ -332,15 +332,18 @@ public class FeishuWebhookMiddleware
 
             if (decryptedData == null)
             {
-                _logger.LogWarning("解密失败，尝试将加密内容作为验证请求处理");
+                _logger.LogError("❌ 解密失败，返回null，尝试将加密内容作为验证请求处理");
                 // 解密失败可能是验证请求格式与 EventData 不匹配
                 // 尝试直接解密为字符串并解析为验证请求
                 await TryHandleEncryptedVerificationAsync(context, eventRequest.Encrypt, encryptKey, requestId);
                 return;
             }
 
-            _logger.LogInformation("解密成功，事件类型: {EventType}, 事件ID: {EventId}",
-                decryptedData.EventType, decryptedData.EventId);
+            _logger.LogInformation("🎉 解密成功 - EventType: [{EventType}], EventId: [{EventId}], AppId: [{AppId}], TenantKey: [{TenantKey}]",
+                decryptedData.EventType ?? "(null)",
+                decryptedData.EventId ?? "(null)",
+                decryptedData.AppId ?? "(null)",
+                decryptedData.TenantKey ?? "(null)");
 
             // 步骤 4：检查是否为加密验证请求（事件类型为空也可能是验证请求）
             if (decryptedData.EventType == "url_verification" ||
