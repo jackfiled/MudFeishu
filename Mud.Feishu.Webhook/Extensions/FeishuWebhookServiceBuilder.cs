@@ -8,12 +8,11 @@
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.EventHandlers;
 using Mud.Feishu.Abstractions.Services;
+using Mud.Feishu.Webhook;
 using Mud.Feishu.Webhook.Configuration;
-using Mud.Feishu.Webhook.Health;
 using Mud.Feishu.Webhook.Models;
-using Mud.Feishu.Webhook.Services;
 
-namespace Mud.Feishu.Webhook.Extensions;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// 飞书Webhook服务建造者，用于简化服务注册配置

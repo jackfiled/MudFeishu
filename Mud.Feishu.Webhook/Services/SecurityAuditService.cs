@@ -5,7 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu.Webhook.Services;
+namespace Mud.Feishu.Webhook;
 
 /// <summary>
 /// 安全审计服务实现
@@ -24,10 +24,10 @@ public class SecurityAuditService : ISecurityAuditService
 
     /// <inheritdoc />
     public async Task LogSecurityFailureAsync(
-        SecurityEventType eventType, 
-        string clientIp, 
-        string requestPath, 
-        string details, 
+        SecurityEventType eventType,
+        string clientIp,
+        string requestPath,
+        string details,
         string? requestId = null)
     {
         var message = $"安全验证失败 - 类型: {eventType}, IP: {clientIp}, 路径: {requestPath}, 详情: {details}";
@@ -44,10 +44,10 @@ public class SecurityAuditService : ISecurityAuditService
 
     /// <inheritdoc />
     public async Task LogSecuritySuccessAsync(
-        SecurityEventType eventType, 
-        string clientIp, 
-        string requestPath, 
-        string details, 
+        SecurityEventType eventType,
+        string clientIp,
+        string requestPath,
+        string details,
         string? requestId = null)
     {
         var message = $"安全验证成功 - 类型: {eventType}, IP: {clientIp}, 路径: {requestPath}, 详情: {details}";

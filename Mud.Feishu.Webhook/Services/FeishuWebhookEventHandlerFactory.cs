@@ -8,7 +8,7 @@
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.EventHandlers;
 
-namespace Mud.Feishu.Webhook.Services;
+namespace Mud.Feishu.Webhook;
 
 /// <summary>
 /// Webhook 项目的默认事件处理器工厂实现

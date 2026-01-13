@@ -10,9 +10,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mud.Feishu.Abstractions.Services;
+using Mud.Feishu.WebSocket;
 using Mud.Feishu.WebSocket.Handlers;
 
-namespace Mud.Feishu.WebSocket;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// 飞书WebSocket服务建造者，用于简化服务注册配置
@@ -141,7 +142,7 @@ public class FeishuWebSocketServiceBuilder
 
         ValidateConfiguration();
         RegisterServices();
-        _configured = true;       
+        _configured = true;
         return _services;
     }
 

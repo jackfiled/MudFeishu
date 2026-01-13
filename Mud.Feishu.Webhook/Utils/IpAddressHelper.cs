@@ -6,15 +6,14 @@
 // -----------------------------------------------------------------------
 
 using System.Net;
-using System.Net.Sockets;
 
-namespace Mud.Feishu.Webhook.Utils;
+namespace Mud.Feishu.Webhook;
 
 /// <summary>
 /// IP 地址验证工具类
 /// 支持精确 IP 匹配和 CIDR 格式
 /// </summary>
-public static class IpAddressHelper
+internal static class IpAddressHelper
 {
     /// <summary>
     /// 检查 IP 地址是否在允许列表中

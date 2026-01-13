@@ -8,9 +8,8 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
-using Mud.Feishu.Webhook.Services;
 
-namespace Mud.Feishu.Webhook.Health;
+namespace Mud.Feishu.Webhook;
 
 /// <summary>
 /// 飞书 Webhook 健康检查

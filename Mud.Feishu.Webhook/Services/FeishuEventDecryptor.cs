@@ -7,7 +7,7 @@
 
 using Mud.Feishu.Abstractions;
 
-namespace Mud.Feishu.Webhook.Services;
+namespace Mud.Feishu.Webhook;
 
 /// <summary>
 /// 飞书事件解密服务实现

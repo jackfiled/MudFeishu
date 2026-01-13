@@ -9,7 +9,7 @@ using Mud.Feishu.Webhook.Configuration;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
-namespace Mud.Feishu.Webhook.Services;
+namespace Mud.Feishu.Webhook;
 
 /// <summary>
 /// 威胁检测服务实现

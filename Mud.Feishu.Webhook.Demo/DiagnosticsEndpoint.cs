@@ -5,9 +5,9 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Microsoft.AspNetCore.Mvc;
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.EventHandlers;
-using Microsoft.AspNetCore.Mvc;
 
 namespace Mud.Feishu.Webhook.Demo;
 
@@ -26,7 +26,7 @@ public static class DiagnosticsEndpoint
             [FromServices] IEnumerable<IFeishuEventHandler> handlers) =>
         {
             var registeredTypes = factory.GetRegisteredEventTypes();
-            
+
             // 手动构建处理器信息
             var handlerInfo = new Dictionary<string, List<string>>();
             var concreteFactory = factory as DefaultFeishuEventHandlerFactory;
@@ -34,7 +34,7 @@ public static class DiagnosticsEndpoint
             {
                 handlerInfo = concreteFactory.GetHandlerInfo();
             }
-            
+
             var allHandlers = handlers.Select(h => new
             {
                 Type = h.GetType().Name,
@@ -51,8 +51,8 @@ public static class DiagnosticsEndpoint
                 {
                     TotalEventTypes = registeredTypes.Count,
                     TotalHandlers = allHandlers.Count,
-                    Message = registeredTypes.Count == 0 
-                        ? "❌ 没有注册任何事件处理器！" 
+                    Message = registeredTypes.Count == 0
+                        ? "❌ 没有注册任何事件处理器！"
                         : $"✅ 成功注册 {registeredTypes.Count} 种事件类型"
                 }
             });

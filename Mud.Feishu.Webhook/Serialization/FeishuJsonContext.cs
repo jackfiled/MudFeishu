@@ -8,7 +8,7 @@
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Webhook.Models;
 
-namespace Mud.Feishu.Webhook.Serialization;
+namespace Mud.Feishu.Webhook;
 
 /// <summary>
 /// 飞书 Webhook JSON 序列化上下文

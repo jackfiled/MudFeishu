@@ -7,9 +7,9 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using Mud.Feishu.WebSocket;
 
-namespace Mud.Feishu.WebSocket;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// 飞书WebSocket服务注册扩展方法

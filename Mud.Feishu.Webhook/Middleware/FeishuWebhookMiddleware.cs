@@ -11,7 +11,7 @@ using Mud.Feishu.Webhook.Models;
 using Mud.Feishu.Webhook.Utils;
 using System.Diagnostics;
 
-namespace Mud.Feishu.Webhook.Middleware;
+namespace Mud.Feishu.Webhook;
 
 /// <summary>
 /// Activity Source 用于分布式追踪
