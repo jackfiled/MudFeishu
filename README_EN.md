@@ -1,6 +1,143 @@
 # MudFeishu
 
-An enterprise-grade .NET SDK for Feishu (Lark) API integration, providing comprehensive solutions for HTTP API, WebSocket real-time event subscription, and Webhook event handling. Supports Strategy Pattern, Factory Pattern, and automatic token management, designed for enterprise application development.
+<div align="center">
+
+![MudFeishu Logo](icon.png)
+
+Enterprise-Grade .NET SDK for Feishu (Lark) API Integration
+
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![NuGet](https://img.shields.io/nuget/v/Mud.Feishu.svg)](https://www.nuget.org/packages/Mud.Feishu/)
+[![NuGet](https://img.shields.io/nuget/v/Mud.Feishu.WebSocket.svg)](https://www.nuget.org/packages/Mud.Feishu.WebSocket/)
+[![NuGet](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/)
+[![NuGet](https://img.shields.io/nuget/v/Mud.Feishu.Abstractions.svg)](https://www.nuget.org/packages/Mud.Feishu.Abstractions/)
+[![NuGet](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/)
+
+**Complete HTTP API, WebSocket Real-time Event Subscription, and Webhook Event Processing Solution**
+
+[Quick Start](#-quick-start) • [Architecture](#-project-architecture) • [Features](#-core-features) • [Examples](#-quick-start-examples) • [Docs](#-detailed-documentation)
+
+</div>
+
+---
+
+## 📖 Project Introduction
+
+MudFeishu is a modern enterprise-grade .NET SDK for Feishu (Lark) API integration, providing comprehensive HTTP API calls, WebSocket real-time event subscription, and Webhook event processing capabilities. The SDK is designed using Strategy and Factory patterns with built-in automatic token management, intelligent retry mechanisms, and high-performance caching, significantly simplifying Feishu application development.
+
+### ✨ Core Advantages
+
+- 🚀 **Minimal API** - One-line service registration, ready to use out of the box
+- 🏗️ **Type Safety** - Strongly-typed data models with compile-time type checking
+- 🔄 **Automatic Token Management** - Smart caching and refresh, no manual maintenance required
+- 🛡️ **Enterprise Stability** - Unified exception handling, intelligent retry, detailed logging
+- 🎯 **Event-Driven** - Strategy pattern event processing, flexible extension
+- 📊 **Multi-Framework Support** - .NET Standard 2.0, .NET 6.0, .NET 8.0, .NET 10.0
+
+---
+
+## 🏗️ Project Architecture
+
+### Overall Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph "MudFeishu SDK Architecture"
+        direction TB
+        
+        subgraph HTTP["HTTP API Client"]
+            H1["User Management"]
+            H2["Department"]
+            H3["Message"]
+            H4["Approval"]
+        end
+        
+        subgraph Event["Event Processing Layer"]
+            E1["WebSocket Client"]
+            E2["Webhook Handler"]
+            E3["Event Routing"]
+            E4["Strategy Pattern"]
+        end
+        
+        subgraph Ext["Extensions"]
+            X1["Redis Dedup"]
+            X2["Performance"]
+            X3["Health Check"]
+        end
+        
+        subgraph Core["Shared Core Layer"]
+            C1["Token Management"]
+            C2["HTTP Client Factory"]
+            C3["Exception Handling"]
+            C4["Configuration"]
+        end
+        
+        HTTP --> Core
+        Event --> Core
+        Ext --> Core
+        Core --> Platform["Feishu Open Platform API"]
+    end
+```
+
+### Module Relationship Diagram
+
+```mermaid
+graph TD
+    Platform["Feishu Platform"]
+    
+    subgraph CoreAPI["Mud.Feishu<br/>(HTTP API Core)"]
+        API1["User Management"]
+        API2["Department"]
+        API3["Messages"]
+        API4["Approvals"]
+    end
+    
+    subgraph WS["Mud.Feishu.WebSocket"]
+        WS1["WebSocket"]
+        WS2["Real-time Push"]
+        WS3["Auto Reconnect"]
+        WS4["Heartbeat"]
+    end
+    
+    subgraph Redis["Mud.Feishu.Redis<br/>(Distributed Extension)"]
+        R1["Event Dedup"]
+        R2["Nonce Anti-replay"]
+        R3["SeqID Dedup"]
+    end
+    
+    subgraph Abs["Mud.Feishu.Abstractions<br/>(Event Processing Abstraction Layer)"]
+        Abs1["IFeishuEventHandler Interface"]
+        Abs2["Event Handler Factory"]
+        Abs3["Strategy Pattern Architecture"]
+        Abs4["Base Handlers"]
+    end
+    
+    subgraph WH["Mud.Feishu.Webhook<br/>(HTTP Callback Event Processing)"]
+        WH1["Middleware Mode"]
+        WH2["Event Subscription Verification"]
+        WH3["AES-256-CBC Decryption"]
+        WH4["Signature Validation"]
+        WH5["Rate Limiting"]
+    end
+    
+    Platform --> CoreAPI
+    Platform --> WS
+    Platform --> Redis
+    CoreAPI --> Abs
+    WS --> Abs
+    Abs --> WH
+```
+
+### Module Comparison
+
+| Module | Core Features | Communication | Real-time | Use Cases |
+|--------|--------------|----------------|------------|-----------|
+| **Mud.Feishu** | HTTP API calls | HTTP Request | Low (active query) | Data query, management operations |
+| **Mud.Feishu.WebSocket** | Real-time event subscription | WebSocket Long Connection | High (real-time push) | Real-time notifications, instant response |
+| **Mud.Feishu.Webhook** | HTTP callback processing | HTTP Callback | Medium (passive receive) | Event trigger, async processing |
+| **Mud.Feishu.Redis** | Distributed deduplication | Redis | - | Multi-instance deployment, duplicate prevention |
+
+---
 
 ## 📦 Project Overview
 
@@ -12,28 +149,67 @@ An enterprise-grade .NET SDK for Feishu (Lark) API integration, providing compre
 | **Mud.Feishu.Webhook** | Feishu Webhook event handling component for HTTP callback event reception and processing | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/) |
 | **Mud.Feishu.Redis** | Redis distributed deduplication extension supporting event deduplication in multi-instance deployment scenarios | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/) |
 
+---
+
 ## 🚀 Quick Start
 
-### Installation
+### 1️⃣ Install NuGet Packages
 
 ```bash
-# Event handling abstraction layer
-dotnet add package Mud.Feishu.Abstractions
-
-# HTTP API client
+# HTTP API Client (Core Module)
 dotnet add package Mud.Feishu
 
-# WebSocket real-time event subscription
+# Event Processing Abstraction Layer (Optional, WebSocket/Webhook dependency)
+dotnet add package Mud.Feishu.Abstractions
+
+# WebSocket Real-time Event Subscription (Optional)
 dotnet add package Mud.Feishu.WebSocket
 
-# Webhook HTTP callback event handling
+# Webhook HTTP Callback Event Processing (Optional)
 dotnet add package Mud.Feishu.Webhook
 
-# Redis distributed deduplication extension
+# Redis Distributed Deduplication Extension (Optional)
 dotnet add package Mud.Feishu.Redis
 ```
 
-### Basic Configuration
+> 💡 **Tip**: Install packages based on your needs. `Mud.Feishu` is the core package, and `Mud.Feishu.Abstractions` is automatically installed as a dependency of WebSocket and Webhook.
+
+### 2️⃣ Configuration File (appsettings.json)
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Mud.Feishu": "Debug"
+    }
+  },
+  "Feishu": {
+    "AppId": "your_feishu_app_id",
+    "AppSecret": "your_feishu_app_secret",
+    "BaseUrl": "https://open.feishu.cn",
+    "TimeOut": 30,
+    "RetryCount": 3,
+    "EnableLogging": true,
+    "WebSocket": {
+      "AutoReconnect": true,
+      "MaxReconnectAttempts": 5,
+      "ReconnectDelayMs": 5000,
+      "HeartbeatIntervalMs": 30000,
+      "EnableLogging": true
+    },
+    "Webhook": {
+      "VerificationToken": "your_verification_token",
+      "EncryptKey": "your_encrypt_key_32_bytes_long",
+      "RoutePrefix": "feishu/webhook",
+      "EnableRequestLogging": true,
+      "MaxConcurrentEvents": 10
+    }
+  }
+}
+```
+
+### 3️⃣ Service Registration (Program.cs)
 
 ```csharp
 using Mud.Feishu;
@@ -42,42 +218,22 @@ using Mud.Feishu.Webhook;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register HTTP API service (Method 1: Lazy mode - register all services)
+// Register HTTP API Services (One line for all services)
 builder.Services.AddFeishuServices(builder.Configuration);
 
-// Register HTTP API service (Method 2: Builder pattern - on-demand registration)
+// Or use builder pattern for selective registration
 builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
     .AddOrganizationApi()
     .AddMessageApi()
     .AddChatGroupApi()
     .Build();
 
-// Register HTTP API service (Method 3: Module-based registration)
-builder.Services.AddFeishuServices(builder.Configuration, new[] {
-    FeishuModule.Organization,
-    FeishuModule.Message,
-    FeishuModule.ChatGroup
-});
-
-// Register HTTP API service (Method 4: Token management services only)
-builder.Services.AddFeishuTokenManagers(builder.Configuration);
-
-// Register HTTP API service (Method 5: Code-based configuration)
-builder.Services.CreateFeishuServicesBuilder(options =>
-{
-    options.AppId = "your_app_id";
-    options.AppSecret = "your_app_secret";
-    options.BaseUrl = "https://open.feishu.cn";
-})
-.AddAllApis()
-.Build();
-
-// Register WebSocket event subscription service
+// Register WebSocket Event Subscription
 builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<MessageEventHandler>()
     .Build();
 
-// Register Webhook HTTP callback event service
+// Register Webhook HTTP Callback Event Service
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .AddHandler<MessageReceiveEventHandler>()
     .AddHandler<DepartmentCreatedEventHandler>()
@@ -85,748 +241,295 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 var app = builder.Build();
 
-// Add Webhook middleware
+// Add Webhook Middleware
 app.UseFeishuWebhook();
 
 app.Run();
 ```
 
-### Configuration File
+### 4️⃣ Verify Configuration
 
-```json
+```csharp
+// Test user information retrieval
+public class TestController : ControllerBase
 {
-    "Feishu": {
-        "AppId": "demo_app_id",
-        "AppSecret": "demo_app_secret",
-        "BaseUrl": "https://open.feishu.cn",
-        "TimeOut": 30,
-        "RetryCount": 3,
-        "EnableLogging": true,
-        "WebSocket": {
-            "AutoReconnect": true,
-            "MaxReconnectAttempts": 5,
-            "ReconnectDelayMs": 5000,
-            "MaxReconnectDelayMs": 30000,
-            "HeartbeatIntervalMs": 30000,
-            "ConnectionTimeoutMs": 10000,
-            "ReceiveBufferSize": 4096,
-            "MaxMessageSize": 1048576,
-            "EnableLogging": true,
-            "EnableMessageQueue": true,
-            "MessageQueueCapacity": 1000,
-            "EmptyQueueCheckIntervalMs": 100,
-            "MaxBinaryMessageSize": 10485760,
-            "HealthCheckIntervalMs": 60000,
-            "ParallelMultiHandlers": true
-        },
-        "Webhook": {
-            "VerificationToken": "your_verification_token",
-            "EncryptKey": "your_encrypt_key_32_bytes_long",
-            "RoutePrefix": "feishu/Webhook",
-            "AutoRegisterEndpoint": true,
-            "EnableRequestLogging": true,
-            "EnableExceptionHandling": true,
-            "EnforceHeaderSignatureValidation": true,
-            "EnableBodySignatureValidation": true,
-            "TimestampToleranceSeconds": 60,
-            "EventHandlingTimeoutMs": 30000,
-            "MaxConcurrentEvents": 10,
-            "EnablePerformanceMonitoring": false,
-            "EnableBackgroundProcessing": false,
-            "AllowedHttpMethods": ["POST"],
-            "MaxRequestBodySize": 10485760,
-            "ValidateSourceIP": false,
-            "AllowedSourceIPs": [],
-            "MultiAppEncryptKeys": {
-                "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
-                "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
-            },
-            "DefaultAppId": "cli_a1b2c3d4e5f6g7h8",
-            "RateLimit": {
-                "EnableRateLimit": false,
-                "WindowSizeSeconds": 60,
-                "MaxRequestsPerWindow": 100,
-                "EnableIpRateLimit": true,
-                "TooManyRequestsStatusCode": 429,
-                "TooManyRequestsMessage": "Too many requests, please try again later",
-                "WhitelistIPs": ["127.0.0.1", "::1"]
-            }
-        }
+    private readonly IFeishuTenantV3User _userApi;
+
+    public TestController(IFeishuTenantV3User userApi)
+    {
+        _userApi = userApi;
+    }
+
+    [HttpGet("test")]
+    public async Task<IActionResult> TestConnection()
+    {
+        var result = await _userApi.GetUserInfoByIdAsync("test_user_id");
+        return Ok(new { code = result.Code, message = result.Msg });
     }
 }
 ```
 
-## 📊 Key Features
+---
 
-### 🏛️ Mud.Feishu.Abstractions - Event Handling Abstraction Layer
+## 🎯 Core Features
 
-#### 🎯 Event Handling Architecture
+### 🏛️ Mud.Feishu.Abstractions - Event Processing Abstraction Layer
 
-| Feature | Description | Event Types |
-|---------|-------------|-------------|
-| **Strategy Pattern** | Extensible event handler architecture supporting multiple event type processing | - |
-| **Factory Pattern** | Built-in event handler factory with dynamic registration and discovery | - |
-| **Abstract Base Classes** | Provides base classes like `DefaultFeishuEventHandler<T>` to simplify development | - |
-| **Type Safety** | Strong-typed event data models with compile-time type checking | - |
-| **Async Processing** | Fully asynchronous event processing with parallel execution support | - |
-| **Extensibility** | Easy to extend with new event types and handlers | - |
-| **Organization Events** | User change events, department organizational structure changes | User create/update/delete, department change |
-| **Message Events** | Receive new messages, send status notifications, read status changes | Message receive, send status, read status |
-| **Application Events** | App authorization events, permission level adjustment events | App authorization, permission change |
-| **Custom Events** | Supports enterprise custom event types | Enterprise custom |
+**Unified event processing architecture, WebSocket and Webhook share the same handler interface**
 
-### 🌐 Mud.Feishu - HTTP API Client Features
+```mermaid
+graph LR
+    A[Event Source] --> B{Event Type}
+    B -->|User Event| C[UserEventHandler]
+    B -->|Department Event| D[DepartmentEventHandler]
+    B -->|Message Event| E[MessageEventHandler]
+    B -->|Unknown Event| F[DefaultEventHandler]
+```
 
-| Module Category | Main Features | API Version | Description |
-|----------------|---------------|-------------|-------------|
-| **🔐 Authentication & Token Management** | Multi-type token support | - | Supports app token, tenant token, and user token types |
-|  | Auto token caching | - | Built-in token caching mechanism to reduce API calls |
-|  | Smart token refresh | - | Automatically refreshes tokens before expiration to ensure service continuity |
-|  | Multi-tenant support | - | Supports token isolation and management in multi-tenant scenarios |
-|  | OAuth flow | - | Complete OAuth authorization flow support for secure user token acquisition |
-| **🏢 Organization Management** | User management | V1/V3 | Create, update, query, delete, and batch operate users |
-|  | Department management | V1/V3 | Department tree structure maintenance, multi-level department management |
-|  | Employee management | V1 | Employee profile and detailed information management |
-|  | Job level management | - | Enterprise job hierarchy maintenance, CRUD operations |
-|  | Job family management | - | Career path management, job family definition |
-|  | Role permissions | - | Enterprise permission role system, role member management |
-|  | User group management | - | User group member management, flexible user grouping |
-|  | Work city management | - | Multi-city work location maintenance |
-| **📱 Message Service** | Message sending | V1 | Supports rich message types: text, image, file, card, etc. |
-|  | Batch messaging | V1 | Send messages to multiple users/departments in batch |
-|  | Group chat management | - | Group chat creation, member management, group info maintenance |
-|  | Message interactions | - | Message emoji reactions, quote replies, and other interactive features |
-|  | Task management | - | Task creation, updates, status management, and collaboration features |
-| **🛠️ Enterprise Features** | Unified exception handling | - | Comprehensive exception handling mechanism with unified error response format |
-|  | Smart retry mechanism | - | Automatic retry for network failures and temporary errors, improving stability |
-|  | High-performance caching | - | Resolves cache stampede and race conditions, supports automatic token refresh |
-|  | Connection pool management | - | HTTP connection pool reuse, improving API call efficiency |
-|  | Async programming support | - | Full async/await support with non-blocking I/O operations |
-|  | Detailed logging | - | Structured logging for monitoring and troubleshooting |
+| Feature | Description |
+|---------|-------------|
+| **Strategy Pattern** | Extensible event handler architecture |
+| **Factory Pattern** | Dynamic registration and discovery of handlers |
+| **Type Safety** | Strongly-typed data models with compile-time checking |
+| **Auto Deduplication** | Built-in event ID deduplication mechanism |
+| **Base Handlers** | Specialized base classes to simplify development |
 
-> 💡 **Note**: The above only shows feature module examples. For more details, please refer to [Mud.Feishu Detailed Documentation](./Mud.Feishu/README.md)
+**Supported Base Handlers**:
+- `DepartmentCreatedEventHandler` - Department creation
+- `DepartmentDeleteEventHandler` - Department deletion
+- `DefaultFeishuEventHandler<T>` - Generic handler
 
-### 🔄 Mud.Feishu.WebSocket - Real-time Event Subscription Features
+### 🌐 Mud.Feishu - HTTP API Client
 
-| Feature Category | Main Features | Description |
-|------------------|----------------|-------------|
-| **🤖 Event Handling Architecture** | Strategy pattern design | Extensible event handler architecture supporting custom business logic |
-|  | Multi-handler support | Register multiple event handlers to process different event types in parallel |
-|  | Single handler mode | Suitable for simple event handling scenarios with single functionality |
-|  | Custom handlers | Fully customizable for business requirements, supporting complex scenarios |
-|  | Event replay | Supports event replay and recovery mechanisms to ensure data consistency |
-| **🫀 Connection Management** | WebSocket connection management | Persistent connection maintenance and monitoring |
-|  | Auto reconnection mechanism | Automatically reconnects on disconnection to ensure service continuity |
-|  | Heartbeat monitoring | Periodic heartbeat detection to ensure connection is active |
-|  | Connection load balancing | Load distribution across multiple connection instances for improved processing capacity |
-|  | Graceful shutdown | Supports graceful connection shutdown and resource cleanup |
-| **📈 Monitoring & Operations** | Connection status monitoring | Real-time connection count and status monitoring |
-|  | Event processing statistics | Event reception count and processing time statistics |
-|  | Performance metrics collection | Message processing throughput and latency monitoring |
-|  | Health checks | Real-time service health status checking |
-|  | Alert support | Automatic alert notifications for abnormal situations |
-|  | Detailed audit logs | Complete event processing audit records |
+**Complete Feishu API coverage with automatic token management**
 
-### 🌐 Mud.Feishu.Webhook - HTTP Callback Event Handling Features
+| Module Category | API Version | Main Features |
+|----------------|-------------|---------------|
+| **🔐 Authentication** | V3 | App token, tenant token, user token, OAuth 2.0 |
+| **👥 Organization** | V1/V3 | Users, departments, employees, user groups, job levels, positions, roles |
+| **💬 Messaging** | V1 | Text/image/card messages, batch sending, group chat management |
+| **📋 Approvals** | V4 | Approval definitions, instances, operations |
+| **📝 Tasks** | V2 | Task creation, updates, groups, attachments, comments |
+| **📅 Calendar** | V4 | Calendar events, meeting management |
 
-| Feature Category | Main Features | Description |
-|------------------|----------------|-------------|
-| **🔒 Security Verification & Decryption** | Event subscription verification | Supports Feishu URL verification flow |
-|  | Request signature verification | Verifies authenticity of Feishu event request signatures, prevents forged requests |
-|  | Timestamp verification | Timestamp check to prevent replay attacks, configurable tolerance range |
-|  | AES-256-CBC decryption | Built-in decryption functionality for automatic encrypted event handling |
-|  | Source IP verification | Configurable IP whitelist verification, enhanced security |
-|  | Multi-bot support | Supports multiple Feishu bots sharing the same Webhook endpoint |
-| **🚀 Event Handling Architecture** | Middleware mode | Seamless integration with ASP.NET Core pipeline |
-|  | Auto event routing | Automatically distributes events to corresponding handlers based on event type |
-|  | Strategy pattern design | Extensible event handler architecture supporting custom business logic |
-|  | Base handler classes | Provides type-safe base handler classes with automatic deduplication and type conversion |
-|  | Async processing | Fully asynchronous event handling mechanism with cancellation token support |
-|  | Background processing mode | Supports async background processing to avoid Feishu timeout retries |
-|  | Concurrency control | Configurable concurrent event processing limit with hot reload support |
-| **🛡️ Advanced Security Features** | Request rate limiting | Built-in sliding window rate limiting middleware to prevent malicious requests |
-|  | Threat detection | Automatically detects and blocks suspicious request patterns |
-|  | Security audit | Detailed security event audit logging |
-|  | Key strength validation | Validates encryption key strength and security at startup |
-| **📊 Monitoring & Operations** | Performance monitoring | Optional performance metrics collection and monitoring |
-|  | Health checks | Built-in health check endpoints with failure rate threshold configuration |
-|  | Exception handling | Comprehensive exception handling and logging |
-|  | Request logging | Detailed request processing logging |
-|  | Diagnostics endpoints | Demo project provides diagnostics endpoints to view handler registration |
-| **🔧 Configuration & Extension** | Configuration hot reload | Supports runtime configuration changes without service restart |
-|  | Flexible configuration | Supports configuration files, code configuration, and builder pattern |
-|  | Dependency injection | Fully integrated with .NET dependency injection container |
-|  | Cross-platform support | Supports .NET Standard 2.0, .NET 6.0, .NET 8.0, .NET 10.0 |
+**Enterprise Features**:
+- ✅ Automatic token caching and refresh
+- ✅ Intelligent retry mechanism (configurable retry count)
+- ✅ High-performance caching (resolves cache stampede)
+- ✅ Unified exception handling
+- ✅ Connection pool management
+- ✅ Detailed logging
+
+> 💡 **Tip**: [View complete API documentation](./Mud.Feishu/README.md)
+
+### 🔄 Mud.Feishu.WebSocket - Real-time Event Subscription
+
+**Real-time event push based on WebSocket long connection**
+
+```mermaid
+sequenceDiagram
+    participant Client as Your App
+    participant WS as Mud.Feishu.WebSocket
+    participant Feishu as Feishu Server
+
+    Client->>WS: 1. Subscribe to events
+    WS->>Feishu: 2. Establish WebSocket connection
+    Feishu-->>WS: 3. Auth successful
+    loop Real-time push
+        Feishu-->>WS: 4. Event message
+        WS->>WS: 5. Route to handler
+        WS->>Client: 6. Processing complete
+    end
+```
+
+| Category | Features |
+|----------|----------|
+| **Connection Management** | Auto reconnect, heartbeat detection, connection monitoring |
+| **Event Processing** | Strategy pattern, multi-handler parallel, event replay |
+| **Message Types** | ping/pong, heartbeat, event, auth |
+| **Monitoring** | Connection status, processing statistics, health checks, audit logs |
+
+**Supported Event Types**:
+- Message events: `im.message.receive_v1`
+- User events: `contact.user.*_v3`
+- Department events: `contact.department.*_v3`
+- Approval events: `approval.approval.*_v1`
+
+### 🌐 Mud.Feishu.Webhook - HTTP Callback Event Processing
+
+**Event reception and distribution based on middleware mode**
+
+```mermaid
+sequenceDiagram
+    participant Feishu as Feishu Server
+    participant Webhook as Mud.Feishu.Webhook
+    participant Middleware as Middleware
+    participant Handler as Event Handler
+
+    Feishu->>Middleware: 1. POST /feishu/webhook
+    Middleware->>Middleware: 2. Verify signature
+    Middleware->>Middleware: 3. Decrypt content
+    Middleware->>Webhook: 4. Route event
+    Webhook->>Handler: 5. Call handler
+    Handler-->>Middleware: 6. Processing complete
+    Middleware-->>Feishu: 7. Return response
+```
+
+| Category | Features |
+|----------|----------|
+| **Security** | Signature verification, timestamp verification, AES-256-CBC decryption, IP whitelist |
+| **Event Processing** | Middleware mode, auto routing, strategy pattern, async processing |
+| **Advanced** | Multi-bot support, background processing, concurrency control, hot reload config |
+| **Monitoring** | Performance monitoring, health checks, request logs, exception handling |
+| **Security Hardening** | Sliding window rate limiting, threat detection, security audit, key validation |
 
 ### 💾 Mud.Feishu.Redis - Distributed Deduplication Extension
 
-| Feature Category | Main Features | Description |
-|------------------|----------------|-------------|
-| **🔄 Distributed Deduplication** | EventId deduplication | Distributed deduplication based on event ID, preventing duplicate processing of the same event |
-|  | Nonce deduplication | Prevents replay attacks, ensuring request uniqueness |
-|  | SeqID deduplication | WebSocket binary message sequence number deduplication |
-|  | Atomic operations | Uses Redis SETNX + EXPIRE to ensure atomicity of deduplication operations |
-|  | Auto expiration | Redis automatically cleans up expired data without manual maintenance |
-| **🌐 Distributed Support** | Multi-instance deployment | Suitable for multi-instance distributed deployment scenarios |
-|  | Environment isolation | Supports multi-environment data isolation through key prefixes |
-|  | Cluster support | Supports Redis cluster and sentinel mode |
-|  | TLS/SSL encryption | Supports secure connection to Redis |
-| **⚙️ Flexible Configuration** | Configurable expiration time | Supports custom cache expiration time for events, Nonce, and SeqID |
-|  | Key prefix customization | Customizable Redis key prefixes for multi-tenant scenarios |
-|  | Connection timeout configuration | Configurable connection and sync timeout settings |
-|  | Health checks | Built-in Redis connection health checks |
-| **📊 Monitoring & Diagnostics** | Logging | Detailed deduplication operation logs |
-|  | Cache statistics | Supports querying processed event counts |
-|  | Performance optimization | Efficient Redis operations, minimizing network overhead |
+**Distributed event deduplication based on Redis, suitable for multi-instance deployment**
 
+| Category | Features |
+|----------|----------|
+| **Deduplication Mechanism** | EventId, Nonce, SeqID three deduplication dimensions |
+| **Atomic Operations** | SETNX + EXPIRE ensures atomicity |
+| **Auto Expiration** | Auto cleanup of expired data |
+| **Distributed Support** | Cluster mode, sentinel mode, TLS/SSL |
+| **Flexible Config** | Configurable expiration time, key prefix, timeout |
+| **Monitoring** | Logging, cache statistics, health checks |
 
-## 🎯 Usage Scenarios
+---
 
-### 🚀 Quick Start Examples
+## 📚 Usage Scenarios
 
-#### HTTP API Call Example
+| Scenario | Recommended Solution | Latency | Code Example |
+|----------|---------------------|----------|---------------|
+| User Info Query | Mud.Feishu | Low | HTTP API |
+| System Notification | Mud.Feishu | Low | HTTP API |
+| Real-time Chatbot | Mud.Feishu.WebSocket | High | WebSocket |
+| Organization Sync | Mud.Feishu.Webhook | Medium | Webhook |
+| Multi-instance Deployment | Mud.Feishu.Redis | - | Redis |
+
+---
+
+## 💡 Quick Start Examples
+
+### HTTP API Calls
 
 ```csharp
-// User management Controller example
-[ApiController]
-[Route("api/[controller]")]
-public class UserController : ControllerBase
+// Create user
+[HttpPost("users")]
+public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
 {
-    private readonly IFeishuTenantV3User _userApi;
-    private readonly IFeishuTenantV3Departments _deptApi;
-    
-    public UserController(
-        IFeishuTenantV3User userApi,
-        IFeishuTenantV3Departments deptApi)
-    {
-        _userApi = userApi;
-        _deptApi = deptApi;
-    }
-    
-    // Create new user
-    [HttpPost("users")]
-    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
-    {
-        var result = await _userApi.CreateUserAsync(request);
-        return result.Code == 0 ? Ok(result.Data) : BadRequest(result.Msg);
-    }
-    
-    // Get all users under a department
-    [HttpGet("departments/{departmentId}/users")]
-    public async Task<IActionResult> GetDepartmentUsers(string departmentId)
-    {
-        var result = await _deptApi.GetUserByDepartmentIdAsync(departmentId);
-        return Ok(result.Data);
-    }
-    
-    // Batch get user information
-    [HttpPost("users/batch")]
-    public async Task<IActionResult> GetUsersBatch([FromBody] string[] userIds)
-    {
-        var result = await _userApi.GetUserByIdsAsync(userIds);
-        return Ok(result.Data);
-    }
+    var result = await _userApi.CreateUserAsync(request);
+    return result.Code == 0 ? Ok(result.Data) : BadRequest(result.Msg);
 }
+
+// Send message
+var textContent = new MessageTextContent { Text = "Hello World!" };
+var result = await _messageApi.SendMessageAsync(new SendMessageRequest
+{
+    ReceiveId = "user_123",
+    MsgType = "text",
+    Content = JsonSerializer.Serialize(textContent)
+}, receive_id_type: "user_id");
 ```
 
-#### Message Sending Example
+### WebSocket Event Processing
 
 ```csharp
-public class NotificationService
+// Implement event handler
+public class MessageHandler : IFeishuEventHandler
 {
-    private readonly IFeishuTenantV1Message _messageApi;
-    private readonly IFeishuTenantV1BatchMessage _batchMessageApi;
-    
-    public NotificationService(
-        IFeishuTenantV1Message messageApi,
-        IFeishuTenantV1BatchMessage batchMessageApi)
-    {
-        _messageApi = messageApi;
-        _batchMessageApi = batchMessageApi;
-    }
-
-    // Send text message to user
-    public async Task<string> SendTextMessageAsync(string userId, string content)
-    {
-        var textContent = new MessageTextContent { Text = content };
-        var request = new SendMessageRequest
-        {
-            ReceiveId = userId,
-            MsgType = "text",
-            Content = JsonSerializer.Serialize(textContent)
-        };
-
-        var result = await _messageApi.SendMessageAsync(request, receive_id_type: "user_id");
-        return result.Code == 0 ? result.Data?.MessageId : null;
-    }
-
-    // Send system notification in batch
-    public async Task<string> SendSystemNotificationAsync(string[] departmentIds, string title, string content)
-    {
-        var request = new BatchSenderTextMessageRequest
-        {
-            DeptIds = departmentIds,
-            Content = new MessageTextContent
-            {
-                Text = $"📢 {title}\n\n{content}"
-            }
-        };
-
-        var result = await _batchMessageApi.BatchSendTextMessageAsync(request);
-        return result.Code == 0 ? result.Data?.MessageId : null;
-    }
-}
-```
-
-#### WebSocket Event Handling Example
-
-```csharp
-using Mud.Feishu.Abstractions;
-using System.Text.Json;
-
-/// <summary>
-/// User event handler - implements IFeishuEventHandler interface
-/// </summary>
-public class DemoUserEventHandler : IFeishuEventHandler
-{
-    private readonly ILogger<DemoUserEventHandler> _logger;
-    private readonly IUserSyncService _syncService;
-
-    public DemoUserEventHandler(ILogger<DemoUserEventHandler> logger, IUserSyncService syncService)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _syncService = syncService ?? throw new ArgumentNullException(nameof(syncService));
-    }
-
-    public string SupportedEventType => "contact.user.created_v3";
-
-    public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
-    {
-        if (eventData == null)
-            throw new ArgumentNullException(nameof(eventData));
-
-        try
-        {
-            // Parse user data
-            var userData = ParseUserData(eventData);
-
-            // Record event to service
-            await _syncService.RecordUserEventAsync(userData, cancellationToken);
-
-            // Simulate business processing
-            await ProcessUserEventAsync(userData, cancellationToken);
-
-            _logger.LogInformation("User creation event processed successfully: UserID {UserId}, UserName {UserName}",
-                userData.UserId, userData.UserName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to process user creation event: {EventId}", eventData.EventId);
-            throw;
-        }
-    }
-
-    private UserData ParseUserData(EventData eventData)
-    {
-        var jsonElement = JsonSerializer.Deserialize<JsonElement>(eventData.Event?.ToString() ?? "{}");
-        var userElement = jsonElement.GetProperty("user");
-
-        return new UserData
-        {
-            UserId = userElement.GetProperty("user_id").GetString() ?? "",
-            UserName = userElement.GetProperty("name").GetString() ?? "",
-            Email = TryGetProperty(userElement, "email") ?? "",
-            Department = TryGetProperty(userElement, "department") ?? "",
-            Phone = TryGetProperty(userElement, "phone") ?? "",
-            Avatar = TryGetProperty(userElement, "avatar") ?? "",
-            CreatedAt = DateTime.UtcNow,
-            ProcessedAt = DateTime.UtcNow
-        };
-    }
-
-    private async Task ProcessUserEventAsync(UserData userData, CancellationToken cancellationToken)
-    {
-        _logger.LogDebug("Starting to process user data: {UserId}", userData.UserId);
-
-        // Simulate async business operation
-        await Task.Delay(100, cancellationToken);
-
-        // Simulate user data processing: database storage, cache update, notification sending, etc.
-        if (string.IsNullOrWhiteSpace(userData.UserId))
-        {
-            throw new ArgumentException("User ID cannot be empty");
-        }
-
-        // Simulate sending welcome notification
-        _logger.LogInformation("Sending welcome notification to user: {UserName} ({Email})",
-            userData.UserName, userData.Email);
-
-        // Simulate updating statistics
-        _syncService.IncrementUserCount();
-
-        await Task.CompletedTask;
-    }
-
-    private static string? TryGetProperty(JsonElement element, string propertyName)
-    {
-        return element.TryGetProperty(propertyName, out var value) ? value.GetString() : null;
-    }
-}
-
-/// <summary>
-/// Department event handler - inherits from DepartmentCreatedEventHandler base class
-/// </summary>
-public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
-{
-    private readonly IDepartmentSyncService _syncService;
-
-    public DemoDepartmentEventHandler(ILogger<DemoDepartmentEventHandler> logger, IDepartmentSyncService syncService)
-        : base(logger)
-    {
-        _syncService = syncService ?? throw new ArgumentNullException(nameof(syncService));
-    }
-
-    protected override async Task ProcessBusinessLogicAsync(
-        EventData eventData,
-        ObjectEventResult<DepartmentCreatedResult>? departmentData,
-        CancellationToken cancellationToken = default)
-    {
-        if (eventData == null)
-            throw new ArgumentNullException(nameof(eventData));
-
-        _logger.LogInformation("Starting to process department creation event: {EventId}", eventData.EventId);
-
-        try
-        {
-            // Record event to service
-            await _syncService.RecordDepartmentEventAsync(departmentData.Object, cancellationToken);
-
-            // Simulate business processing
-            await ProcessDepartmentEventAsync(departmentData.Object, cancellationToken);
-
-            _logger.LogInformation("Department creation event processed successfully: DepartmentID {DepartmentId}, DepartmentName {DepartmentName}",
-                departmentData.Object.DepartmentId, departmentData.Object.Name);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to process department creation event: {EventId}", eventData.EventId);
-            throw;
-        }
-    }
-
-    private async Task ProcessDepartmentEventAsync(DepartmentCreatedResult departmentData, CancellationToken cancellationToken)
-    {
-        _logger.LogDebug("Starting to process department data: {DepartmentId}", departmentData.DepartmentId);
-
-        // Simulate async business operation
-        await Task.Delay(100, cancellationToken);
-
-        // Simulate validation logic
-        if (string.IsNullOrWhiteSpace(departmentData.DepartmentId))
-        {
-            throw new ArgumentException("Department ID cannot be empty");
-        }
-
-        // Simulate permission initialization
-        _logger.LogInformation("Initializing department permissions: {DepartmentName}", departmentData.Name);
-
-        // Simulate notifying department manager
-        if (!string.IsNullOrWhiteSpace(departmentData.LeaderUserId))
-        {
-            _logger.LogInformation("Notifying department manager: {LeaderUserId}", departmentData.LeaderUserId);
-        }
-
-        // Simulate updating statistics
-        _syncService.IncrementDepartmentCount();
-
-        // Simulate hierarchy relationship processing
-        if (!string.IsNullOrWhiteSpace(departmentData.ParentDepartmentId))
-        {
-            _logger.LogInformation("Establishing hierarchy relationship: {DepartmentId} -> {ParentDepartmentId}",
-                departmentData.DepartmentId, departmentData.ParentDepartmentId);
-        }
-
-        await Task.CompletedTask;
-    }
-}
-
-/// <summary>
-/// Department delete event handler - inherits from DepartmentDeleteEventHandler base class
-/// </summary>
-public class DemoDepartmentDeleteEventHandler : DepartmentDeleteEventHandler
-{
-    public DemoDepartmentDeleteEventHandler(ILogger<DepartmentDeleteEventHandler> logger)
-        : base(logger)
-    {
-    }
-
-    protected override async Task ProcessBusinessLogicAsync(
-        EventData eventData,
-        DepartmentDeleteResult? eventEntity,
-        CancellationToken cancellationToken = default)
-    {
-        if (eventData == null)
-            throw new ArgumentNullException(nameof(eventData));
-
-        if (eventEntity == null)
-        {
-            _logger.LogWarning("Department delete event entity is null, skipping processing");
-            return;
-        }
-
-        _logger.LogInformation("Starting to process department delete event: EventId={EventId}, AppId={AppId}, TenantKey={TenantKey}",
-            eventData.EventId, eventData.AppId, eventData.TenantKey);
-
-        _logger.LogDebug("Department delete event details: {@EventEntity}", eventEntity);
-
-        // Execute department deletion related business logic
-        // For example: clean department cache, update statistics, notify relevant personnel, etc.
-
-        await Task.CompletedTask;
-    }
-}
-```
-
-#### Webhook Event Handling Example
-
-Webhook event handlers use the same `IFeishuEventHandler` interface as WebSocket event handlers, so code can be reused.
-
-##### Method 1: Implement IFeishuEventHandler Interface
-
-```csharp
-using Mud.Feishu.Abstractions;
-using System.Text.Json;
-
-// User creation event handler - can be used by both Webhook and WebSocket
-public class UserCreatedEventHandler : IFeishuEventHandler
-{
-    private readonly ILogger<UserCreatedEventHandler> _logger;
-    private readonly IUserSyncService _syncService;
-
-    public UserCreatedEventHandler(
-        ILogger<UserCreatedEventHandler> logger,
-        IUserSyncService syncService)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _syncService = syncService ?? throw new ArgumentNullException(nameof(syncService));
-    }
-
-    public string SupportedEventType => "contact.user.created_v3";
-
-    public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logger.LogInformation("Received user creation event: EventId={EventId}", eventData.EventId);
-            
-            // Parse user event data
-            var userEvent = JsonSerializer.Deserialize<UserCreatedEvent>(
-                eventData.Event?.ToString() ?? "{}");
-
-            _logger.LogInformation("New user created: {UserName} ({UserId})",
-                userEvent.User.Name, userEvent.User.UserId);
-
-            // Sync user to local database
-            await _syncService.SyncUserToDatabaseAsync(userEvent.User, cancellationToken);
-
-            // Send welcome message
-            await SendWelcomeMessageAsync(userEvent.User.UserId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to process user creation event");
-            throw;
-        }
-    }
-
-    private async Task SendWelcomeMessageAsync(string userId)
-    {
-        // Send welcome message logic
-        await Task.CompletedTask;
-    }
-}
-```
-
-##### Method 2: Inherit Base Handler Class (Recommended)
-
-Using base handler classes provides automatic deduplication and type safety:
-
-```csharp
-using Mud.Feishu.Abstractions;
-using Mud.Feishu.Abstractions.DataModels.Organization;
-using Mud.Feishu.Abstractions.EventHandlers;
-using Mud.Feishu.Abstractions.Services;
-
-// Department creation event handler - inherits from base class
-public class DepartmentCreatedHandler : DepartmentCreatedEventHandler
-{
-    private readonly IDepartmentService _deptService;
-
-    public DepartmentCreatedHandler(
-        IFeishuEventDeduplicator deduplicator,
-        ILogger<DepartmentCreatedHandler> logger,
-        IDepartmentService deptService)
-        : base(deduplicator, logger)
-    {
-        _deptService = deptService;
-    }
-
-    protected override async Task ProcessBusinessLogicAsync(
-        EventData eventData,
-        DepartmentCreatedResult? eventEntity,
-        CancellationToken cancellationToken = default)
-    {
-        // eventEntity is already a strongly-typed department data
-        _logger.LogInformation("Processing department creation: {Name}", eventEntity.Name);
-        
-        // Sync to local database
-        await _deptService.SyncDepartmentAsync(eventEntity, cancellationToken);
-        
-        // Initialize department permissions
-        await _deptService.InitializePermissionsAsync(eventEntity.DepartmentId);
-    }
-}
-```
-
-##### Message Receive Event Handler
-
-```csharp
-// Message receive event handler
-public class MessageReceiveEventHandler : IFeishuEventHandler
-{
-    private readonly ILogger<MessageReceiveEventHandler> _logger;
-    private readonly IFeishuTenantV1Message _messageApi;
-
-    public MessageReceiveEventHandler(
-        ILogger<MessageReceiveEventHandler> logger,
-        IFeishuTenantV1Message messageApi)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _messageApi = messageApi ?? throw new ArgumentNullException(nameof(messageApi));
-    }
-
     public string SupportedEventType => "im.message.receive_v1";
 
     public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var messageEvent = JsonSerializer.Deserialize<MessageReceiveEvent>(
-                eventData.Event?.ToString() ?? "{}");
+        var messageEvent = JsonSerializer.Deserialize<MessageReceiveEvent>(
+            eventData.Event?.ToString() ?? "{}");
 
-            _logger.LogInformation("Message received - Sender: {SenderId}, Content: {Content}",
-                messageEvent.Sender.Id, messageEvent.Message.Content);
-
-            // Smart reply logic
-            if (messageEvent.Message.Content.Contains("help"))
-            {
-                await SendHelpMessageAsync(messageEvent.Sender.Id);
-            }
-            
-            // Keyword detection and auto-reply
-            if (messageEvent.Message.Content.Contains("expense"))
-            {
-                await SendExpenseGuideAsync(messageEvent.Sender.Id);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to process message receive event");
-            throw;
-        }
-    }
-    
-    private async Task SendHelpMessageAsync(string userId)
-    {
-        // Send help message
-        await Task.CompletedTask;
-    }
-    
-    private async Task SendExpenseGuideAsync(string userId)
-    {
-        // Send expense guide
-        await Task.CompletedTask;
+        Console.WriteLine($"Message received: {messageEvent.Message.Content}");
     }
 }
+
+// Register handler
+builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
+    .AddHandler<MessageHandler>()
+    .Build();
 ```
 
-##### Service Registration
+### Webhook Event Processing
 
 ```csharp
-using Mud.Feishu.Webhook.Extensions;
+// Department creation event handler (inherit base class)
+public class DepartmentCreatedHandler : DepartmentCreatedEventHandler
+{
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        DepartmentCreatedResult? departmentData,
+        CancellationToken cancellationToken = default)
+    {
+        // Sync to local database
+        await SyncToDatabaseAsync(departmentData);
+    }
+}
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Register Webhook service
+// Register handler
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .AddHandler<UserCreatedEventHandler>()      // User creation event
-    .AddHandler<DepartmentCreatedHandler>()     // Department creation event
-    .AddHandler<MessageReceiveEventHandler>()   // Message receive event
-    .EnableHealthChecks()                       // Enable health checks
-    .EnableMetrics()                            // Enable performance monitoring
+    .AddHandler<DepartmentCreatedHandler>()
     .Build();
 
-var app = builder.Build();
-
-// Add Webhook middleware (automatically handles /feishu/Webhook route)
+// Add middleware
 app.UseFeishuWebhook();
-
-// Add health check endpoint
-app.MapHealthChecks("/health");
-
-app.Run();
 ```
+
+---
 
 ## 📖 Detailed Documentation
 
-- [Mud.Feishu.Abstractions Documentation](./Mud.Feishu.Abstractions/README.md) - Event handling abstraction layer guide
-- [Mud.Feishu Documentation](./Mud.Feishu/README.md) - HTTP API complete usage guide
-- [Mud.Feishu.WebSocket Documentation](./Mud.Feishu.WebSocket/Readme.md) - WebSocket real-time event subscription guide
-- [Mud.Feishu.Webhook Documentation](./Mud.Feishu.Webhook/README.md) - Webhook HTTP callback event handling guide
+- [Mud.Feishu.Abstractions Documentation](./Mud.Feishu.Abstractions/README_EN.md) - Event processing abstraction layer guide
+- [Mud.Feishu Documentation](./Mud.Feishu/README_EN.md) - HTTP API complete usage guide
+- [Mud.Feishu.WebSocket Documentation](./Mud.Feishu.WebSocket/Readme_EN.md) - WebSocket real-time event subscription guide
+- [Mud.Feishu.Webhook Documentation](./Mud.Feishu.Webhook/README_EN.md) - Webhook HTTP callback event processing guide
 - [Mud.Feishu.Redis Documentation](./Mud.Feishu.Redis/README.md) - Redis distributed deduplication extension guide
 
 ## 🛠️ Technology Stack
 
-### 📚 Framework Support
+### Framework Support
 - **.NET Standard 2.0** - Compatible with .NET Framework 4.6.1+
 - **.NET 6.0** - LTS long-term support version
 - **.NET 8.0** - LTS long-term support version (recommended)
 - **.NET 10.0** - LTS long-term support version
 
-### 🔧 Core Dependencies
-- **Mud.ServiceCodeGenerator v1.4.5.3** - HTTP client code generator
-- **System.Text.Json v10.0.1** - High-performance JSON serialization (.NET Standard 2.0)
-- **Microsoft.Extensions.Http** - HTTP client factory
-  - .NET 6.0 / .NET Standard 2.0: v8.0.1
-  - .NET 8.0 / .NET 10.0: v10.0.1
-- **Microsoft.Extensions.Http.Polly** - Resilience and transient fault handling
-  - .NET 6.0 / .NET Standard 2.0: v8.0.2
-  - .NET 8.0 / .NET 10.0: v10.0.1
-- **Microsoft.Extensions.DependencyInjection** - Dependency injection
-  - .NET 6.0 / .NET Standard 2.0: v8.0.2
-  - .NET 8.0 / .NET 10.0: v10.0.1
-- **Microsoft.Extensions.Logging** - Logging
-  - .NET 6.0 / .NET Standard 2.0: v8.0.3
-  - .NET 8.0 / .NET 10.0: v10.0.1
-- **Microsoft.Extensions.Configuration.Binder** - Configuration binding
-  - .NET 6.0 / .NET Standard 2.0: v8.0.2
-  - .NET 8.0 / .NET 10.0: v10.0.1
+### Core Dependencies
+
+| Package | Version | Description |
+|---------|---------|-------------|
+| **Mud.ServiceCodeGenerator** | v1.4.6 | HTTP client code generator |
+| **System.Text.Json** | v10.0.1 | High-performance JSON serialization |
+| **Microsoft.Extensions.Http** | v8.0.1 / v10.0.1 | HTTP client factory |
+| **Microsoft.Extensions.Http.Polly** | v8.0.2 / v10.0.1 | Resilience and transient fault handling |
+| **Microsoft.Extensions.DependencyInjection** | v8.0.2 / v10.0.1 | Dependency injection |
+| **Microsoft.Extensions.Logging** | v8.0.3 / v10.0.1 | Logging |
+| **Microsoft.Extensions.Configuration.Binder** | v8.0.2 / v10.0.1 | Configuration binding |
+
+---
 
 ## 📄 License
 
 This project is licensed under the [MIT License](./LICENSE), allowing both commercial and non-commercial use.
 
+---
+
 ## 🔗 Related Links
 
 ### 📖 Official Documentation
-- [Feishu Open Platform Documentation](https://open.feishu.cn/document/) - Feishu API official documentation and best practices
+- [Feishu Open Platform Documentation](https://open.feishu.cn/document/) - Official Feishu API documentation and best practices
 - [NuGet Package Manager](https://www.nuget.org/) - Official .NET package management platform
 
 ### 📦 NuGet Packages
-- [Mud.Feishu.Abstractions](https://www.nuget.org/packages/Mud.Feishu.Abstractions/) - Event handling abstraction layer
+- [Mud.Feishu.Abstractions](https://www.nuget.org/packages/Mud.Feishu.Abstractions/) - Event processing abstraction layer
 - [Mud.Feishu](https://www.nuget.org/packages/Mud.Feishu/) - Core HTTP API client library
 - [Mud.Feishu.WebSocket](https://www.nuget.org/packages/Mud.Feishu.WebSocket/) - WebSocket real-time event subscription library
-- [Mud.Feishu.Webhook](https://www.nuget.org/packages/Mud.Feishu.Webhook/) - Webhook HTTP callback event handling library
+- [Mud.Feishu.Webhook](https://www.nuget.org/packages/Mud.Feishu.Webhook/) - Webhook HTTP callback event processing library
 - [Mud.Feishu.Redis](https://www.nuget.org/packages/Mud.Feishu.Redis/) - Redis distributed deduplication extension library
 
 ### 🛠️ Development Resources
@@ -838,3 +541,13 @@ This project is licensed under the [MIT License](./LICENSE), allowing both comme
 - [Issue Tracker](https://gitee.com/mudtools/MudFeishu/issues) - Bug reports and feature requests
 - [Contributing Guide](./CONTRIBUTING.md) - How to contribute to the project
 - [Changelog](./CHANGELOG.md) - Version updates and change notes
+
+---
+
+<div align="center">
+
+**If MudFeishu helps you, please give us a ⭐Star to support us!**
+
+Made with ❤️ by MudTools
+
+</div>
