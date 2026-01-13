@@ -5,9 +5,11 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.Feishu.Abstractions;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Utils;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Mud.Feishu.Webhook.Middleware;
 
@@ -304,140 +306,87 @@ public class FeishuWebhookMiddleware
 
         try
         {
-            // 尝试反序列化为验证请求（使用源生成）
-            var verificationRequest = JsonSerializer.Deserialize(
-                requestBody,
-                Serialization.FeishuJsonContext.Default.EventVerificationRequest);
+            _logger.LogInformation("开始处理 Webhook 请求, RequestId: {RequestId}", requestId);
 
-            if (verificationRequest?.Type == "url_verification")
+            // 步骤 1：尝试处理明文 URL 验证请求
+            if (await TryHandlePlaintextVerificationAsync(context, requestBody, webhookService, requestId))
             {
-                // 处理验证请求
-                var verificationResponse = await webhookService.VerifyEventSubscriptionAsync(verificationRequest);
-                if (verificationResponse != null)
-                {
-                    await WriteJsonResponse(context, 200, verificationResponse);
-                    return;
-                }
+                return;
             }
 
-            // 尝试反序列化为事件请求（使用源生成）
+            // 步骤 2：解析加密请求
             var eventRequest = JsonSerializer.Deserialize(
                 requestBody,
                 Serialization.FeishuJsonContext.Default.FeishuWebhookRequest);
 
-            if (eventRequest != null)
+            _logger.LogInformation("事件请求反序列化结果: {Result}, Encrypt: {Encrypt}, Timestamp: {Timestamp}, Nonce: {Nonce}",
+                eventRequest != null,
+                eventRequest?.Encrypt?.Substring(0, Math.Min(20, eventRequest.Encrypt?.Length ?? 0)),
+                eventRequest?.Timestamp,
+                eventRequest?.Nonce);
+
+            if (eventRequest == null || string.IsNullOrEmpty(eventRequest.Encrypt))
             {
-                // 获取正确的加密密钥（支持多密钥场景）
-                var encryptKey = GetEncryptKey(eventRequest);
-
-                // 验证 X-Lark-Signature 请求头签名
-                var headerSignature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault();
-                if (!await validator.ValidateHeaderSignatureAsync(
-                    eventRequest.Timestamp,
-                    eventRequest.Nonce,
-                    requestBody,
-                    headerSignature,
-                    encryptKey))
-                {
-                    // 记录安全审计日志
-                    _ = _securityAuditService?.LogSecurityFailureAsync(
-                        SecurityEventType.SignatureValidation,
-                        clientIp,
-                        context.Request.Path,
-                        "X-Lark-Signature 请求头签名验证失败",
-                        requestId);
-
-                    await WriteErrorResponse(context, 401, "Unauthorized: Invalid X-Lark-Signature", requestId);
-                    return;
-                }
-                else
-                {
-                    // 记录签名验证成功日志
-                    _ = _securityAuditService?.LogSecuritySuccessAsync(
-                        SecurityEventType.SignatureValidation,
-                        clientIp,
-                        context.Request.Path,
-                        "X-Lark-Signature 请求头签名验证成功",
-                        requestId);
-                }
-
-                // 处理事件请求
-                if (_options.EnableBackgroundProcessing)
-                {
-                    // 后台处理模式：先返回成功响应，再异步处理
-                    await WriteJsonResponse(context, 200, new { });
-
-                    // 后台处理（使用 Task.Run 避免阻塞请求线程）
-                    _ = Task.Run(async () =>
-                    {
-                        using var backgroundActivity = FeishuWebhookActivitySource.Source.StartActivity("FeishuWebhook.BackgroundProcess");
-                        backgroundActivity?.SetTag("request.id", requestId);
-
-                        try
-                        {
-                            var token = CancellationToken.None;
-                            var result = await webhookService.HandleEventAsync(eventRequest, encryptKey, token);
-
-                            if (result.Success)
-                            {
-                                backgroundActivity?.SetStatus(ActivityStatusCode.Ok);
-                                _logger.LogInformation("后台事件处理完成, RequestId: {RequestId}", requestId);
-                            }
-                            else
-                            {
-                                backgroundActivity?.SetStatus(ActivityStatusCode.Error, result.ErrorReason ?? "Unknown error");
-                                _logger.LogError("后台事件处理失败, RequestId: {RequestId}, 错误: {ErrorReason}",
-                                    requestId, result.ErrorReason);
-
-                                // 如果启用了失败事件存储，保存失败事件
-                                if (_options.EnableBackgroundProcessing)
-                                {
-                                    // 获取解密后的事件数据（需要从服务层获取）
-                                    // 这里简化处理，仅记录日志
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            backgroundActivity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                            backgroundActivity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
-                            {
-                                { "exception.message", ex.Message },
-                                { "exception.type", ex.GetType().Name },
-                                { "exception.stacktrace", ex.StackTrace ?? string.Empty }
-                            }));
-                            _logger.LogError(ex, "后台事件处理失败, RequestId: {RequestId}", requestId);
-
-                            // TODO: 实现失败事件持久化存储
-                            // 考虑注入 Mud.Feishu.Abstractions.IFailedEventStore 并调用 StoreFailedEventAsync
-                        }
-                    });
-
-                    return;
-                }
-
-                // 同步处理模式
-                var token = CancellationToken.None;
-                var result = await webhookService.HandleEventAsync(eventRequest, encryptKey, token);
-                if (result.Success)
-                {
-                    await WriteJsonResponse(context, 200, new { });
-                    return;
-                }
-
-                // 根据错误原因返回不同的状态码
-                if (result.ErrorReason == "Signature validation failed")
-                {
-                    await WriteErrorResponse(context, 401, "Unauthorized: Invalid body signature", requestId);
-                    return;
-                }
-
-                // 其他错误返回 400
-                await WriteErrorResponse(context, 400, GetSafeErrorMessage(result.ErrorReason ?? "Bad Request"), requestId);
+                await WriteErrorResponse(context, 400, "Bad Request: Invalid request format", requestId);
                 return;
             }
 
-            await WriteErrorResponse(context, 400, "Bad Request: Invalid request format", requestId);
+            // 步骤 3：解密请求数据
+            var encryptKey = GetEncryptKey(eventRequest);
+            var decryptor = scope.ServiceProvider.GetRequiredService<IFeishuEventDecryptor>();
+            var decryptedData = await decryptor.DecryptAsync(eventRequest.Encrypt, encryptKey);
+
+            if (decryptedData == null)
+            {
+                _logger.LogWarning("解密失败，尝试将加密内容作为验证请求处理");
+                // 解密失败可能是验证请求格式与 EventData 不匹配
+                // 尝试直接解密为字符串并解析为验证请求
+                await TryHandleEncryptedVerificationAsync(context, eventRequest.Encrypt, encryptKey, requestId);
+                return;
+            }
+
+            _logger.LogInformation("解密成功，事件类型: {EventType}, 事件ID: {EventId}",
+                decryptedData.EventType, decryptedData.EventId);
+
+            // 步骤 4：检查是否为加密验证请求（事件类型为空也可能是验证请求）
+            if (decryptedData.EventType == "url_verification" ||
+                (string.IsNullOrEmpty(decryptedData.EventType) && string.IsNullOrEmpty(decryptedData.EventId)))
+            {
+                _logger.LogInformation("检测到可能为加密验证请求，EventType: {EventType}, EventId: {EventId}, Event类型: {EventType}",
+                    decryptedData.EventType, decryptedData.EventId, decryptedData.Event?.GetType());
+
+                // 记录 Event 对象的详细信息
+                if (decryptedData.Event is JsonElement eventElement)
+                {
+                    _logger.LogInformation("Event 是 JsonElement，ValueKind: {ValueKind}, 内容: {Content}",
+                        eventElement.ValueKind, eventElement.GetRawText());
+                }
+                else
+                {
+                    _logger.LogInformation("Event 不是 JsonElement，值: {EventValue}", decryptedData.Event);
+                }
+
+                // 如果 Event 为空或 null，说明 EventData 解析不正确
+                // 尝试直接解密为验证请求格式
+                if (decryptedData.Event == null)
+                {
+                    _logger.LogInformation("Event 为 null，尝试直接解密为验证请求");
+                    await TryHandleEncryptedVerificationAsync(context, eventRequest.Encrypt, encryptKey, requestId);
+                    return;
+                }
+
+                await HandleEncryptedVerificationAsync(context, decryptedData, requestId);
+                return;
+            }
+
+            // 步骤 5：验证签名
+            if (!await ValidateRequestSignatureAsync(context, eventRequest, requestBody, encryptKey, clientIp, requestId, validator))
+            {
+                return;
+            }
+
+            // 步骤 6：处理事件请求
+            await HandleEventRequestAsync(context, eventRequest, encryptKey, webhookService, requestId);
         }
         catch (JsonException ex)
         {
@@ -451,6 +400,289 @@ public class FeishuWebhookMiddleware
             _logger.LogError(ex, "反序列化请求体时发生错误, RequestId: {RequestId}", requestId);
             await WriteErrorResponse(context, 400, "Bad Request: Invalid JSON format", requestId);
         }
+    }
+
+    /// <summary>
+    /// 尝试直接解密加密验证请求（不使用 EventData 格式）
+    /// </summary>
+    private async Task TryHandleEncryptedVerificationAsync(HttpContext context, string encryptData, string encryptKey, string requestId)
+    {
+        try
+        {
+            _logger.LogInformation("尝试直接解密验证请求");
+
+            // 直接解密
+            var encryptedBytes = Convert.FromBase64String(encryptData);
+            var decryptedJson = await DecryptAes256CbcAsync(encryptedBytes, encryptKey);
+
+            if (string.IsNullOrEmpty(decryptedJson))
+            {
+                await WriteErrorResponse(context, 400, "Bad Request: Failed to decrypt verification request", requestId);
+                return;
+            }
+
+            _logger.LogInformation("解密后的内容: {DecryptedContent}", decryptedJson);
+
+            // 尝试解析为 JsonDocument 以查看结构
+            try
+            {
+                using var jsonDoc = JsonDocument.Parse(decryptedJson);
+                _logger.LogInformation("解密后的 JSON 结构: {RootElement}", jsonDoc.RootElement.GetRawText());
+                if (jsonDoc.RootElement.TryGetProperty("type", out var typeElement))
+                {
+                    _logger.LogInformation("发现 type 字段: {Type}", typeElement.GetString());
+                }
+                if (jsonDoc.RootElement.TryGetProperty("challenge", out var challengeElement))
+                {
+                    _logger.LogInformation("发现 challenge 字段: {Challenge}", challengeElement.GetString());
+                }
+                if (jsonDoc.RootElement.TryGetProperty("token", out var tokenElement))
+                {
+                    _logger.LogInformation("发现 token 字段: {Token}", tokenElement.GetString());
+                }
+            }
+            catch (Exception parseEx)
+            {
+                _logger.LogWarning(parseEx, "解析解密后的 JSON 结构时发生错误");
+            }
+
+            // 解析为验证请求
+            var verificationRequest = JsonSerializer.Deserialize(
+                decryptedJson,
+                Serialization.FeishuJsonContext.Default.EventVerificationRequest);
+
+            if (verificationRequest?.Type == "url_verification")
+            {
+                _logger.LogInformation("成功解析为验证请求，Challenge: {Challenge}", verificationRequest.Challenge);
+                var verificationResponse = new EventVerificationResponse
+                {
+                    Challenge = verificationRequest.Challenge ?? string.Empty
+                };
+                await WriteJsonResponse(context, 200, verificationResponse);
+                return;
+            }
+
+            await WriteErrorResponse(context, 400, "Bad Request: Invalid verification request format", requestId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "处理加密验证请求时发生错误");
+            await WriteErrorResponse(context, 400, "Bad Request: Failed to process verification request", requestId);
+        }
+    }
+
+    /// <summary>
+    /// AES-256-CBC 解密辅助方法
+    /// </summary>
+    private async Task<string?> DecryptAes256CbcAsync(byte[] encryptedBytes, string encryptKey)
+    {
+        const int blockSize = 16;
+        return await Task.Run(() =>
+        {
+            try
+            {
+                // 飞书的 EncryptKey 直接使用 UTF-8 编码后进行 SHA-256 哈希得到 32 字节密钥
+                byte[] keyBytes;
+                using (var sha256 = SHA256.Create())
+                {
+                    keyBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(encryptKey));
+                }
+
+                var aes = Aes.Create();
+                aes.Key = keyBytes;
+                aes.Mode = CipherMode.CBC;
+                aes.IV = encryptedBytes.Take(blockSize).ToArray();
+                aes.Padding = PaddingMode.PKCS7;
+                var transform = aes.CreateDecryptor();
+                var result = transform.TransformFinalBlock(encryptedBytes, blockSize, encryptedBytes.Length - blockSize);
+                return Encoding.UTF8.GetString(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AES 解密失败");
+                return null;
+            }
+        });
+    }
+
+    /// <summary>
+    /// 尝试处理明文 URL 验证请求
+    /// </summary>
+    private async Task<bool> TryHandlePlaintextVerificationAsync(HttpContext context, string requestBody, IFeishuWebhookService webhookService, string requestId)
+    {
+        _logger.LogInformation("尝试解析明文验证请求，请求体内容: {RequestBody}", requestBody);
+
+        var verificationRequest = JsonSerializer.Deserialize(
+            requestBody,
+            Serialization.FeishuJsonContext.Default.EventVerificationRequest);
+
+        _logger.LogInformation("验证请求反序列化结果: {Result}, Type: {Type}, Token: {Token}, Challenge: {Challenge}",
+            verificationRequest != null,
+            verificationRequest?.Type,
+            verificationRequest?.Token,
+            verificationRequest?.Challenge);
+
+        if (verificationRequest?.Type == "url_verification")
+        {
+            _logger.LogInformation("检测到明文 URL 验证请求");
+            var verificationResponse = await webhookService.VerifyEventSubscriptionAsync(verificationRequest);
+            if (verificationResponse != null)
+            {
+                _logger.LogInformation("明文验证成功，返回挑战码: {Challenge}", verificationResponse.Challenge);
+                await WriteJsonResponse(context, 200, verificationResponse);
+                return true;
+            }
+            else
+            {
+                _logger.LogWarning("明文验证失败，返回 null");
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 处理加密的 URL 验证请求
+    /// </summary>
+    private async Task HandleEncryptedVerificationAsync(HttpContext context, EventData decryptedData, string requestId)
+    {
+        _logger.LogInformation("检测到加密的 URL 验证请求");
+
+        string? challenge;
+        if (decryptedData.Event is JsonElement eventElement)
+        {
+            challenge = eventElement.ValueKind == JsonValueKind.String
+                ? eventElement.GetString()
+                : string.Empty;
+        }
+        else
+        {
+            challenge = decryptedData.Event?.ToString() ?? string.Empty;
+        }
+
+        _logger.LogInformation("解密后验证信息 - Challenge: {Challenge}",
+            challenge?.Substring(0, Math.Min(10, challenge?.Length ?? 0)));
+
+        var verificationResponse = new EventVerificationResponse
+        {
+            Challenge = challenge ?? string.Empty
+        };
+
+        _logger.LogInformation("加密验证成功，返回挑战码: {Challenge}", verificationResponse.Challenge);
+        await WriteJsonResponse(context, 200, verificationResponse);
+    }
+
+    /// <summary>
+    /// 验证请求签名
+    /// </summary>
+    private async Task<bool> ValidateRequestSignatureAsync(HttpContext context, FeishuWebhookRequest eventRequest, string requestBody, string encryptKey, string clientIp, string requestId, IFeishuEventValidator validator)
+    {
+        var headerSignature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault();
+        if (!await validator.ValidateHeaderSignatureAsync(
+            eventRequest.Timestamp,
+            eventRequest.Nonce,
+            requestBody,
+            headerSignature,
+            encryptKey))
+        {
+            _ = _securityAuditService?.LogSecurityFailureAsync(
+                SecurityEventType.SignatureValidation,
+                clientIp,
+                context.Request.Path,
+                "X-Lark-Signature 请求头签名验证失败",
+                requestId);
+
+            await WriteErrorResponse(context, 401, "Unauthorized: Invalid X-Lark-Signature", requestId);
+            return false;
+        }
+
+        _ = _securityAuditService?.LogSecuritySuccessAsync(
+            SecurityEventType.SignatureValidation,
+            clientIp,
+            context.Request.Path,
+            "X-Lark-Signature 请求头签名验证成功",
+            requestId);
+
+        return true;
+    }
+
+    /// <summary>
+    /// 处理事件请求
+    /// </summary>
+    private async Task HandleEventRequestAsync(HttpContext context, FeishuWebhookRequest eventRequest, string encryptKey, IFeishuWebhookService webhookService, string requestId)
+    {
+        if (_options.EnableBackgroundProcessing)
+        {
+            // 后台处理模式：先返回成功响应，再异步处理
+            await WriteJsonResponse(context, 200, new { });
+
+            // 后台处理（使用 Task.Run 避免阻塞请求线程）
+            _ = Task.Run(async () =>
+            {
+                using var backgroundActivity = FeishuWebhookActivitySource.Source.StartActivity("FeishuWebhook.BackgroundProcess");
+                backgroundActivity?.SetTag("request.id", requestId);
+
+                try
+                {
+                    var token = CancellationToken.None;
+                    var result = await webhookService.HandleEventAsync(eventRequest, encryptKey, token);
+
+                    if (result.Success)
+                    {
+                        backgroundActivity?.SetStatus(ActivityStatusCode.Ok);
+                        _logger.LogInformation("后台事件处理完成, RequestId: {RequestId}", requestId);
+                    }
+                    else
+                    {
+                        backgroundActivity?.SetStatus(ActivityStatusCode.Error, result.ErrorReason ?? "Unknown error");
+                        _logger.LogError("后台事件处理失败, RequestId: {RequestId}, 错误: {ErrorReason}",
+                            requestId, result.ErrorReason);
+
+                        // 如果启用了失败事件存储，保存失败事件
+                        if (_options.EnableBackgroundProcessing)
+                        {
+                            // 获取解密后的事件数据（需要从服务层获取）
+                            // 这里简化处理，仅记录日志
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    backgroundActivity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                    backgroundActivity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+                    {
+                        { "exception.message", ex.Message },
+                        { "exception.type", ex.GetType().Name },
+                        { "exception.stacktrace", ex.StackTrace ?? string.Empty }
+                    }));
+                    _logger.LogError(ex, "后台事件处理失败, RequestId: {RequestId}", requestId);
+
+                    // TODO: 实现失败事件持久化存储
+                    // 考虑注入 Mud.Feishu.Abstractions.IFailedEventStore 并调用 StoreFailedEventAsync
+                }
+            });
+
+            return;
+        }
+
+        // 同步处理模式
+        var token = CancellationToken.None;
+        var result = await webhookService.HandleEventAsync(eventRequest, encryptKey, token);
+        if (result.Success)
+        {
+            await WriteJsonResponse(context, 200, new { });
+            return;
+        }
+
+        // 根据错误原因返回不同的状态码
+        if (result.ErrorReason == "Signature validation failed")
+        {
+            await WriteErrorResponse(context, 401, "Unauthorized: Invalid body signature", requestId);
+            return;
+        }
+
+        // 其他错误返回 400
+        await WriteErrorResponse(context, 400, GetSafeErrorMessage(result.ErrorReason ?? "Bad Request"), requestId);
     }
 
     /// <summary>

@@ -126,12 +126,7 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
         return eventData;
     }
 
-    private static byte[] SHA256Hash(string str)
-    {
-        using var sha256 = SHA256.Create();
-        byte[] bytes = Encoding.UTF8.GetBytes(str);
-        return sha256.ComputeHash(bytes);
-    }
+
 
     /// <summary>
     /// 使用 AES-256-CBC 解密数据
@@ -154,7 +149,13 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                     _logger.LogDebug("开始解密，密钥长度: {KeyLength}, 加密数据长度: {DataLength}", encryptKey.Length, encryptedBytes.Length);
 
                 var rijndaelManaged = Aes.Create();
-                rijndaelManaged.Key = SHA256Hash(encryptKey);
+                // 飞书的 EncryptKey 直接使用 UTF-8 编码后进行 SHA-256 哈希得到 32 字节密钥
+                byte[] keyBytes;
+                using (var sha256 = SHA256.Create())
+                {
+                    keyBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(encryptKey));
+                }
+                rijndaelManaged.Key = keyBytes;
                 rijndaelManaged.Mode = CipherMode.CBC;
                 rijndaelManaged.IV = [.. encryptedBytes.Take(BlockSize)];
                 ICryptoTransform transform = rijndaelManaged.CreateDecryptor();
