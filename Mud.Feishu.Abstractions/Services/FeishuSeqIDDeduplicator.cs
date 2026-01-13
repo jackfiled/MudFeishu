@@ -149,13 +149,14 @@ public class FeishuSeqIDDeduplicator : IFeishuSeqIDDeduplicator, IAsyncDisposabl
             {
                 _logger?.LogDebug("清理了 {Count} 个过期的 SeqID 缓存条目", expiredKeys.Count);
 
-                // 如果清理后当前最大 SeqID 已过期，需要重新计算
-                if (_seqIdTimestamps.TryGetValue(_maxProcessedSeqId, out var timestamp))
+                // 清理完成后统一重新计算最大 SeqID
+                if (_seqIdTimestamps.Count > 0)
                 {
-                    if ((now - timestamp) > _cacheExpiration)
-                    {
-                        _maxProcessedSeqId = _seqIdTimestamps.Count > 0 ? _seqIdTimestamps.Keys.Max() : 0;
-                    }
+                    _maxProcessedSeqId = _seqIdTimestamps.Keys.Max();
+                }
+                else
+                {
+                    _maxProcessedSeqId = 0;
                 }
             }
         }

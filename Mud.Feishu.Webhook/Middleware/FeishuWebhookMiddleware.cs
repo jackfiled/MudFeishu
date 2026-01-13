@@ -31,6 +31,7 @@ public class FeishuWebhookMiddleware
     private readonly FeishuWebhookOptions _options;
     private ISecurityAuditService? _securityAuditService;
     private IThreatDetectionService? _threatDetectionService;
+    private IFailedEventStore? _failedEventStore;
 
     /// <summary>
     /// 
@@ -60,6 +61,7 @@ public class FeishuWebhookMiddleware
         using var scrope = _scopeFactory.CreateScope();
         _securityAuditService = scrope.ServiceProvider.GetService<ISecurityAuditService>();
         _threatDetectionService = scrope.ServiceProvider.GetService<IThreatDetectionService>();
+        _failedEventStore = scrope.ServiceProvider.GetService<IFailedEventStore>();
         // 生成请求追踪 ID
         var requestId = Guid.NewGuid().ToString();
         context.Items["RequestId"] = requestId;
@@ -331,7 +333,7 @@ public class FeishuWebhookMiddleware
 
             if (decryptedData == null)
             {
-                _logger.LogError("❌ 解密失败，返回null，尝试将加密内容作为验证请求处理");
+                _logger.LogError("解密失败，返回null，尝试将加密内容作为验证请求处理");
                 // 解密失败可能是验证请求格式与 EventData 不匹配
                 // 尝试直接解密为字符串并解析为验证请求
                 await TryHandleEncryptedVerificationAsync(context, eventRequest.Encrypt, encryptKey, requestId);
@@ -442,12 +444,12 @@ public class FeishuWebhookMiddleware
                     keyBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(encryptKey));
                 }
 
-                var aes = Aes.Create();
+                using var aes = Aes.Create();
                 aes.Key = keyBytes;
                 aes.Mode = CipherMode.CBC;
                 aes.IV = encryptedBytes.Take(blockSize).ToArray();
                 aes.Padding = PaddingMode.PKCS7;
-                var transform = aes.CreateDecryptor();
+                using var transform = aes.CreateDecryptor();
                 var result = transform.TransformFinalBlock(encryptedBytes, blockSize, encryptedBytes.Length - blockSize);
                 return Encoding.UTF8.GetString(result);
             }
@@ -580,10 +582,21 @@ public class FeishuWebhookMiddleware
                             requestId, result.ErrorReason);
 
                         // 如果启用了失败事件存储，保存失败事件
-                        if (_options.EnableBackgroundProcessing)
+                        if (_failedEventStore != null)
                         {
-                            // 获取解密后的事件数据（需要从服务层获取）
-                            // 这里简化处理，仅记录日志
+                            try
+                            {
+                                await _failedEventStore.StoreFailedEventAsync(
+                                    eventData,
+                                    new InvalidOperationException(result.ErrorReason ?? "Unknown error"),
+                                    CancellationToken.None);
+
+                                _logger.LogInformation("失败事件已保存到存储, RequestId: {RequestId}", requestId);
+                            }
+                            catch (Exception storeEx)
+                            {
+                                _logger.LogError(storeEx, "保存失败事件到存储失败, RequestId: {RequestId}", requestId);
+                            }
                         }
                     }
                 }
@@ -598,8 +611,23 @@ public class FeishuWebhookMiddleware
                     }));
                     _logger.LogError(ex, "后台事件处理失败, RequestId: {RequestId}", requestId);
 
-                    // TODO: 实现失败事件持久化存储
-                    // 考虑注入 Mud.Feishu.Abstractions.IFailedEventStore 并调用 StoreFailedEventAsync
+                    // 实现失败事件持久化存储
+                    if (_failedEventStore != null)
+                    {
+                        try
+                        {
+                            await _failedEventStore.StoreFailedEventAsync(
+                                eventData,
+                                ex,
+                                CancellationToken.None);
+
+                            _logger.LogInformation("失败事件已保存到存储, RequestId: {RequestId}", requestId);
+                        }
+                        catch (Exception storeEx)
+                        {
+                            _logger.LogError(storeEx, "保存失败事件到存储失败, RequestId: {RequestId}", requestId);
+                        }
+                    }
                 }
             });
 

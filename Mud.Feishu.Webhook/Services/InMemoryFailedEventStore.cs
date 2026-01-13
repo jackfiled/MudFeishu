@@ -108,43 +108,47 @@ public class InMemoryFailedEventStore : IFailedEventStore
     /// </summary>
     private void CleanupExpiredEvents(object? state)
     {
-        var cutoffTime = DateTime.UtcNow.AddHours(-RetentionHours);
-        var expiredKeys = _failedEvents.Values
-            .Where(e => e.FailedAt < cutoffTime)
-            .Select(e => e.EventId)
-            .ToList();
-
-        var removedCount = 0;
-        foreach (var key in expiredKeys)
+        // 使用锁保护清理操作，确保线程安全
+        lock (_failedEvents)
         {
-            if (_failedEvents.TryRemove(key, out _))
-            {
-                removedCount++;
-            }
-        }
-
-        // 限制存储数量
-        if (_failedEvents.Count > MaxStoredEvents)
-        {
-            var toRemoveCount = _failedEvents.Count - MaxStoredEvents;
-            var oldestEvents = _failedEvents.Values
-                .OrderBy(e => e.FailedAt)
-                .Take(toRemoveCount)
+            var cutoffTime = DateTime.UtcNow.AddHours(-RetentionHours);
+            var expiredKeys = _failedEvents.Values
+                .Where(e => e.FailedAt < cutoffTime)
                 .Select(e => e.EventId)
                 .ToList();
 
-            foreach (var key in oldestEvents)
+            var removedCount = 0;
+            foreach (var key in expiredKeys)
             {
                 if (_failedEvents.TryRemove(key, out _))
                 {
                     removedCount++;
                 }
             }
-        }
 
-        if (removedCount > 0)
-        {
-            _logger.LogInformation("清理了 {Count} 个过期的失败事件记录", removedCount);
+            // 限制存储数量
+            if (_failedEvents.Count > MaxStoredEvents)
+            {
+                var toRemoveCount = _failedEvents.Count - MaxStoredEvents;
+                var oldestEvents = _failedEvents.Values
+                    .OrderBy(e => e.FailedAt)
+                    .Take(toRemoveCount)
+                    .Select(e => e.EventId)
+                    .ToList();
+
+                foreach (var key in oldestEvents)
+                {
+                    if (_failedEvents.TryRemove(key, out _))
+                    {
+                        removedCount++;
+                    }
+                }
+            }
+
+            if (removedCount > 0)
+            {
+                _logger.LogInformation("清理了 {Count} 个过期的失败事件记录", removedCount);
+            }
         }
     }
 
