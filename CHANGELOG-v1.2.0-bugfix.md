@@ -29,6 +29,24 @@
 
 ### 中危问题修复
 
+- **WebSocket 错误处理增强**
+  - 文件: `Mud.Feishu.WebSocket/FeishuWebSocketClient.cs`
+  - 问题: 异常处理不够详细，缺乏分类和恢复判断
+  - 修复: 添加详细的异常分类处理，区分可恢复和不可恢复错误
+  - 影响: WebSocket 连接稳定性
+
+- **Redis 连接失败降级处理**
+  - 文件: `Mud.Feishu.Redis/Services/RedisFeishuEventDistributedDeduplicatorWithFallback.cs`（新增）
+  - 问题: Redis 连接失败时没有降级策略
+  - 修复: 实现自动降级到内存去重，支持指数退避重试
+  - 影响: 使用 Redis 分布式去重的用户
+
+- **认证失败处理增强**
+  - 文件: `Mud.Feishu.WebSocket/Core/AuthenticationManager.cs`
+  - 问题: 认证失败日志不够详细，缺乏错误码分类
+  - 修复: 添加详细的错误码分类处理和统计信息
+  - 影响: WebSocket 认证问题排查
+
 - **AES/SHA256 资源泄漏修复**
   - 文件:
     - `Mud.Feishu.Webhook/Services/FeishuEventDecryptor.cs`
@@ -41,6 +59,12 @@
   - 文件: `Mud.Feishu.Webhook/Services/InMemoryFailedEventStore.cs`
   - 问题: 清理方法未加锁，与字典操作存在竞态条件
   - 修复: 在 `CleanupExpiredEvents` 方法中添加锁保护
+  - 影响: 使用内存失败事件存储的用户
+
+- **InMemoryFailedEventStore Timer 资源泄漏**
+  - 文件: `Mud.Feishu.Webhook/Services/InMemoryFailedEventStore.cs`
+  - 问题: Timer 实例未在 Dispose 方法中释放
+  - 修复: 实现 IDisposable 接口，在 Dispose 中释放 Timer
   - 影响: 使用内存失败事件存储的用户
 
 - **FeishuSeqIDDeduplicator 缓存清理逻辑**
@@ -67,6 +91,18 @@
   - 修复: 添加详细注释说明返回值语义
   - 影响: 代码可读性
 
+- **IFeishuEventHandlerFactory 接口完善**
+  - 文件: `Mud.Feishu.Abstractions/IFeishuEventHandlerFactory.cs`
+  - 问题: 接口缺少 `UnregisterHandler(IFeishuEventHandler handler)` 方法定义
+  - 修复: 添加接口方法定义，与实现类保持一致
+  - 影响: 需要取消注册特定事件处理器的用户
+
+- **重复服务注册修复**
+  - 文件: `Mud.Feishu.Webhook/Extensions/FeishuWebhookServiceBuilder.cs`
+  - 问题: `IFeishuNonceDistributedDeduplicator` 被重复注册
+  - 修复: 移除第 296 行的重复注册
+  - 影响: 所有使用 Webhook 服务的用户
+
 ---
 
 ## 🐛 Bug 修复
@@ -87,6 +123,10 @@
 - **SHA256 哈希资源释放**
   - 使用 `using` 语句确保 SHA256 实例正确释放
 
+- **Timer 资源释放**
+  - InMemoryFailedEventStore 实现 IDisposable
+  - 确保定时清理 Timer 正确释放
+
 ### 线程安全修复
 
 - **失败事件存储清理方法**
@@ -98,6 +138,24 @@
 - **SeqID 去重清理**
   - 统一在清理完成后重新计算最大 SeqID
   - 避免部分清理导致的计算错误
+
+### 新增功能
+
+- **Redis 降级去重器**
+  - 新增 `RedisFeishuEventDistributedDeduplicatorWithFallback` 类
+  - 支持自动降级到内存去重
+  - 指数退避重试机制
+  - 状态查询和监控能力
+
+- **WebSocket 错误分类**
+  - 区分可恢复和不可恢复错误
+  - 详细的错误日志和错误类型标识
+  - 帮助快速定位问题
+
+- **认证失败详细追踪**
+  - 按错误码分类认证失败原因
+  - 统计总失败次数和失败时间
+  - 提供针对性修复建议
 
 ---
 
@@ -186,6 +244,11 @@ $env:FeishuWebhook__EncryptKey="your_32_byte_encryption_key"
 - AES/SHA256 资源释放测试
 - InMemoryFailedEventStore 线程安全测试
 - SeqID 去重清理逻辑测试
+- Timer 资源释放测试
+- IFeishuEventHandlerFactory 接口方法测试
+- WebSocket 错误分类测试
+- Redis 降级策略测试
+- 认证失败处理测试
 
 ---
 

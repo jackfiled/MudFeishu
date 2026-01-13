@@ -17,10 +17,11 @@ namespace Mud.Feishu.Webhook;
 /// <remarks>
 /// 生产环境建议使用基于 Redis、数据库等持久化存储的实现
 /// </remarks>
-public class InMemoryFailedEventStore : IFailedEventStore
+public class InMemoryFailedEventStore : IFailedEventStore, IDisposable
 {
     private readonly ConcurrentDictionary<string, FailedEventInfo> _failedEvents = new();
     private readonly ILogger<InMemoryFailedEventStore> _logger;
+    private readonly Timer _cleanupTimer;
 
     /// <summary>
     /// 最大存储的失败事件数量
@@ -42,7 +43,7 @@ public class InMemoryFailedEventStore : IFailedEventStore
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // 每小时清理一次过期记录
-        _ = new Timer(
+        _cleanupTimer = new Timer(
             CleanupExpiredEvents,
             null,
             TimeSpan.FromHours(1),
@@ -156,4 +157,12 @@ public class InMemoryFailedEventStore : IFailedEventStore
     /// 获取当前存储的失败事件数量
     /// </summary>
     public int GetFailedEventCount() => _failedEvents.Count;
+
+    /// <summary>
+    /// 释放资源
+    /// </summary>
+    public void Dispose()
+    {
+        _cleanupTimer?.Dispose();
+    }
 }
