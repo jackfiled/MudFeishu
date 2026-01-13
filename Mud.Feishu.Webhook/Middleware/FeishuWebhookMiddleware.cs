@@ -8,7 +8,6 @@
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
-using Mud.Feishu.Webhook.Utils;
 using System.Diagnostics;
 
 namespace Mud.Feishu.Webhook;
@@ -317,7 +316,7 @@ public class FeishuWebhookMiddleware
             // 步骤 2：解析加密请求
             var eventRequest = JsonSerializer.Deserialize(
                 requestBody,
-                Serialization.FeishuJsonContext.Default.FeishuWebhookRequest);
+                FeishuJsonContext.Default.FeishuWebhookRequest);
 
             if (eventRequest == null || string.IsNullOrEmpty(eventRequest.Encrypt))
             {
@@ -404,7 +403,7 @@ public class FeishuWebhookMiddleware
             // 解析为验证请求
             var verificationRequest = JsonSerializer.Deserialize(
                 decryptedJson,
-                Serialization.FeishuJsonContext.Default.EventVerificationRequest);
+                FeishuJsonContext.Default.EventVerificationRequest);
 
             if (verificationRequest?.Type == "url_verification")
             {
@@ -467,7 +466,7 @@ public class FeishuWebhookMiddleware
     {
         var verificationRequest = JsonSerializer.Deserialize(
             requestBody,
-            Serialization.FeishuJsonContext.Default.EventVerificationRequest);
+            FeishuJsonContext.Default.EventVerificationRequest);
 
         if (verificationRequest?.Type == "url_verification")
         {
