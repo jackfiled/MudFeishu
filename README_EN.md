@@ -10,6 +10,7 @@ An enterprise-grade .NET SDK for Feishu (Lark) API integration, providing compre
 | **Mud.Feishu** | Core HTTP API client library with full Feishu capabilities including organization, messaging, and group chat features | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.svg)](https://www.nuget.org/packages/Mud.Feishu/) |
 | **Mud.Feishu.WebSocket** | Feishu WebSocket client supporting real-time event subscription and automatic reconnection | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.WebSocket.svg)](https://www.nuget.org/packages/Mud.Feishu.WebSocket/) |
 | **Mud.Feishu.Webhook** | Feishu Webhook event handling component for HTTP callback event reception and processing | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/) |
+| **Mud.Feishu.Redis** | Redis distributed deduplication extension supporting event deduplication in multi-instance deployment scenarios | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/) |
 
 ## 🚀 Quick Start
 
@@ -27,6 +28,9 @@ dotnet add package Mud.Feishu.WebSocket
 
 # Webhook HTTP callback event handling
 dotnet add package Mud.Feishu.Webhook
+
+# Redis distributed deduplication extension
+dotnet add package Mud.Feishu.Redis
 ```
 
 ### Basic Configuration
@@ -253,6 +257,27 @@ app.Run();
 |  | Flexible configuration | Supports configuration files, code configuration, and builder pattern |
 |  | Dependency injection | Fully integrated with .NET dependency injection container |
 |  | Cross-platform support | Supports .NET Standard 2.0, .NET 6.0, .NET 8.0, .NET 10.0 |
+
+### 💾 Mud.Feishu.Redis - Distributed Deduplication Extension
+
+| Feature Category | Main Features | Description |
+|------------------|----------------|-------------|
+| **🔄 Distributed Deduplication** | EventId deduplication | Distributed deduplication based on event ID, preventing duplicate processing of the same event |
+|  | Nonce deduplication | Prevents replay attacks, ensuring request uniqueness |
+|  | SeqID deduplication | WebSocket binary message sequence number deduplication |
+|  | Atomic operations | Uses Redis SETNX + EXPIRE to ensure atomicity of deduplication operations |
+|  | Auto expiration | Redis automatically cleans up expired data without manual maintenance |
+| **🌐 Distributed Support** | Multi-instance deployment | Suitable for multi-instance distributed deployment scenarios |
+|  | Environment isolation | Supports multi-environment data isolation through key prefixes |
+|  | Cluster support | Supports Redis cluster and sentinel mode |
+|  | TLS/SSL encryption | Supports secure connection to Redis |
+| **⚙️ Flexible Configuration** | Configurable expiration time | Supports custom cache expiration time for events, Nonce, and SeqID |
+|  | Key prefix customization | Customizable Redis key prefixes for multi-tenant scenarios |
+|  | Connection timeout configuration | Configurable connection and sync timeout settings |
+|  | Health checks | Built-in Redis connection health checks |
+| **📊 Monitoring & Diagnostics** | Logging | Detailed deduplication operation logs |
+|  | Cache statistics | Supports querying processed event counts |
+|  | Performance optimization | Efficient Redis operations, minimizing network overhead |
 
 
 ## 🎯 Usage Scenarios
@@ -758,6 +783,7 @@ app.Run();
 - [Mud.Feishu Documentation](./Mud.Feishu/README.md) - HTTP API complete usage guide
 - [Mud.Feishu.WebSocket Documentation](./Mud.Feishu.WebSocket/Readme.md) - WebSocket real-time event subscription guide
 - [Mud.Feishu.Webhook Documentation](./Mud.Feishu.Webhook/README.md) - Webhook HTTP callback event handling guide
+- [Mud.Feishu.Redis Documentation](./Mud.Feishu.Redis/README.md) - Redis distributed deduplication extension guide
 
 ## 🛠️ Technology Stack
 
@@ -801,6 +827,7 @@ This project is licensed under the [MIT License](./LICENSE), allowing both comme
 - [Mud.Feishu](https://www.nuget.org/packages/Mud.Feishu/) - Core HTTP API client library
 - [Mud.Feishu.WebSocket](https://www.nuget.org/packages/Mud.Feishu.WebSocket/) - WebSocket real-time event subscription library
 - [Mud.Feishu.Webhook](https://www.nuget.org/packages/Mud.Feishu.Webhook/) - Webhook HTTP callback event handling library
+- [Mud.Feishu.Redis](https://www.nuget.org/packages/Mud.Feishu.Redis/) - Redis distributed deduplication extension library
 
 ### 🛠️ Development Resources
 - [Project Repository](https://gitee.com/mudtools/MudFeishu) - Source code and development documentation

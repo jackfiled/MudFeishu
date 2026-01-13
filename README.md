@@ -10,6 +10,7 @@
 | **Mud.Feishu** | 核心 HTTP API 客户端库，支持组织架构、消息、群聊等完整飞书功能 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.svg)](https://www.nuget.org/packages/Mud.Feishu/) |
 | **Mud.Feishu.WebSocket** | 飞书 WebSocket 客户端，支持实时事件订阅和自动重连 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.WebSocket.svg)](https://www.nuget.org/packages/Mud.Feishu.WebSocket/) |
 | **Mud.Feishu.Webhook** | 飞书 Webhook 事件处理组件，支持 HTTP 回调事件接收和处理 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/) |
+| **Mud.Feishu.Redis** | Redis 分布式去重扩展，支持多实例部署场景的事件去重 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/) |
 
 ## 🚀 快速开始
 
@@ -27,6 +28,9 @@ dotnet add package Mud.Feishu.WebSocket
 
 # Webhook HTTP 回调事件处理
 dotnet add package Mud.Feishu.Webhook
+
+# Redis 分布式去重扩展
+dotnet add package Mud.Feishu.Redis
 ```
 
 ### 基础配置
@@ -258,6 +262,27 @@ app.Run();
 |  | 灵活配置 | 支持配置文件、代码配置和建造者模式 |
 |  | 依赖注入 | 完全集成 .NET 依赖注入容器 |
 |  | 跨平台支持 | 支持 .NET Standard 2.0, .NET 6.0, .NET 8.0, .NET 10.0 |
+
+### 💾 Mud.Feishu.Redis - 分布式去重扩展
+
+| 功能分类 | 主要功能 | 说明 |
+|---------|---------|------|
+| **🔄 分布式去重** | EventId 去重 | 基于事件ID的分布式去重，防止重复处理同一事件 |
+|  | Nonce 去重 | 防止重放攻击，确保请求的唯一性 |
+|  | SeqID 去重 | WebSocket 二进制消息序列号去重 |
+|  | 原子性操作 | 使用 Redis SETNX + EXPIRE 确保去重操作的原子性 |
+|  | 自动过期 | Redis 自动清理过期数据，无需手动维护 |
+| **🌐 分布式支持** | 多实例部署 | 适用于多实例分布式部署场景 |
+|  | 环境隔离 | 支持通过键前缀实现多环境数据隔离 |
+|  | 集群支持 | 支持 Redis 集群和哨兵模式 |
+|  | TLS/SSL 加密 | 支持安全连接到 Redis |
+| **⚙️ 灵活配置** | 可配置过期时间 | 支持自定义事件、Nonce、SeqID 的缓存过期时间 |
+|  | 键前缀定制 | 可自定义 Redis 键前缀，方便多租户场景 |
+|  | 连接超时配置 | 可配置连接超时和同步超时时间 |
+|  | 健康检查 | 内置 Redis 连接健康检查 |
+| **📊 监控与诊断** | 日志记录 | 详细的去重操作日志 |
+|  | 缓存统计 | 支持查询已处理的事件数量 |
+|  | 性能优化 | 高效的 Redis 操作，最小化网络开销 |
 
 
 ## 🎯 使用场景
@@ -763,6 +788,7 @@ app.Run();
 - [Mud.Feishu 详细文档](./Mud.Feishu/README.md) - HTTP API 完整使用指南
 - [Mud.Feishu.WebSocket 详细文档](./Mud.Feishu.WebSocket/Readme.md) - WebSocket 实时事件订阅指南
 - [Mud.Feishu.Webhook 详细文档](./Mud.Feishu.Webhook/README.md) - Webhook HTTP 回调事件处理指南
+- [Mud.Feishu.Redis 详细文档](./Mud.Feishu.Redis/README.md) - Redis 分布式去重扩展指南
 
 ## 🛠️ 技术栈
 
@@ -800,6 +826,7 @@ app.Run();
 - [Mud.Feishu](https://www.nuget.org/packages/Mud.Feishu/) - 核心 HTTP API 客户端库
 - [Mud.Feishu.WebSocket](https://www.nuget.org/packages/Mud.Feishu.WebSocket/) - WebSocket 实时事件订阅库
 - [Mud.Feishu.Webhook](https://www.nuget.org/packages/Mud.Feishu.Webhook/) - Webhook HTTP 回调事件处理库
+- [Mud.Feishu.Redis](https://www.nuget.org/packages/Mud.Feishu.Redis/) - Redis 分布式去重扩展库
 
 ### 🛠️ 开发资源
 - [项目仓库](https://gitee.com/mudtools/MudFeishu) - 源代码和开发文档
