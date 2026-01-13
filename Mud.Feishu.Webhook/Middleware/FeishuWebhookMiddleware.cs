@@ -319,12 +319,6 @@ public class FeishuWebhookMiddleware
                 requestBody,
                 Serialization.FeishuJsonContext.Default.FeishuWebhookRequest);
 
-            _logger.LogInformation("事件请求反序列化结果: {Result}, Encrypt: {Encrypt}, Timestamp: {Timestamp}, Nonce: {Nonce}",
-                eventRequest != null,
-                eventRequest?.Encrypt?.Substring(0, Math.Min(20, eventRequest.Encrypt?.Length ?? 0)),
-                eventRequest?.Timestamp,
-                eventRequest?.Nonce);
-
             if (eventRequest == null || string.IsNullOrEmpty(eventRequest.Encrypt))
             {
                 await WriteErrorResponse(context, 400, "Bad Request: Invalid request format", requestId);
@@ -352,25 +346,10 @@ public class FeishuWebhookMiddleware
             if (decryptedData.EventType == "url_verification" ||
                 (string.IsNullOrEmpty(decryptedData.EventType) && string.IsNullOrEmpty(decryptedData.EventId)))
             {
-                _logger.LogInformation("检测到可能为加密验证请求，EventType: {EventType}, EventId: {EventId}, Event类型: {EventType}",
-                    decryptedData.EventType, decryptedData.EventId, decryptedData.Event?.GetType());
-
-                // 记录 Event 对象的详细信息
-                if (decryptedData.Event is JsonElement eventElement)
-                {
-                    _logger.LogInformation("Event 是 JsonElement，ValueKind: {ValueKind}, 内容: {Content}",
-                        eventElement.ValueKind, eventElement.GetRawText());
-                }
-                else
-                {
-                    _logger.LogInformation("Event 不是 JsonElement，值: {EventValue}", decryptedData.Event);
-                }
-
                 // 如果 Event 为空或 null，说明 EventData 解析不正确
                 // 尝试直接解密为验证请求格式
                 if (decryptedData.Event == null)
                 {
-                    _logger.LogInformation("Event 为 null，尝试直接解密为验证请求");
                     await TryHandleEncryptedVerificationAsync(context, eventRequest.Encrypt, encryptKey, requestId);
                     return;
                 }
@@ -409,8 +388,6 @@ public class FeishuWebhookMiddleware
     {
         try
         {
-            _logger.LogInformation("尝试直接解密验证请求");
-
             // 直接解密
             var encryptedBytes = Convert.FromBase64String(encryptData);
             var decryptedJson = await DecryptAes256CbcAsync(encryptedBytes, encryptKey);
@@ -421,31 +398,6 @@ public class FeishuWebhookMiddleware
                 return;
             }
 
-            _logger.LogInformation("解密后的内容: {DecryptedContent}", decryptedJson);
-
-            // 尝试解析为 JsonDocument 以查看结构
-            try
-            {
-                using var jsonDoc = JsonDocument.Parse(decryptedJson);
-                _logger.LogInformation("解密后的 JSON 结构: {RootElement}", jsonDoc.RootElement.GetRawText());
-                if (jsonDoc.RootElement.TryGetProperty("type", out var typeElement))
-                {
-                    _logger.LogInformation("发现 type 字段: {Type}", typeElement.GetString());
-                }
-                if (jsonDoc.RootElement.TryGetProperty("challenge", out var challengeElement))
-                {
-                    _logger.LogInformation("发现 challenge 字段: {Challenge}", challengeElement.GetString());
-                }
-                if (jsonDoc.RootElement.TryGetProperty("token", out var tokenElement))
-                {
-                    _logger.LogInformation("发现 token 字段: {Token}", tokenElement.GetString());
-                }
-            }
-            catch (Exception parseEx)
-            {
-                _logger.LogWarning(parseEx, "解析解密后的 JSON 结构时发生错误");
-            }
-
             // 解析为验证请求
             var verificationRequest = JsonSerializer.Deserialize(
                 decryptedJson,
@@ -453,7 +405,7 @@ public class FeishuWebhookMiddleware
 
             if (verificationRequest?.Type == "url_verification")
             {
-                _logger.LogInformation("成功解析为验证请求，Challenge: {Challenge}", verificationRequest.Challenge);
+                _logger.LogInformation("成功解析为加密验证请求，返回挑战码");
                 var verificationResponse = new EventVerificationResponse
                 {
                     Challenge = verificationRequest.Challenge ?? string.Empty
@@ -510,31 +462,23 @@ public class FeishuWebhookMiddleware
     /// </summary>
     private async Task<bool> TryHandlePlaintextVerificationAsync(HttpContext context, string requestBody, IFeishuWebhookService webhookService, string requestId)
     {
-        _logger.LogInformation("尝试解析明文验证请求，请求体内容: {RequestBody}", requestBody);
-
         var verificationRequest = JsonSerializer.Deserialize(
             requestBody,
             Serialization.FeishuJsonContext.Default.EventVerificationRequest);
 
-        _logger.LogInformation("验证请求反序列化结果: {Result}, Type: {Type}, Token: {Token}, Challenge: {Challenge}",
-            verificationRequest != null,
-            verificationRequest?.Type,
-            verificationRequest?.Token,
-            verificationRequest?.Challenge);
-
         if (verificationRequest?.Type == "url_verification")
         {
-            _logger.LogInformation("检测到明文 URL 验证请求");
+            _logger.LogDebug("检测到明文 URL 验证请求");
             var verificationResponse = await webhookService.VerifyEventSubscriptionAsync(verificationRequest);
             if (verificationResponse != null)
             {
-                _logger.LogInformation("明文验证成功，返回挑战码: {Challenge}", verificationResponse.Challenge);
+                _logger.LogInformation("明文验证成功，返回挑战码");
                 await WriteJsonResponse(context, 200, verificationResponse);
                 return true;
             }
             else
             {
-                _logger.LogWarning("明文验证失败，返回 null");
+                _logger.LogWarning("明文验证失败");
             }
         }
 
@@ -546,8 +490,6 @@ public class FeishuWebhookMiddleware
     /// </summary>
     private async Task HandleEncryptedVerificationAsync(HttpContext context, EventData decryptedData, string requestId)
     {
-        _logger.LogInformation("检测到加密的 URL 验证请求");
-
         string? challenge;
         if (decryptedData.Event is JsonElement eventElement)
         {
@@ -560,15 +502,12 @@ public class FeishuWebhookMiddleware
             challenge = decryptedData.Event?.ToString() ?? string.Empty;
         }
 
-        _logger.LogInformation("解密后验证信息 - Challenge: {Challenge}",
-            challenge?.Substring(0, Math.Min(10, challenge?.Length ?? 0)));
-
         var verificationResponse = new EventVerificationResponse
         {
             Challenge = challenge ?? string.Empty
         };
 
-        _logger.LogInformation("加密验证成功，返回挑战码: {Challenge}", verificationResponse.Challenge);
+        _logger.LogInformation("加密验证成功，返回挑战码");
         await WriteJsonResponse(context, 200, verificationResponse);
     }
 
