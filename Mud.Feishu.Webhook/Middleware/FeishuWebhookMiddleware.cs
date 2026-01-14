@@ -13,18 +13,19 @@ using System.Diagnostics;
 namespace Mud.Feishu.Webhook;
 
 /// <summary>
-/// Activity Source 用于分布式追踪
-/// </summary>
-internal static class FeishuWebhookActivitySource
-{
-    public static readonly ActivitySource Source = new ActivitySource("Mud.Feishu.Webhook");
-}
-
-/// <summary>
 /// 飞书 Webhook 中间件
 /// </summary>
 public class FeishuWebhookMiddleware
 {
+    /// <summary>
+    /// Activity Source 用于分布式追踪
+    /// </summary>
+    private static class FeishuWebhookActivitySource
+    {
+        public static readonly ActivitySource Source = new ActivitySource("Mud.Feishu.Webhook");
+    }
+
+
     private readonly RequestDelegate _next;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<FeishuWebhookMiddleware> _logger;

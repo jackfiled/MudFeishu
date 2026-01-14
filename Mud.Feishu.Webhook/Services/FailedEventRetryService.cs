@@ -5,75 +5,10 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.Extensions.Hosting;
 using Mud.Feishu.Abstractions;
+using Mud.Feishu.Webhook.Configuration;
 
 namespace Mud.Feishu.Webhook;
-
-/// <summary>
-/// 失败事件重试配置
-/// </summary>
-public class FailedEventRetryOptions
-{
-    /// <summary>
-    /// 是否启用失败事件重试
-    /// </summary>
-    public bool EnableRetry { get; set; } = false;
-
-    /// <summary>
-    /// 最大重试次数，默认 3
-    /// </summary>
-    public int MaxRetryCount { get; set; } = 3;
-
-    /// <summary>
-    /// 初始重试延迟（秒），默认 10
-    /// </summary>
-    public int InitialRetryDelaySeconds { get; set; } = 10;
-
-    /// <summary>
-    /// 重试延迟倍数（指数退避），默认 2
-    /// </summary>
-    public double RetryDelayMultiplier { get; set; } = 2.0;
-
-    /// <summary>
-    /// 最大重试延迟（秒），默认 300（5分钟）
-    /// </summary>
-    public int MaxRetryDelaySeconds { get; set; } = 300;
-
-    /// <summary>
-    /// 重试轮询间隔（秒），默认 30
-    /// </summary>
-    public int RetryPollIntervalSeconds { get; set; } = 30;
-
-    /// <summary>
-    /// 每次轮询处理的最大失败事件数，默认 10
-    /// </summary>
-    public int MaxRetryPerPoll { get; set; } = 10;
-
-    /// <summary>
-    /// 验证配置有效性
-    /// </summary>
-    public void Validate()
-    {
-        if (MaxRetryCount < 0)
-            throw new InvalidOperationException("MaxRetryCount 不能为负数");
-
-        if (InitialRetryDelaySeconds < 1)
-            throw new InvalidOperationException("InitialRetryDelaySeconds 必须至少为 1 秒");
-
-        if (RetryDelayMultiplier < 1.0)
-            throw new InvalidOperationException("RetryDelayMultiplier 必须大于等于 1.0");
-
-        if (MaxRetryDelaySeconds < InitialRetryDelaySeconds)
-            throw new InvalidOperationException("MaxRetryDelaySeconds 必须大于等于 InitialRetryDelaySeconds");
-
-        if (RetryPollIntervalSeconds < 1)
-            throw new InvalidOperationException("RetryPollIntervalSeconds 必须至少为 1 秒");
-
-        if (MaxRetryPerPoll < 1)
-            throw new InvalidOperationException("MaxRetryPerPoll 必须至少为 1");
-    }
-}
 
 /// <summary>
 /// 失败事件记录

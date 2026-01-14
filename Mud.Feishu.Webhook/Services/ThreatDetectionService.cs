@@ -250,85 +250,84 @@ public class ThreatDetectionService : IThreatDetectionService
 
         return result;
     }
-}
-
-/// <summary>
-/// IP行为模式
-/// </summary>
-internal class IpBehavior
-{
-    private readonly ConcurrentQueue<DateTimeOffset> _requestTimestamps = new();
-    private readonly ConcurrentDictionary<string, ConcurrentQueue<DateTimeOffset>> _pathAccessTimes = new();
-    private readonly object _lock = new();
 
     /// <summary>
-    /// 记录请求
+    /// IP行为模式
     /// </summary>
-    public void RecordRequest(string path)
+    private class IpBehavior
     {
-        var now = DateTimeOffset.UtcNow;
+        private readonly ConcurrentQueue<DateTimeOffset> _requestTimestamps = new();
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<DateTimeOffset>> _pathAccessTimes = new();
 
-        // 记录总请求时间
-        _requestTimestamps.Enqueue(now);
-
-        // 记录特定路径访问时间
-        var pathQueue = _pathAccessTimes.GetOrAdd(path, _ => new ConcurrentQueue<DateTimeOffset>());
-        pathQueue.Enqueue(now);
-
-        // 清理超过时间窗口的记录
-        CleanupOldRecords();
-    }
-
-    /// <summary>
-    /// 获取最近的请求数量
-    /// </summary>
-    public int GetRecentRequests(TimeSpan timeWindow)
-    {
-        var cutoffTime = DateTimeOffset.UtcNow - timeWindow;
-        var recentRequests = _requestTimestamps.Where(t => t >= cutoffTime).Count();
-        return recentRequests;
-    }
-
-    /// <summary>
-    /// 获取路径访问次数
-    /// </summary>
-    public int GetPathAccessCount(string path, TimeSpan timeWindow)
-    {
-        var cutoffTime = DateTimeOffset.UtcNow - timeWindow;
-        if (_pathAccessTimes.TryGetValue(path, out var pathQueue))
+        /// <summary>
+        /// 记录请求
+        /// </summary>
+        public void RecordRequest(string path)
         {
-            return pathQueue.Where(t => t >= cutoffTime).Count();
-        }
-        return 0;
-    }
+            var now = DateTimeOffset.UtcNow;
 
-    /// <summary>
-    /// 更新统计信息
-    /// </summary>
-    public void UpdateStats(bool success, long responseTimeMs)
-    {
-        // 这里可以实现更复杂的统计逻辑
-    }
+            // 记录总请求时间
+            _requestTimestamps.Enqueue(now);
 
-    /// <summary>
-    /// 清理过期记录
-    /// </summary>
-    private void CleanupOldRecords()
-    {
-        var cutoffTime = DateTimeOffset.UtcNow.AddMinutes(-10); // 保留10分钟内的记录
+            // 记录特定路径访问时间
+            var pathQueue = _pathAccessTimes.GetOrAdd(path, _ => new ConcurrentQueue<DateTimeOffset>());
+            pathQueue.Enqueue(now);
 
-        // 清理总请求时间队列
-        while (_requestTimestamps.TryPeek(out var oldest) && oldest < cutoffTime)
-        {
-            _requestTimestamps.TryDequeue(out _);
+            // 清理超过时间窗口的记录
+            CleanupOldRecords();
         }
 
-        // 清理各路径的访问时间队列
-        foreach (var pathQueue in _pathAccessTimes.Values)
+        /// <summary>
+        /// 获取最近的请求数量
+        /// </summary>
+        public int GetRecentRequests(TimeSpan timeWindow)
         {
-            while (pathQueue.TryPeek(out var pathOldest) && pathOldest < cutoffTime)
+            var cutoffTime = DateTimeOffset.UtcNow - timeWindow;
+            var recentRequests = _requestTimestamps.Where(t => t >= cutoffTime).Count();
+            return recentRequests;
+        }
+
+        /// <summary>
+        /// 获取路径访问次数
+        /// </summary>
+        public int GetPathAccessCount(string path, TimeSpan timeWindow)
+        {
+            var cutoffTime = DateTimeOffset.UtcNow - timeWindow;
+            if (_pathAccessTimes.TryGetValue(path, out var pathQueue))
             {
-                pathQueue.TryDequeue(out _);
+                return pathQueue.Where(t => t >= cutoffTime).Count();
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// 更新统计信息
+        /// </summary>
+        public void UpdateStats(bool success, long responseTimeMs)
+        {
+            // 这里可以实现更复杂的统计逻辑
+        }
+
+        /// <summary>
+        /// 清理过期记录
+        /// </summary>
+        private void CleanupOldRecords()
+        {
+            var cutoffTime = DateTimeOffset.UtcNow.AddMinutes(-10); // 保留10分钟内的记录
+
+            // 清理总请求时间队列
+            while (_requestTimestamps.TryPeek(out var oldest) && oldest < cutoffTime)
+            {
+                _requestTimestamps.TryDequeue(out _);
+            }
+
+            // 清理各路径的访问时间队列
+            foreach (var pathQueue in _pathAccessTimes.Values)
+            {
+                while (pathQueue.TryPeek(out var pathOldest) && pathOldest < cutoffTime)
+                {
+                    pathQueue.TryDequeue(out _);
+                }
             }
         }
     }
