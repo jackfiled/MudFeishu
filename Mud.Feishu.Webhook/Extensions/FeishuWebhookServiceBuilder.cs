@@ -7,6 +7,7 @@
 
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.EventHandlers;
+using Mud.Feishu.Abstractions.Interceptors;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook;
 using Mud.Feishu.Webhook.Configuration;
@@ -21,6 +22,7 @@ public class FeishuWebhookServiceBuilder
 {
     private readonly IServiceCollection _services;
     private readonly List<Type> _handlerTypes = new();
+    private readonly List<Type> _interceptorTypes = new();
     private bool _enableHealthChecks = true;
     private bool _enableMetrics = true;
     private bool _autoRegisterEndpoint = true;
@@ -173,6 +175,56 @@ public class FeishuWebhookServiceBuilder
         _handlerTypes.Add(typeof(THandler));
         _services.AddScoped<IFeishuEventHandler>(handlerFactory);
         _services.AddScoped<THandler>(handlerFactory);
+        return this;
+    }
+
+    /// <summary>
+    /// 添加事件拦截器
+    /// </summary>
+    /// <typeparam name="TInterceptor">拦截器类型</typeparam>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder AddInterceptor<TInterceptor>()
+        where TInterceptor : class, IFeishuEventInterceptor
+    {
+        _interceptorTypes.Add(typeof(TInterceptor));
+        _services.AddScoped<IFeishuEventInterceptor, TInterceptor>();
+        _services.AddScoped<TInterceptor>();
+        return this;
+    }
+
+    /// <summary>
+    /// 添加事件拦截器实例
+    /// </summary>
+    /// <typeparam name="TInterceptor">拦截器类型</typeparam>
+    /// <param name="interceptorInstance">拦截器实例</param>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder AddInterceptor<TInterceptor>(TInterceptor interceptorInstance)
+        where TInterceptor : class, IFeishuEventInterceptor
+    {
+        if (interceptorInstance == null)
+            throw new ArgumentNullException(nameof(interceptorInstance));
+
+        _interceptorTypes.Add(typeof(TInterceptor));
+        _services.AddScoped<IFeishuEventInterceptor>(_ => interceptorInstance);
+        _services.AddScoped<TInterceptor>(_ => interceptorInstance);
+        return this;
+    }
+
+    /// <summary>
+    /// 添加事件拦截器工厂
+    /// </summary>
+    /// <typeparam name="TInterceptor">拦截器类型</typeparam>
+    /// <param name="interceptorFactory">拦截器工厂</param>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder AddInterceptor<TInterceptor>(Func<IServiceProvider, TInterceptor> interceptorFactory)
+        where TInterceptor : class, IFeishuEventInterceptor
+    {
+        if (interceptorFactory == null)
+            throw new ArgumentNullException(nameof(interceptorFactory));
+
+        _interceptorTypes.Add(typeof(TInterceptor));
+        _services.AddScoped<IFeishuEventInterceptor>(interceptorFactory);
+        _services.AddScoped<TInterceptor>(interceptorFactory);
         return this;
     }
 
@@ -360,6 +412,15 @@ public class FeishuWebhookServiceBuilder
             var defaultHandler = serviceProvider.GetRequiredService(defaultHandlerType) as IFeishuEventHandler
                 ?? throw new InvalidOperationException($"无法获取默认处理器: {defaultHandlerType.Name}");
             return new DefaultFeishuEventHandlerFactory(logger, handlers, defaultHandler);
+        });
+
+        // 注册事件拦截器集合（作用域，按注册顺序排序）
+        _services.TryAddScoped<IFeishuEventInterceptor[]>(serviceProvider =>
+        {
+            return serviceProvider.GetRequiredService<IEnumerable<IFeishuEventInterceptor>>()
+                .Where(i => _interceptorTypes.Contains(i.GetType()))
+                .OrderBy(i => _interceptorTypes.IndexOf(i.GetType()))
+                .ToArray();
         });
     }
 

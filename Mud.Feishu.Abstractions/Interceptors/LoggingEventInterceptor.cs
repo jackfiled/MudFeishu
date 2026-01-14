@@ -5,28 +5,25 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.Feishu.Abstractions;
-using Mud.Feishu.Abstractions.Interceptors;
-using Mud.Feishu.Webhook.Models;
+using Microsoft.Extensions.Logging;
 
-namespace Mud.Feishu.Webhook;
+namespace Mud.Feishu.Abstractions.Interceptors;
 
 /// <summary>
-/// 指标拦截器
-/// 收集事件处理的指标数据
+/// 日志拦截器
+/// 记录事件处理的详细日志
 /// </summary>
-public class MetricsEventInterceptor : IFeishuEventInterceptor
+public class LoggingEventInterceptor : IFeishuEventInterceptor
 {
-    private readonly MetricsCollector _metrics;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Diagnostics.Stopwatch> _stopwatches = new();
+    private readonly ILogger<LoggingEventInterceptor> _logger;
 
     /// <summary>
     /// 构造函数
     /// </summary>
-    /// <param name="metrics">指标收集器</param>
-    public MetricsEventInterceptor(MetricsCollector metrics)
+    /// <param name="logger">日志记录器</param>
+    public LoggingEventInterceptor(ILogger<LoggingEventInterceptor> logger)
     {
-        _metrics = metrics;
+        _logger = logger;
     }
 
     /// <summary>
@@ -34,8 +31,8 @@ public class MetricsEventInterceptor : IFeishuEventInterceptor
     /// </summary>
     public Task<bool> BeforeHandleAsync(string eventType, EventData eventData, CancellationToken cancellationToken = default)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        _stopwatches.TryAdd(eventData.EventId ?? Guid.NewGuid().ToString(), stopwatch);
+        _logger.LogInformation("开始处理事件: {EventType}, EventId: {EventId}, TenantKey: {TenantKey}",
+            eventType, eventData.EventId, eventData.TenantKey);
         return Task.FromResult(true);
     }
 
@@ -44,23 +41,16 @@ public class MetricsEventInterceptor : IFeishuEventInterceptor
     /// </summary>
     public Task AfterHandleAsync(string eventType, EventData eventData, Exception? exception, CancellationToken cancellationToken = default)
     {
-        var eventId = eventData.EventId ?? string.Empty;
-
-        if (_stopwatches.TryRemove(eventId, out var stopwatch))
+        if (exception == null)
         {
-            stopwatch.Stop();
-            _metrics.RecordProcessingTime(stopwatch.ElapsedMilliseconds);
-
-            if (exception == null)
-            {
-                _metrics.IncrementProcessedEvents();
-            }
-            else
-            {
-                _metrics.IncrementFailedEvents();
-            }
+            _logger.LogInformation("事件处理成功: {EventType}, EventId: {EventId}, TenantKey: {TenantKey}",
+                eventType, eventData.EventId, eventData.TenantKey);
         }
-
+        else
+        {
+            _logger.LogError(exception, "事件处理失败: {EventType}, EventId: {EventId}, TenantKey: {TenantKey}",
+                eventType, eventData.EventId, eventData.TenantKey);
+        }
         return Task.CompletedTask;
     }
 }

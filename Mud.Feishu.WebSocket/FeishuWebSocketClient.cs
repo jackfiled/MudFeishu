@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
+using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.DataModels.WsEndpoint;
 using Mud.Feishu.WebSocket.DataModels;
@@ -26,6 +27,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     private readonly ILogger<FeishuWebSocketClient> _logger;
     private readonly FeishuWebSocketOptions _options;
     private readonly IFeishuEventHandlerFactory _eventHandlerFactory;
+    private readonly IFeishuEventInterceptor[] _interceptors;
     private readonly WebSocketConnectionManager _connectionManager;
     private readonly AuthenticationManager _authManager;
     private readonly MessageRouter _messageRouter;
@@ -81,6 +83,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     /// <param name="logger">日志记录器</param>
     /// <param name="eventHandlerFactory">事件处理器工厂</param>
     /// <param name="loggerFactory">日志记录器工厂</param>
+    /// <param name="interceptors">事件拦截器集合</param>
     /// <param name="options">WebSocket配置选项</param>
     /// <param name="seqIdDeduplicator">SeqID去重服务（可选）</param>
     /// <param name="sessionManager">会话管理器（可选）</param>
@@ -89,6 +92,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
         ILogger<FeishuWebSocketClient> logger,
         IFeishuEventHandlerFactory eventHandlerFactory,
         ILoggerFactory loggerFactory,
+        IFeishuEventInterceptor[]? interceptors = null,
         FeishuWebSocketOptions? options = null,
         IFeishuSeqIDDeduplicator? seqIdDeduplicator = null,
         SessionManager? sessionManager = null,
@@ -96,6 +100,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _eventHandlerFactory = eventHandlerFactory ?? throw new ArgumentNullException(nameof(eventHandlerFactory));
+        _interceptors = interceptors ?? Array.Empty<IFeishuEventInterceptor>();
         _options = options ?? new FeishuWebSocketOptions();
         _loggerFactory = loggerFactory;
         _seqIdDeduplicator = seqIdDeduplicator;
@@ -186,6 +191,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
             null,
             null,
             _seqIdDeduplicator,
+            _interceptors,
             _options);
 
         _messageRouter.RegisterHandler(pingPongHandler);

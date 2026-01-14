@@ -9,6 +9,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Mud.Feishu.Abstractions;
+using Mud.Feishu.Abstractions.Interceptors;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.WebSocket;
 using Mud.Feishu.WebSocket.Handlers;
@@ -22,6 +24,7 @@ public class FeishuWebSocketServiceBuilder
 {
     private readonly IServiceCollection _services;
     private readonly List<Type> _handlerTypes = new();
+    private readonly List<Type> _interceptorTypes = new();
     private bool _configured = false;
 
     /// <summary>
@@ -118,6 +121,56 @@ public class FeishuWebSocketServiceBuilder
     }
 
     /// <summary>
+    /// 添加事件拦截器
+    /// </summary>
+    /// <typeparam name="TInterceptor">拦截器类型</typeparam>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebSocketServiceBuilder AddInterceptor<TInterceptor>()
+        where TInterceptor : class, IFeishuEventInterceptor
+    {
+        _interceptorTypes.Add(typeof(TInterceptor));
+        _services.AddSingleton<IFeishuEventInterceptor, TInterceptor>();
+        _services.AddSingleton<TInterceptor>();
+        return this;
+    }
+
+    /// <summary>
+    /// 添加事件拦截器实例
+    /// </summary>
+    /// <typeparam name="TInterceptor">拦截器类型</typeparam>
+    /// <param name="interceptorInstance">拦截器实例</param>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebSocketServiceBuilder AddInterceptor<TInterceptor>(TInterceptor interceptorInstance)
+        where TInterceptor : class, IFeishuEventInterceptor
+    {
+        if (interceptorInstance == null)
+            throw new ArgumentNullException(nameof(interceptorInstance));
+
+        _interceptorTypes.Add(typeof(TInterceptor));
+        _services.AddSingleton<IFeishuEventInterceptor>(_ => interceptorInstance);
+        _services.AddSingleton<TInterceptor>(_ => interceptorInstance);
+        return this;
+    }
+
+    /// <summary>
+    /// 添加事件拦截器工厂
+    /// </summary>
+    /// <typeparam name="TInterceptor">拦截器类型</typeparam>
+    /// <param name="interceptorFactory">拦截器工厂</param>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebSocketServiceBuilder AddInterceptor<TInterceptor>(Func<IServiceProvider, TInterceptor> interceptorFactory)
+        where TInterceptor : class, IFeishuEventInterceptor
+    {
+        if (interceptorFactory == null)
+            throw new ArgumentNullException(nameof(interceptorFactory));
+
+        _interceptorTypes.Add(typeof(TInterceptor));
+        _services.AddSingleton<IFeishuEventInterceptor>(interceptorFactory);
+        _services.AddSingleton<TInterceptor>(interceptorFactory);
+        return this;
+    }
+
+    /// <summary>
     /// 应用自定义配置操作
     /// </summary>
     /// <param name="configureAction">配置操作</param>
@@ -204,6 +257,15 @@ public class FeishuWebSocketServiceBuilder
             var defaultHandler = serviceProvider.GetRequiredService(defaultHandlerType) as IFeishuEventHandler;
             return new FeishuWebSocketEventHandlerFactory(logger, handlers, defaultHandler);
         });
+
+        // 注册事件拦截器集合（单例，按注册顺序排序）
+        _services.AddSingleton<IFeishuEventInterceptor[]>(serviceProvider =>
+        {
+            return serviceProvider.GetRequiredService<IEnumerable<IFeishuEventInterceptor>>()
+                .Where(i => _interceptorTypes.Contains(i.GetType()))
+                .OrderBy(i => _interceptorTypes.IndexOf(i.GetType()))
+                .ToArray();
+        });
     }
 
     /// <summary>
@@ -239,9 +301,10 @@ public class FeishuWebSocketServiceBuilder
             var logger = serviceProvider.GetRequiredService<ILogger<FeishuWebSocketClient>>();
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             var eventHandlerFactory = serviceProvider.GetRequiredService<IFeishuEventHandlerFactory>();
+            var interceptors = serviceProvider.GetRequiredService<IFeishuEventInterceptor[]>();
             var options = serviceProvider.GetRequiredService<IOptions<FeishuWebSocketOptions>>().Value;
             var seqIdDeduplicator = serviceProvider.GetService<IFeishuSeqIDDeduplicator>();
-            return new FeishuWebSocketClient(logger, eventHandlerFactory, loggerFactory, options, seqIdDeduplicator);
+            return new FeishuWebSocketClient(logger, eventHandlerFactory, loggerFactory, interceptors, options, seqIdDeduplicator);
         });
 
         // 注册WebSocket管理器
