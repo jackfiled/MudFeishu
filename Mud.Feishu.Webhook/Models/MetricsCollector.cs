@@ -86,6 +86,23 @@ public class MetricsCollector
     }
 
     /// <summary>
+    /// 增加已处理事件数量
+    /// </summary>
+    public void IncrementProcessedEvents()
+    {
+        IncrementCounter("processed_events");
+    }
+
+    /// <summary>
+    /// 记录事件处理时间（毫秒）
+    /// </summary>
+    /// <param name="durationMs">处理时长（毫秒）</param>
+    public void RecordProcessingTime(long durationMs)
+    {
+        IncrementCounter("processing_time_ms", durationMs);
+    }
+
+    /// <summary>
     /// 获取所有计数器值
     /// </summary>
     /// <returns>计数器字典</returns>
@@ -110,7 +127,7 @@ public class MetricsCollector
         }
     }
 
-    private void IncrementCounter(string name)
+    private void IncrementCounter(string name, long delta = 1)
     {
         lock (_lock)
         {
@@ -118,7 +135,7 @@ public class MetricsCollector
             {
                 count = 0;
             }
-            _counters[name] = count + 1;
+            _counters[name] = count + delta;
         }
     }
 }

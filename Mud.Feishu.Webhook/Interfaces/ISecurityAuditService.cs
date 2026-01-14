@@ -69,6 +69,11 @@ public enum SecurityEventType
     SubscriptionValidation,
 
     /// <summary>
+    /// Content-Type 验证
+    /// </summary>
+    InvalidContentType,
+
+    /// <summary>
     /// 请求频率限制
     /// </summary>
     RateLimitExceeded,

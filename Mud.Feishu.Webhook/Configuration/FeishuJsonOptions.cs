@@ -20,7 +20,13 @@ public static class FeishuJsonOptions
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         ReadCommentHandling = JsonCommentHandling.Disallow,
-        AllowTrailingCommas = false
+        AllowTrailingCommas = false,
+        MaxDepth = 64,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+#if NET8_0_OR_GREATER
+        ,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+#endif
     };
 
     /// <summary>

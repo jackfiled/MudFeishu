@@ -292,8 +292,9 @@ public class FeishuWebhookServiceBuilder
     /// </summary>
     private void RegisterCoreServices()
     {
-        // 单实例服务
-        _services.TryAddSingleton<FeishuWebhookConcurrencyService>();
+        // 单实例服务（包含 IHostedService）
+        _services.AddSingleton<FeishuWebhookConcurrencyService>();
+        _services.AddHostedService(sp => sp.GetRequiredService<FeishuWebhookConcurrencyService>());
         _services.TryAddSingleton<IFeishuEventDeduplicator, FeishuEventDeduplicator>();
 
         // 分布式去重器（默认使用内存实现）
@@ -306,6 +307,33 @@ public class FeishuWebhookServiceBuilder
         _services.TryAddScoped<IFeishuWebhookService, FeishuWebhookService>();
         _services.TryAddScoped<ISecurityAuditService, SecurityAuditService>();
         _services.TryAddScoped<IThreatDetectionService, ThreatDetectionService>();
+
+        // 注册断路器服务（单例）
+        _services.TryAddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<FeishuWebhookOptions>>();
+            var logger = sp.GetService<ILogger<CircuitBreakerService>>();
+
+            if (options.Value.EnableCircuitBreaker)
+            {
+                var circuitBreakerOptions = new CircuitBreakerOptions
+                {
+                    ExceptionsAllowedBeforeBreaking = options.Value.CircuitBreaker.ExceptionsAllowedBeforeBreaking,
+                    DurationOfBreak = TimeSpan.FromSeconds(options.Value.CircuitBreaker.DurationOfBreakSeconds),
+                    SuccessThresholdToReset = options.Value.CircuitBreaker.SuccessThresholdToReset
+                };
+                return new CircuitBreakerService(circuitBreakerOptions, logger);
+            }
+
+            // 返回禁用的断路器（总是允许请求）
+            var disabledOptions = new CircuitBreakerOptions
+            {
+                ExceptionsAllowedBeforeBreaking = int.MaxValue,
+                DurationOfBreak = TimeSpan.FromMilliseconds(1),
+                SuccessThresholdToReset = 1
+            };
+            return new CircuitBreakerService(disabledOptions, logger);
+        });
     }
 
     /// <summary>
@@ -350,5 +378,20 @@ public class FeishuWebhookServiceBuilder
             // 健康检查注册失败不应该影响主要功能
             System.Diagnostics.Debug.WriteLine($"健康检查注册失败: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// 注册失败事件重试服务
+    /// </summary>
+    private void RegisterRetryServices()
+    {
+        // 仅在配置中启用时注册
+        _services.PostConfigure<FeishuWebhookOptions>(options =>
+        {
+            if (options.Retry.EnableRetry)
+            {
+                _services.AddHostedService<FailedEventRetryService>();
+            }
+        });
     }
 }

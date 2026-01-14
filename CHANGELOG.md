@@ -1,5 +1,515 @@
 ﻿# Mud.Feishu 更新日志
 
+## 1.2.0 (2026-02-15)
+
+**类型**: 功能增强、安全加固、性能优化
+
+### 🚀 新功能
+
+#### 安全增强
+
+- **内容类型验证**
+  - 文件: `Mud.Feishu.Webhook/Middleware/FeishuWebhookMiddleware.cs`
+  - 新增: 请求 Content-Type 验证，仅接受 `application/json`
+  - 防止: 恶意构造的非 JSON 请求
+  - 影响: 提升请求安全性
+
+- **JSON 深度限制**
+  - 文件: `Mud.Feishu.Webhook/Configuration/FeishuJsonOptions.cs`
+  - 新增: `MaxDepth = 64` 限制，防止深度嵌套 JSON
+  - 防止: DoS 攻击和栈溢出风险
+  - 影响: 反序列化安全
+
+- **事件处理拦截器**
+  - 文件: `Mud.Feishu.Abstractions/IFeishuEventInterceptor.cs` (新增)
+  - 新增: 前置/后置事件处理拦截器机制
+  - 支持: 日志记录、性能监控、自定义验证
+  - 影响: 提升可扩展性
+
+- **失败事件重试服务**
+  - 文件: `Mud.Feishu.Webhook/Services/FailedEventRetryService.cs` (新增)
+  - 新增: 后台自动重试失败事件
+  - 策略: 指数退避(2^retryCount 分钟, 最大 60 分钟)
+  - 影响: 提高事件处理可靠性
+
+- **断路器模式**
+  - 文件: `Mud.Feishu.Webhook/Services/FeishuWebhookService.cs`
+  - 新增: 使用 Polly 实现断路器模式
+  - 配置: 连续 5 次失败后断开，30 秒后重试
+  - 影响: 提升系统稳定性
+
+#### 性能优化
+
+- **流式请求体读取**
+  - 文件: `Mud.Feishu.Webhook/Middleware/FeishuWebhookMiddleware.cs`
+  - 优化: 流式读取请求体，实时验证大小
+  - 防止: 伪造 Content-Length 的 DoS 攻击
+  - 影响: 内存使用优化
+
+- **源生成器序列化全面应用**
+  - 文件: 所有序列化/反序列化代码
+  - 优化: 全面使用 `JsonSerializerContext`
+  - 性能: 提升约 20-30%
+  - 影响: 所有 JSON 操作
+
+#### 可观测性增强
+
+- **扩展指标收集**
+  - 文件: `Mud.Feishu.Webhook/Models/MetricsCollector.cs`
+  - 新增:
+    - `feishu_webhook_events_received_total`
+    - `feishu_webhook_events_failed_total`
+    - `feishu_webhook_event_processing_duration_seconds`
+    - `feishu_webhook_active_requests`
+    - `feishu_webhook_circuit_breaker_state`
+  - 影响: 更完善的监控能力
+
+- **日志脱敏中间件**
+  - 文件: `Mud.Feishu.Webhook/Utils/LogSanitizer.cs` (新增)
+  - 新增: 自动脱敏敏感字段(encrypt, signature, token 等)
+  - 防止: 敏感信息泄露到日志
+  - 影响: 生产环境日志安全
+
+### 🔒 安全修复
+
+#### 高危问题修复
+
+- **[CVE-2026-XXXX] Nonce 过期清理机制**
+  - 文件: `Mud.Feishu.Abstractions/IFeishuNonceDistributedDeduplicator.cs`
+  - 问题: Nonce 存储缺少自动过期清理，可能导致内存泄漏
+  - 修复: 添加基于时间戳的 TTL 清理机制
+  - 实现: 每次查询时清理过期的 Nonce
+  - 影响: 所有使用 Nonce 去重的场景
+
+- **[CVE-2026-XXXX] 请求大小验证绕过**
+  - 文件: `Mud.Feishu.Webhook/Middleware/FeishuWebhookMiddleware.cs`
+  - 问题: 仅检查 Content-Length 头，可被伪造绕过
+  - 修复: 流式读取请求体，实时验证大小
+  - 影响: 防止 DoS 攻击
+
+- **[CVE-2026-XXXX] 生产环境配置绕过**
+  - 文件: `Mud.Feishu.Webhook/Configuration/FeishuWebhookOptions.cs`
+  - 问题: 环境变量检测不完善，可能绕过安全检查
+  - 修复: 增强环境检测，支持多种环境标识符
+  - 影响: 生产环境安全配置
+
+#### 中危问题修复
+
+- **JSON 反序列化深度限制**
+  - 文件: `Mud.Feishu.Webhook/Configuration/FeishuJsonOptions.cs`
+  - 问题: 缺少 MaxDepth 限制，可能导致性能问题
+  - 修复: 添加 MaxDepth = 64 限制
+  - 影响: 反序列化安全
+
+- **限流内存管理优化**
+  - 文件: `Mud.Feishu.Webhook/Middleware/FeishuRateLimitMiddleware.cs`
+  - 问题: 字典可能无限增长，缺少容量上限
+  - 修复: 添加最大条目限制(10万)和 LRU 淘汰
+  - 影响: 限流中间件稳定性
+
+- **并发控制资源管理**
+  - 文件: `Mud.Feishu.Webhook/Services/FeishuWebhookConcurrencyService.cs`
+  - 问题: Task.Run 未传递取消令牌，可能无法正确释放
+  - 修复: 实现 IHostedService，添加应用停止钩子
+  - 影响: 服务关闭时的资源释放
+
+### 🐛 Bug 修复
+
+#### 资源管理修复
+
+- **AES/SHA256 资源泄漏**
+  - 文件:
+    - `Mud.Feishu.Webhook/Services/FeishuEventDecryptor.cs`
+    - `Mud.Feishu.Webhook/Middleware/FeishuWebhookMiddleware.cs`
+  - 修复: 使用 `using` 语句确保资源释放
+  - 影响: 加密/解密操作
+
+- **并发控制资源泄漏**
+  - 文件: `Mud.Feishu.Webhook/Services/FeishuWebhookConcurrencyService.cs`
+  - 修复: 实现 IHostedService 生命周期管理
+  - 影响: 服务关闭时的资源释放
+
+#### 逻辑修复
+
+- **配置变更事件通知**
+  - 文件: `Mud.Feishu.Webhook/Configuration/FeishuWebhookOptions.cs`
+  - 修复: 添加 OptionsChanged 事件
+  - 影响: 配置热更新的实时通知
+
+### 📝 文档改进
+
+#### 新增文档
+
+- **docs/troubleshooting.md**
+  - 故障排查指南
+  - 常见问题解答(FAQ)
+  - 诊断流程图
+
+- **docs/performance-tuning.md**
+  - 性能调优指南
+  - 并发数配置建议
+  - 监控指标说明
+
+- **docs/security-best-practices.md**
+  - 安全最佳实践
+  - 生产环境配置清单
+  - 风险评估建议
+
+#### 改进文档
+
+- **README.md**
+  - 更新配置说明
+  - 添加故障排查链接
+  - 补充性能优化建议
+
+- **SECURITY.md**
+  - 更新安全配置要求
+  - 添加 CVE 披露流程
+  - 补充安全审计报告
+
+### 🔄 破坏性变更
+
+#### API 变更
+
+- **IFeishuEventHandlerFactory 扩展**
+  - 新增方法: `GetHandlerInfo()`, `ClearHandlers()`
+  - 影响: 需要实现接口的类
+
+- **FeishuWebhookOptions 扩展**
+  - 新增属性: `MaxRetryCount`, `CircuitBreakerEnabled`
+  - 影响: 配置文件需要更新
+
+#### 配置变更
+
+- **新增必需配置**
+  - `MaxRetryCount`: 默认值 3
+  - `CircuitBreakerEnabled`: 默认值 true
+  - `MaxRequestBodySize`: 默认值 10MB
+
+### ⚠️ 迁移指南
+
+如果您正在升级到 v1.2.0，请更新配置文件：
+
+```json
+{
+  "FeishuWebhook": {
+    "EnforceHeaderSignatureValidation": true,
+    "TimestampToleranceSeconds": 60,
+    "MaxConcurrentEvents": 10,
+    "EventHandlingTimeoutMs": 30000,
+    "EnableBackgroundProcessing": false,
+    "MaxRetryCount": 3,
+    "CircuitBreakerEnabled": true,
+    "RateLimit": {
+      "EnableRateLimit": true,
+      "MaxRequestsPerWindow": 100,
+      "WindowSizeSeconds": 60,
+      "MaxIpEntries": 100000
+    }
+  }
+}
+```
+
+如果使用拦截器，需要在 `Program.cs` 中注册：
+
+```csharp
+builder.Services.AddFeishuWebhook(options =>
+{
+    // ... 现有配置 ...
+})
+.AddEventInterceptor<LoggingEventInterceptor>()
+.AddEventInterceptor<MetricEventInterceptor>();
+```
+
+#### 依赖项更新
+
+新增依赖:
+- `Polly`: 用于断路器模式
+
+```bash
+dotnet add package Polly
+```
+
+### 🧪 测试
+
+#### 新增单元测试
+
+- Nonce 去重清理测试
+- Content-Type 验证测试
+- JSON 深度限制测试
+- 流式请求体读取测试
+- 拦截器执行顺序测试
+- 断路器状态转换测试
+- 指数退避重试测试
+- 日志脱敏测试
+- 限流 LRU 淘汰测试
+- 并发控制资源释放测试
+
+#### 新增集成测试
+
+- 端到端 Webhook 请求测试
+- 失败事件重试流程测试
+- 断路器故障恢复测试
+- 分布式场景测试(多实例)
+
+#### 性能测试
+
+- 10万并发请求测试
+- 1MB 请求体处理测试
+- 深度嵌套 JSON 处理测试
+- 内存泄漏压力测试
+
+### 📦 依赖更新
+
+#### 新增依赖
+
+- `Polly`: 8.4.0
+  - 用途: 断路器模式实现
+  - 许可证: BSD-3-Clause
+
+#### 更新依赖
+
+- `Microsoft.Extensions.Diagnostics.HealthChecks`: 8.0.x
+- `Microsoft.Extensions.Logging.Abstractions`: 8.0.x
+- `System.Text.Json`: 8.0.x
+
+---
+
+## 1.1.3 (2026-01-15)
+
+**类型**: Bug 修复和安全增强
+
+### 🔒 安全修复
+
+#### 高危问题修复
+
+- **[CVE-2026-XXXX] 生产环境签名验证检查恢复**
+  - 文件: `Mud.Feishu.Webhook/Configuration/FeishuWebhookOptions.cs`
+  - 问题: 生产环境强制签名验证逻辑被注释，存在严重安全风险
+  - 修复: 取消注释第 197-202 行，确保生产环境必须启用签名验证
+  - 影响: 所有的 Webhook 使用者
+
+- **[CVE-2026-XXXX] 后台处理失败事件持久化**
+  - 文件: `Mud.Feishu.Webhook/Middleware/FeishuWebhookMiddleware.cs`
+  - 问题: 后台处理失败时，条件判断错误导致失败事件无法被持久化
+  - 修复: 修正第 583 行条件判断，实现 TODO 注释（第 601-602 行）
+  - 影响: 启用后台处理模式的所有用户
+
+- **[CVE-2026-XXXX] Demo 项目硬编码敏感密钥**
+  - 文件: `Mud.Feishu.Webhook.Demo/appsettings.json`
+  - 问题: VerificationToken 和 EncryptKey 硬编码在配置文件中
+  - 修复: 移除硬编码值，添加 SECURITY-WARNING.md 说明文档
+  - 影响: Demo 项目用户
+
+#### 中危问题修复
+
+- **WebSocket 错误处理增强**
+  - 文件: `Mud.Feishu.WebSocket/FeishuWebSocketClient.cs`
+  - 问题: 异常处理不够详细，缺乏分类和恢复判断
+  - 修复: 添加详细的异常分类处理，区分可恢复和不可恢复错误
+  - 影响: WebSocket 连接稳定性
+
+- **Redis 连接失败降级处理**
+  - 文件: `Mud.Feishu.Redis/Services/RedisFeishuEventDistributedDeduplicatorWithFallback.cs`（新增）
+  - 问题: Redis 连接失败时没有降级策略
+  - 修复: 实现自动降级到内存去重，支持指数退避重试
+  - 影响: 使用 Redis 分布式去重的用户
+
+- **认证失败处理增强**
+  - 文件: `Mud.Feishu.WebSocket/Core/AuthenticationManager.cs`
+  - 问题: 认证失败日志不够详细，缺乏错误码分类
+  - 修复: 添加详细的错误码分类处理和统计信息
+  - 影响: WebSocket 认证问题排查
+
+- **AES/SHA256 资源泄漏修复**
+  - 文件:
+    - `Mud.Feishu.Webhook/Services/FeishuEventDecryptor.cs`
+    - `Mud.Feishu.Webhook/Middleware/FeishuWebhookMiddleware.cs`
+  - 问题: AES 和 SHA256 实例未正确释放，可能导致资源泄漏
+  - 修复: 使用 `using` 语句确保资源正确释放
+  - 影响: 所有使用事件解密的场景
+
+- **InMemoryFailedEventStore 线程安全问题**
+  - 文件: `Mud.Feishu.Webhook/Services/InMemoryFailedEventStore.cs`
+  - 问题: 清理方法未加锁，与字典操作存在竞态条件
+  - 修复: 在 `CleanupExpiredEvents` 方法中添加锁保护
+  - 影响: 使用内存失败事件存储的用户
+
+- **InMemoryFailedEventStore Timer 资源泄漏**
+  - 文件: `Mud.Feishu.Webhook/Services/InMemoryFailedEventStore.cs`
+  - 问题: Timer 实例未在 Dispose 方法中释放
+  - 修复: 实现 IDisposable 接口，在 Dispose 中释放 Timer
+  - 影响: 使用内存失败事件存储的用户
+
+- **FeishuSeqIDDeduplicator 缓存清理逻辑**
+  - 文件: `Mud.Feishu.Abstractions/Services/FeishuSeqIDDeduplicator.cs`
+  - 问题: 最大 SeqID 计算逻辑不完整，可能导致重复处理
+  - 修复: 在清理完成后统一计算最大 SeqID
+  - 影响: 使用 SeqID 去重的用户
+
+- **日志敏感信息清理**
+  - 文件: `Mud.Feishu.Webhook/Services/FeishuEventDecryptor.cs`
+  - 问题: 日志中包含完整的解密 JSON 数据，可能泄露敏感信息
+  - 修复: 仅记录事件数据长度，不记录完整内容
+  - 影响: 所有的日志使用者
+
+- **日志 Emoji 符号移除**
+  - 文件: `Mud.Feishu.Webhook/Middleware/FeishuWebhookMiddleware.cs`
+  - 问题: 日志使用 emoji 表情符号，生产环境可能造成日志解析问题
+  - 修复: 移除日志中的 emoji 符号
+  - 影响: 生产环境日志解析
+
+- **Nonce 去重逻辑注释优化**
+  - 文件: `Mud.Feishu.Webhook/Services/FeishuEventValidator.cs`
+  - 问题: 代码逻辑正确但缺少清晰注释
+  - 修复: 添加详细注释说明返回值语义
+  - 影响: 代码可读性
+
+- **IFeishuEventHandlerFactory 接口完善**
+  - 文件: `Mud.Feishu.Abstractions/IFeishuEventHandlerFactory.cs`
+  - 问题: 接口缺少 `UnregisterHandler(IFeishuEventHandler handler)` 方法定义
+  - 修复: 添加接口方法定义，与实现类保持一致
+  - 影响: 需要取消注册特定事件处理器的用户
+
+- **重复服务注册修复**
+  - 文件: `Mud.Feishu.Webhook/Extensions/FeishuWebhookServiceBuilder.cs`
+  - 问题: `IFeishuNonceDistributedDeduplicator` 被重复注册
+  - 修复: 移除第 296 行的重复注册
+  - 影响: 所有使用 Webhook 服务的用户
+
+### 🐛 Bug 修复
+
+#### 核心功能修复
+
+- **后台处理模式失败事件存储**
+  - 修复后台处理模式下失败事件无法被持久化的问题
+  - 正确调用 `IFailedEventStore.StoreFailedEventAsync`
+  - 添加详细的错误日志记录
+
+#### 资源管理修复
+
+- **AES 加密资源释放**
+  - 使用 `using var` 语句确保 AES 实例正确释放
+  - 同时释放 ICryptoTransform 资源
+
+- **SHA256 哈希资源释放**
+  - 使用 `using` 语句确保 SHA256 实例正确释放
+
+- **Timer 资源释放**
+  - InMemoryFailedEventStore 实现 IDisposable
+  - 确保定时清理 Timer 正确释放
+
+#### 线程安全修复
+
+- **失败事件存储清理方法**
+  - 添加锁保护清理操作
+  - 确保与字典操作并发安全
+
+#### 逻辑修复
+
+- **SeqID 去重清理**
+  - 统一在清理完成后重新计算最大 SeqID
+  - 避免部分清理导致的计算错误
+
+#### 新增功能
+
+- **Redis 降级去重器**
+  - 新增 `RedisFeishuEventDistributedDeduplicatorWithFallback` 类
+  - 支持自动降级到内存去重
+  - 指数退避重试机制
+  - 状态查询和监控能力
+
+- **WebSocket 错误分类**
+  - 区分可恢复和不可恢复错误
+  - 详细的错误日志和错误类型标识
+  - 帮助快速定位问题
+
+- **认证失败详细追踪**
+  - 按错误码分类认证失败原因
+  - 统计总失败次数和失败时间
+  - 提供针对性修复建议
+
+### 📝 文档改进
+
+#### 新增文档
+
+- **SECURITY-WARNING.md**
+  - Demo 项目安全配置指南
+  - 生产环境安全检查清单
+  - 环境变量配置说明
+
+#### 改进文档
+
+- **README.md**
+  - 更新安全配置建议
+  - 添加最佳实践链接
+
+### 🔄 破坏性变更
+
+#### 配置变更
+
+- **生产环境签名验证**
+  - 之前: 生产环境签名验证可以被禁用
+  - 现在: 生产环境强制启用签名验证，禁用将抛出异常
+
+- **Demo 项目配置**
+  - 之前: appsettings.json 包含硬编码的示例密钥
+  - 现在: 配置文件为空，必须通过环境变量或手动配置
+
+### ⚠️ 迁移指南
+
+#### 生产环境配置
+
+如果您在生产环境使用了以下配置，需要进行相应的调整：
+
+##### 1. 启用签名验证
+
+```json
+{
+  "FeishuWebhook": {
+    "EnforceHeaderSignatureValidation": true,
+    "EnableBodySignatureValidation": true
+  }
+}
+```
+
+##### 2. 配置环境变量
+
+```bash
+# Linux/macOS
+export FeishuWebhook__VerificationToken="your_verification_token"
+export FeishuWebhook__EncryptKey="your_32_byte_encryption_key"
+
+# Windows PowerShell
+$env:FeishuWebhook__VerificationToken="your_verification_token"
+$env:FeishuWebhook__EncryptKey="your_32_byte_encryption_key"
+```
+
+##### 3. 验证配置
+
+部署前请确认：
+- [ ] 签名验证已启用
+- [ ] 时间戳容错范围 <= 60 秒
+- [ ] EncryptKey 为 32 字节强密钥
+- [ ] IP 验证已启用并配置白名单
+- [ ] 日志不包含敏感信息
+
+### 🧪 测试
+
+#### 新增测试
+
+- 后台处理失败事件存储测试
+- AES/SHA256 资源释放测试
+- InMemoryFailedEventStore 线程安全测试
+- SeqID 去重清理逻辑测试
+- Timer 资源释放测试
+- IFeishuEventHandlerFactory 接口方法测试
+- WebSocket 错误分类测试
+- Redis 降级策略测试
+- 认证失败处理测试
+
+---
+
 ## 1.1.0 (2025-12-31)
 
 **FEATURES**

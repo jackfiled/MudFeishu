@@ -31,6 +31,15 @@ public interface IFailedEventStore
     Task<IEnumerable<FailedEventInfo>> GetFailedEventsForRetryAsync(int maxRetryCount, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 获取待重试的失败事件（基于时间）
+    /// </summary>
+    /// <param name="beforeTime">时间点，获取此时间之前需要重试的事件</param>
+    /// <param name="maxCount">最大返回数量</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>失败事件列表</returns>
+    Task<List<FailedEventInfo>> GetPendingRetryEventsAsync(DateTimeOffset beforeTime, int maxCount, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 更新失败事件的重试次数
     /// </summary>
     /// <param name="eventId">事件ID</param>
@@ -38,6 +47,14 @@ public interface IFailedEventStore
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>任务</returns>
     Task UpdateRetryCountAsync(string eventId, int retryCount, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 更新失败事件信息
+    /// </summary>
+    /// <param name="eventInfo">事件信息</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>任务</returns>
+    Task UpdateFailedEventAsync(FailedEventInfo eventInfo, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 删除已成功处理的失败事件记录

@@ -24,6 +24,9 @@ public class FeishuRateLimitMiddleware : IDisposable
     // 使用并发字典和滑动窗口计数器：ConcurrentDictionary<IP, (Count, WindowStart)>
     private readonly ConcurrentDictionary<string, (int Count, DateTime WindowStart)> _requestCounts = new();
 
+    // 最大条目限制，防止内存泄漏
+    private const int MaxIpEntries = 100000;
+
     // 定时清理的 Timer
     private readonly Timer _cleanupTimer;
 
@@ -187,6 +190,27 @@ public class FeishuRateLimitMiddleware : IDisposable
             {
                 removedCount++;
             }
+        }
+
+        // 如果字典仍然过大,清理最旧的条目（LRU策略）
+        if (_requestCounts.Count > MaxIpEntries)
+        {
+            var excessCount = _requestCounts.Count - MaxIpEntries;
+            var oldestEntries = _requestCounts
+                .OrderBy(kvp => kvp.Value.WindowStart)
+                .Take(excessCount)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var key in oldestEntries)
+            {
+                if (_requestCounts.TryRemove(key, out _))
+                {
+                    removedCount++;
+                }
+            }
+
+            _logger.LogWarning("IP 字典超过上限 ({MaxEntries}), 清理了 {ExcessCount} 个最旧条目", MaxIpEntries, excessCount);
         }
 
         if (removedCount > 0)

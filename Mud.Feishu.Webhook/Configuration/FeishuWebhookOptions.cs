@@ -153,166 +153,156 @@ public class FeishuWebhookOptions
     public int HealthCheckMinEventsThreshold { get; set; } = 10;
 
     /// <summary>
-    /// 验证配置项的有效性
+    /// 是否启用断路器模式
+    /// 启用后，当连续失败次数达到阈值时，断路器将开启并拒绝新请求
+    /// 这可以防止级联故障，保护下游服务
     /// </summary>
-    /// <exception cref="InvalidOperationException">当配置项无效时抛出</exception>
+    public bool EnableCircuitBreaker { get; set; } = true;
+
+    /// <summary>
+    /// 断路器配置
+    /// </summary>
+    public CircuitBreakerConfiguration CircuitBreaker { get; set; } = new();
+
+    /// <summary>
+    /// 失败事件重试配置
+    /// </summary>
+    public FailedEventRetryOptions Retry { get; set; } = new();
+
+    /// <summary>
+    /// 是否启用事件拦截器
+    /// </summary>
+    public bool EnableEventInterceptors { get; set; } = false;
+
+    /// <summary>
+    /// 验证配置的有效性
+    /// </summary>
     public void Validate()
     {
-        // 获取当前环境
-        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-        var isProduction = string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(VerificationToken) && EnforceHeaderSignatureValidation)
+            throw new InvalidOperationException("生产环境必须配置 VerificationToken");
 
-        if (string.IsNullOrEmpty(RoutePrefix))
-            throw new InvalidOperationException("RoutePrefix不能为空");
+        if (string.IsNullOrEmpty(EncryptKey) && EnableBodySignatureValidation)
+            throw new InvalidOperationException("启用请求体签名验证时必须配置 EncryptKey");
 
         if (EventHandlingTimeoutMs < 1000)
-            throw new InvalidOperationException("EventHandlingTimeoutMs必须至少为1000毫秒");
+            throw new InvalidOperationException("EventHandlingTimeoutMs 必须至少为 1000 毫秒");
 
         if (MaxConcurrentEvents < 1)
-            throw new InvalidOperationException("MaxConcurrentEvents必须至少为1");
+            throw new InvalidOperationException("MaxConcurrentEvents 必须至少为 1");
 
         if (MaxRequestBodySize < 1024)
-            throw new InvalidOperationException("MaxRequestBodySize必须至少为1024字节");
+            throw new InvalidOperationException("MaxRequestBodySize 必须至少为 1024 字节");
 
-        if (AllowedHttpMethods == null || AllowedHttpMethods.Count == 0)
-            throw new InvalidOperationException("AllowedHttpMethods不能为空");
+        if (TimestampToleranceSeconds < 0)
+            throw new InvalidOperationException("TimestampToleranceSeconds 不能为负数");
 
-        if (TimestampToleranceSeconds < 60)
-            throw new InvalidOperationException("TimestampToleranceSeconds必须至少为60秒");
+        // 验证断路器配置
+        CircuitBreaker.Validate();
 
-        // 验证健康检查配置
-        if (HealthCheckUnhealthyFailureRateThreshold < 0 || HealthCheckUnhealthyFailureRateThreshold > 1)
-            throw new InvalidOperationException("HealthCheckUnhealthyFailureRateThreshold必须在0.0-1.0之间");
+        // 验证重试配置
+        Retry.Validate();
+    }
+}
 
-        if (HealthCheckDegradedFailureRateThreshold < 0 || HealthCheckDegradedFailureRateThreshold > 1)
-            throw new InvalidOperationException("HealthCheckDegradedFailureRateThreshold必须在0.0-1.0之间");
+/// <summary>
+/// 断路器配置
+/// </summary>
+public class CircuitBreakerConfiguration
+{
+    /// <summary>
+    /// 断路器断开前的连续失败次数，默认 5
+    /// </summary>
+    public int ExceptionsAllowedBeforeBreaking { get; set; } = 5;
 
-        if (HealthCheckDegradedFailureRateThreshold >= HealthCheckUnhealthyFailureRateThreshold)
-            throw new InvalidOperationException("HealthCheckDegradedFailureRateThreshold必须小于HealthCheckUnhealthyFailureRateThreshold");
+    /// <summary>
+    /// 断路器保持开启状态的持续时间（秒），默认 30 秒
+    /// </summary>
+    public int DurationOfBreakSeconds { get; set; } = 30;
 
-        if (HealthCheckMinEventsThreshold < 1)
-            throw new InvalidOperationException("HealthCheckMinEventsThreshold必须至少为1");
+    /// <summary>
+    /// 断路器进入半开状态后的成功次数阈值，默认 3
+    /// 达到此成功次数后，断路器重置为关闭状态
+    /// </summary>
+    public int SuccessThresholdToReset { get; set; } = 3;
 
-        // 生产环境安全检查：强制启用签名验证
-        if (isProduction && !EnforceHeaderSignatureValidation)
-        {
-            throw new InvalidOperationException(
-                "生产环境必须启用 X-Lark-Signature 签名验证 (EnforceHeaderSignatureValidation = true)，" +
-                "禁用签名验证存在严重的安全风险！请检查配置或设置正确的 ASPNETCORE_ENVIRONMENT 环境变量。");
-        }
+    /// <summary>
+    /// 验证配置的有效性
+    /// </summary>
+    public void Validate()
+    {
+        if (ExceptionsAllowedBeforeBreaking < 1)
+            throw new InvalidOperationException("ExceptionsAllowedBeforeBreaking 必须至少为 1");
 
-        // 生产环境时间戳容错警告
-        if (isProduction && TimestampToleranceSeconds > 120)
-        {
-            throw new InvalidOperationException(
-                $"生产环境的时间戳容错范围过大 ({TimestampToleranceSeconds} 秒)，" +
-                "建议设置为 60 秒或更短以减少重放攻击风险。");
-        }
+        if (DurationOfBreakSeconds < 1)
+            throw new InvalidOperationException("DurationOfBreakSeconds 必须至少为 1");
 
-        // 验证 EncryptKey 强度（AES-256 需要 32 字节）
-        if (!string.IsNullOrEmpty(EncryptKey))
-        {
-            var keyBytes = Encoding.UTF8.GetByteCount(EncryptKey);
-            if (keyBytes != 32)
-            {
-                throw new InvalidOperationException("EncryptKey 必须是 32 字节长度的字符串（用于 AES-256）");
-            }
+        if (SuccessThresholdToReset < 1)
+            throw new InvalidOperationException("SuccessThresholdToReset 必须至少为 1");
+    }
+}
 
-            // 检测明显不安全的默认值或弱密钥
-            var weakKeys = new[]
-            {
-                "your_encrypt_key_here",
-                "your_encrypt_key",
-                "encrypt_key",
-                "verification_token_here",
-                "your_verification_token",
-                "12345678901234567890123456789012",
-                "00000000000000000000000000000000",
-                "11111111111111111111111111111111",
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-            };
+/// <summary>
+/// 失败事件重试配置
+/// </summary>
+public class FailedEventRetryOptions
+{
+    /// <summary>
+    /// 是否启用失败事件重试
+    /// </summary>
+    public bool EnableRetry { get; set; } = false;
 
-            if (weakKeys.Contains(EncryptKey))
-            {
-                throw new InvalidOperationException("EncryptKey 使用了明显不安全的默认值，请使用强密钥");
-            }
+    /// <summary>
+    /// 最大重试次数，默认 3
+    /// </summary>
+    public int MaxRetryCount { get; set; } = 3;
 
-            // 增强密钥强度检查
-            var hasLetter = EncryptKey.Any(char.IsLetter);
-            var hasDigit = EncryptKey.Any(char.IsDigit);
-            var hasSpecial = EncryptKey.Any(ch => !char.IsLetterOrDigit(ch));
-            var hasUpper = EncryptKey.Any(char.IsUpper);
-            var hasLower = EncryptKey.Any(char.IsLower);
+    /// <summary>
+    /// 初始重试延迟（秒），默认 10
+    /// </summary>
+    public int InitialRetryDelaySeconds { get; set; } = 10;
 
-            // 必须同时包含字母和数字
-            if (!(hasLetter && hasDigit))
-            {
-                throw new InvalidOperationException("EncryptKey 过于简单，应同时包含字母和数字");
-            }
+    /// <summary>
+    /// 重试延迟倍数（指数退避），默认 2
+    /// </summary>
+    public double RetryDelayMultiplier { get; set; } = 2.0;
 
-            // 生产环境要求包含大小写字母
-            if (isProduction && !(hasUpper && hasLower))
-            {
-                throw new InvalidOperationException("生产环境下 EncryptKey 必须包含大小写字母以增强安全性");
-            }
+    /// <summary>
+    /// 最大重试延迟（秒），默认 300（5分钟）
+    /// </summary>
+    public int MaxRetryDelaySeconds { get; set; } = 300;
 
-            // 生产环境要求包含特殊字符
-            if (isProduction && !hasSpecial)
-            {
-                //_logger?.LogWarning("建议 生产环境下 EncryptKey 必须包含特殊字符以增强安全性");
-            }
+    /// <summary>
+    /// 重试轮询间隔（秒），默认 30
+    /// </summary>
+    public int RetryPollIntervalSeconds { get; set; } = 30;
 
-            // 非生产环境给出警告
-            if (!isProduction && !(hasUpper && hasLower))
-            {
-                // 记录警告（如果可用）
-                // _logger?.LogWarning("建议 EncryptKey 包含大小写字母以增强安全性");
-            }
+    /// <summary>
+    /// 每次轮询处理的最大失败事件数，默认 10
+    /// </summary>
+    public int MaxRetryPerPoll { get; set; } = 10;
 
-            if (!isProduction && !hasSpecial)
-            {
-                // _logger?.LogWarning("建议 EncryptKey 包含特殊字符以增强安全性");
-            }
-        }
+    /// <summary>
+    /// 验证配置有效性
+    /// </summary>
+    public void Validate()
+    {
+        if (MaxRetryCount < 0)
+            throw new InvalidOperationException("MaxRetryCount 不能为负数");
 
-        // 验证请求频率限制配置
-        RateLimit?.Validate();
+        if (InitialRetryDelaySeconds < 1)
+            throw new InvalidOperationException("InitialRetryDelaySeconds 必须至少为 1 秒");
 
-        // 验证多密钥配置
-        if (MultiAppEncryptKeys.Any())
-        {
-            foreach (var kvp in MultiAppEncryptKeys)
-            {
-                var appId = kvp.Key;
-                var key = kvp.Value;
+        if (RetryDelayMultiplier < 1.0)
+            throw new InvalidOperationException("RetryDelayMultiplier 必须大于等于 1.0");
 
-                if (string.IsNullOrEmpty(key))
-                {
-                    throw new InvalidOperationException($"多密钥配置中应用 {appId} 的 EncryptKey 不能为空");
-                }
+        if (MaxRetryDelaySeconds < InitialRetryDelaySeconds)
+            throw new InvalidOperationException("MaxRetryDelaySeconds 必须大于等于 InitialRetryDelaySeconds");
 
-                var keyBytes = Encoding.UTF8.GetByteCount(key);
-                if (keyBytes != 32)
-                {
-                    throw new InvalidOperationException($"多密钥配置中应用 {appId} 的 EncryptKey 必须是 32 字节长度");
-                }
+        if (RetryPollIntervalSeconds < 1)
+            throw new InvalidOperationException("RetryPollIntervalSeconds 必须至少为 1 秒");
 
-                // 检测弱密钥
-                var weakKeys = new[]
-                {
-                    "your_encrypt_key_here",
-                    "your_encrypt_key",
-                    "encrypt_key",
-                    "12345678901234567890123456789012",
-                    "00000000000000000000000000000000"
-                };
-
-                if (weakKeys.Contains(key))
-                {
-                    throw new InvalidOperationException($"多密钥配置中应用 {appId} 的 EncryptKey 使用了不安全的默认值");
-                }
-            }
-        }
+        if (MaxRetryPerPoll < 1)
+            throw new InvalidOperationException("MaxRetryPerPoll 必须至少为 1");
     }
 }

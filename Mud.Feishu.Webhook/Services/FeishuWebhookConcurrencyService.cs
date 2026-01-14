@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Microsoft.Extensions.Hosting;
 using Mud.Feishu.Webhook.Configuration;
 
 namespace Mud.Feishu.Webhook;
@@ -13,7 +14,7 @@ namespace Mud.Feishu.Webhook;
 /// 飞书 Webhook 并发控制服务
 /// 使用全局 SemaphoreSlim 控制事件处理并发数
 /// </summary>
-public class FeishuWebhookConcurrencyService : IAsyncDisposable
+public class FeishuWebhookConcurrencyService : IAsyncDisposable, IHostedService
 {
     private readonly IOptionsMonitor<FeishuWebhookOptions> _optionsMonitor;
     private readonly ILogger<FeishuWebhookConcurrencyService> _logger;
@@ -22,6 +23,7 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable
     private bool _disposed;
     private volatile int _currentMaxConcurrentEvents;
     private volatile bool _semaphoreUpgraded = false;
+    private readonly CancellationTokenSource _shutdownCts = new();
 
     /// <summary>
     /// 构造函数
@@ -45,6 +47,43 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable
         {
             UpdateSemaphore(newOptions.MaxConcurrentEvents);
         });
+    }
+
+    /// <summary>
+    /// HostedService 启动方法
+    /// </summary>
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("飞书 Webhook 并发控制服务已启动");
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// HostedService 停止方法
+    /// </summary>
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("飞书 Webhook 并发控制服务正在停止...");
+
+        _shutdownCts.Cancel();
+
+        // 等待当前正在处理的请求完成（最多等待30秒）
+        var timeout = TimeSpan.FromSeconds(30);
+        var startTime = DateTime.UtcNow;
+
+        while (_semaphore.CurrentCount < _currentMaxConcurrentEvents)
+        {
+            if (DateTime.UtcNow - startTime > timeout)
+            {
+                _logger.LogWarning("等待并发处理完成超时，当前等待的请求数: {WaitingCount}",
+                    _currentMaxConcurrentEvents - _semaphore.CurrentCount);
+                break;
+            }
+
+            await Task.Delay(100, cancellationToken);
+        }
+
+        _logger.LogInformation("飞书 Webhook 并发控制服务已停止");
     }
 
     /// <summary>
@@ -107,13 +146,25 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable
     /// <returns>信号量租约，使用完成后应释放</returns>
     public async Task<IDisposable> AcquireAsync(CancellationToken cancellationToken = default)
     {
-        // 获取当前信号量的引用（快照）
-        var currentSemaphore = GetCurrentSemaphore();
-        await currentSemaphore.WaitAsync(cancellationToken);
+        // 组合应用关闭的取消令牌
+        var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            _shutdownCts.Token);
 
-        _logger.LogDebug("获取信号量成功，当前可用: {AvailableSlots}", currentSemaphore.CurrentCount + 1);
+        try
+        {
+            // 获取当前信号量的引用（快照）
+            var currentSemaphore = GetCurrentSemaphore();
+            await currentSemaphore.WaitAsync(combinedCts.Token);
 
-        return new SemaphoreLease(currentSemaphore, _logger);
+            _logger.LogDebug("获取信号量成功，当前可用: {AvailableSlots}", currentSemaphore.CurrentCount + 1);
+
+            return new SemaphoreLease(currentSemaphore, _logger);
+        }
+        finally
+        {
+            combinedCts.Dispose();
+        }
     }
 
     /// <summary>
@@ -135,24 +186,26 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable
     /// <summary>
     /// 释放资源
     /// </summary>
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_disposed)
         {
 #if NETSTANDARD2_0
-            return default;
+            return;
 #else
-            return ValueTask.CompletedTask;
+            return;
 #endif
         }
 
         _disposed = true;
+        _shutdownCts.Dispose();
         _semaphore.Dispose();
+        _semaphoreLock.Dispose();
         GC.SuppressFinalize(this);
 #if NETSTANDARD2_0
-        return default;
+        return;
 #else
-        return ValueTask.CompletedTask;
+        return;
 #endif
     }
 

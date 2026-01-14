@@ -102,6 +102,27 @@ public class FeishuWebhookMiddleware
                 return;
             }
 
+            // 检查 Content-Type
+            var contentType = context.Request.ContentType;
+            if (string.IsNullOrEmpty(contentType) ||
+#if NET5_0_OR_GREATER
+                !contentType.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+#else
+                !contentType.Contains("application/json"))
+#endif
+            {
+                // 记录安全审计日志
+                _ = _securityAuditService?.LogSecurityFailureAsync(
+                    SecurityEventType.InvalidContentType,
+                    clientIp,
+                    context.Request.Path,
+                    $"不支持的 Content-Type: {contentType}",
+                    requestId);
+
+                await WriteErrorResponse(context, 415, "Unsupported Media Type: Only application/json is supported", requestId);
+                return;
+            }
+
             // 检查请求体大小
             if (context.Request.ContentLength > _options.MaxRequestBodySize)
             {
@@ -262,7 +283,7 @@ public class FeishuWebhookMiddleware
     }
 
     /// <summary>
-    /// 读取请求体
+    /// 读取请求体（流式读取，实时验证大小）
     /// </summary>
     private async Task<string> ReadRequestBodyAsync(HttpRequest request)
     {
@@ -274,19 +295,25 @@ public class FeishuWebhookMiddleware
 
         request.EnableBuffering();
 
-#if NETSTANDARD2_0
-        using var reader = new StreamReader(request.Body, Encoding.UTF8, true);
-#else
-        using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
-#endif
-        var body = await reader.ReadToEndAsync();
+        // 流式读取请求体，实时验证大小，防止 Content-Length 伪造攻击
+        var buffer = new MemoryStream();
+        var tempBuffer = new byte[8192]; // 8KB 缓冲区
 
-        // 二次验证读取后的实际大小
-        if (Encoding.UTF8.GetByteCount(body) > _options.MaxRequestBodySize)
+        int bytesRead;
+        while ((bytesRead = await request.Body.ReadAsync(tempBuffer, 0, tempBuffer.Length)) > 0)
         {
-            throw new InvalidOperationException($"请求体实际大小超过限制 {_options.MaxRequestBodySize}");
+            buffer.Write(tempBuffer, 0, bytesRead);
+
+            // 实时检查大小，防止伪造 Content-Length 的 DoS 攻击
+            if (buffer.Length > _options.MaxRequestBodySize)
+            {
+                request.Body.Position = 0;
+                throw new InvalidOperationException($"请求体大小 {buffer.Length} 超过限制 {_options.MaxRequestBodySize}");
+            }
         }
 
+        buffer.Position = 0;
+        var body = await new StreamReader(buffer, Encoding.UTF8).ReadToEndAsync();
         request.Body.Position = 0;
 
         return body;

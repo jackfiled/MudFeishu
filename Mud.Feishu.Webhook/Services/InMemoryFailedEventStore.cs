@@ -85,12 +85,38 @@ public class InMemoryFailedEventStore : IFailedEventStore, IDisposable
     }
 
     /// <inheritdoc />
+    public Task<List<FailedEventInfo>> GetPendingRetryEventsAsync(DateTimeOffset beforeTime, int maxCount, CancellationToken cancellationToken = default)
+    {
+        var failedEvents = _failedEvents.Values
+            .Where(e => e.RetryCount < maxCount)
+            .OrderBy(e => e.FailedAt)
+            .Take(maxCount)
+            .ToList();
+
+        return Task.FromResult(failedEvents);
+    }
+
+    /// <inheritdoc />
     public Task UpdateRetryCountAsync(string eventId, int retryCount, CancellationToken cancellationToken = default)
     {
         if (_failedEvents.TryGetValue(eventId, out var failedEvent))
         {
             failedEvent.RetryCount = retryCount;
             _logger.LogDebug("更新失败事件重试次数: {EventId}, 重试次数: {RetryCount}", eventId, retryCount);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task UpdateFailedEventAsync(FailedEventInfo eventInfo, CancellationToken cancellationToken = default)
+    {
+        if (_failedEvents.TryGetValue(eventInfo.EventId, out var failedEvent))
+        {
+            failedEvent.RetryCount = eventInfo.RetryCount;
+            failedEvent.ExceptionMessage = eventInfo.ExceptionMessage;
+            failedEvent.FailedAt = eventInfo.FailedAt;
+            _logger.LogDebug("更新失败事件: {EventId}, 重试次数: {RetryCount}", eventInfo.EventId, eventInfo.RetryCount);
         }
 
         return Task.CompletedTask;
