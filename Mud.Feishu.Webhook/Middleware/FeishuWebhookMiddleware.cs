@@ -340,7 +340,7 @@ public class FeishuWebhookMiddleware
                 return;
             }
 
-            _logger.LogInformation("🎉 解密成功 - EventType: [{EventType}], EventId: [{EventId}], AppId: [{AppId}], TenantKey: [{TenantKey}]",
+            _logger.LogInformation("解密成功 - EventType: [{EventType}], EventId: [{EventId}], AppId: [{AppId}], TenantKey: [{TenantKey}]",
                 decryptedData.EventType ?? "(null)",
                 decryptedData.EventId ?? "(null)",
                 decryptedData.AppId ?? "(null)",
