@@ -28,6 +28,16 @@
 - ✅ **后台处理模式**：支持异步后台处理，避免飞书超时重试
 - ✅ **安全加固**：强化 IP 验证、签名验证和密钥安全检查
 - ✅ **跨平台兼容**：支持 .NET Standard 2.0、.NET 6.0、.NET 8.0、.NET 10.0
+- ✅ **内容类型验证**：仅接受 `application/json` 请求
+- ✅ **JSON 深度限制**：防止深度嵌套 JSON 导致 DoS 攻击
+- ✅ **流式请求体读取**：防止伪造 Content-Length 的 DoS 攻击
+- ✅ **Nonce 过期清理**：防止内存泄漏
+- ✅ **断路器模式**：使用 Polly 实现熔断机制
+- ✅ **失败事件重试**：后台自动重试失败事件
+- ✅ **事件处理拦截器**：前置/后置事件处理拦截器机制
+- ✅ **日志脱敏**：自动脱敏敏感字段防止信息泄露
+- ✅ **配置锁定机制**：生产环境强制安全检查
+- ✅ **指数退避重试**：失败事件指数退避重试机制
 
 ## 快速开始
 
@@ -120,7 +130,11 @@ app.Run();
       "TooManyRequestsStatusCode": 429,
       "TooManyRequestsMessage": "请求过于频繁，请稍后再试",
       "WhitelistIPs": [ "127.0.0.1", "::1" ]
-    }
+    },
+    "MaxRetryCount": 3,
+    "CircuitBreakerEnabled": true,
+    "MaxDepth": 64,
+    "MaxIpEntries": 100000
   }
 }
 ```
@@ -338,6 +352,10 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 | `EncryptKey` | string | - | 飞书事件加密密钥（32字节） |
 | `RoutePrefix` | string | "feishu/Webhook" | Webhook 路由前缀 |
 | `AutoRegisterEndpoint` | bool | true | 是否自动注册端点 |
+| `MaxRetryCount` | int | 3 | 失败事件最大重试次数 |
+| `CircuitBreakerEnabled` | bool | true | 是否启用断路器模式 |
+| `MaxDepth` | int | 64 | JSON 反序列化最大深度 |
+| `MaxIpEntries` | int | 100000 | 限流中间件最大 IP 条目数（LRU 淘汰）|
 
 ### 多机器人配置
 
@@ -385,6 +403,7 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 | `RateLimit.TooManyRequestsStatusCode` | int | 429 | 超出限制时的响应状态码 |
 | `RateLimit.TooManyRequestsMessage` | string | "请求过于频繁，请稍后再试" | 超出限制时的响应消息 |
 | `RateLimit.WhitelistIPs` | HashSet\<string\> | [] | 白名单 IP 列表（不参与限流） |
+| `RateLimit.MaxIpEntries` | int | 100000 | 限流中间件最大 IP 条目数（LRU 淘汰）|
 
 ## 高级功能
 

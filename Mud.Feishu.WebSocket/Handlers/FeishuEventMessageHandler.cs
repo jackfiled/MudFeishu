@@ -22,7 +22,6 @@ public class FeishuEventMessageHandler : JsonMessageHandler
     private readonly IFeishuEventHandlerFactory _eventHandlerFactory;
     private readonly IFeishuEventDeduplicator? _deduplicator;
     private readonly IFeishuEventDistributedDeduplicator? _distributedDeduplicator;
-    private readonly IFeishuSeqIDDeduplicator? _seqIdDeduplicator;
     private readonly IFeishuEventInterceptor[] _interceptors;
     private readonly FeishuWebSocketOptions _options;
 
@@ -49,7 +48,6 @@ public class FeishuEventMessageHandler : JsonMessageHandler
         _eventHandlerFactory = eventHandlerFactory ?? throw new ArgumentNullException(nameof(eventHandlerFactory));
         _deduplicator = deduplicator;
         _distributedDeduplicator = distributedDeduplicator;
-        _seqIdDeduplicator = seqIdDeduplicator;
         _interceptors = interceptors ?? Array.Empty<IFeishuEventInterceptor>();
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
@@ -131,6 +129,7 @@ public class FeishuEventMessageHandler : JsonMessageHandler
             if (!shouldSkip)
             {
                 Exception? processingException = null;
+                bool isInterrupted = false;
 
                 try
                 {
@@ -142,17 +141,21 @@ public class FeishuEventMessageHandler : JsonMessageHandler
                         {
                             _logger.LogWarning("事件被拦截器中断: {EventType}, EventId: {EventId}, Interceptor: {InterceptorType}",
                                 eventData.EventType, eventData.EventId, interceptor.GetType().Name);
-                            return;
+                            isInterrupted = true;
+                            break;
                         }
                     }
 
-                    // 使用事件处理器工厂并行处理事件
-                    await _eventHandlerFactory.HandleEventParallelAsync(eventData.EventType, eventData, cancellationToken);
-
-                    // 处理成功，标记为已完成
-                    if (_options.EnableEventDeduplication && _deduplicator != null)
+                    if (!isInterrupted)
                     {
-                        _deduplicator.MarkAsCompleted(eventData.EventId);
+                        // 使用事件处理器工厂并行处理事件
+                        await _eventHandlerFactory.HandleEventParallelAsync(eventData.EventType, eventData, cancellationToken);
+
+                        // 处理成功，标记为已完成
+                        if (_options.EnableEventDeduplication && _deduplicator != null)
+                        {
+                            _deduplicator.MarkAsCompleted(eventData.EventId);
+                        }
                     }
                 }
                 catch (Exception ex)

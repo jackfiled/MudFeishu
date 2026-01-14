@@ -35,7 +35,6 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
     private readonly EventSubscriptionManager _subscriptionManager;
     private readonly ConcurrentQueue<string> _messageQueue = new();
     private readonly List<Func<string, Task>> _messageProcessors = new();
-    private Task? _messageProcessingTask;
     private readonly ILoggerFactory _loggerFactory;
     private bool _disposed = false;
     private CancellationTokenSource? _cancellationTokenSource;
@@ -235,7 +234,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
         // 启动消息队列处理
         if (_options.EnableMessageQueue)
         {
-            _messageProcessingTask = ProcessMessageQueueAsync(_cancellationTokenSource.Token);
+            _ = Task.Run(() => ProcessMessageQueueAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
         }
     }
 
@@ -431,7 +430,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
                 IsRecoverable = false
             });
         }
-        catch (Exception ex) when (cancellationToken.IsCancellationRequested)
+        catch (Exception) when (cancellationToken.IsCancellationRequested)
         {
             _logger.LogInformation("消息处理被取消");
         }

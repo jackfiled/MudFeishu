@@ -254,7 +254,8 @@ public class FeishuWebSocketServiceBuilder
             var handlers = serviceProvider.GetRequiredService<IEnumerable<IFeishuEventHandler>>()
                 .Where(h => _handlerTypes.Contains(h.GetType()))
                 .ToList();
-            var defaultHandler = serviceProvider.GetRequiredService(defaultHandlerType) as IFeishuEventHandler;
+            var defaultHandler = serviceProvider.GetService(defaultHandlerType) as IFeishuEventHandler
+                ?? handlers.FirstOrDefault(h => h.GetType() == defaultHandlerType);
             return new FeishuWebSocketEventHandlerFactory(logger, handlers, defaultHandler);
         });
 

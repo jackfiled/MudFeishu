@@ -7,36 +7,35 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Mud.Feishu.Abstractions;
+using Mud.Feishu.Abstractions.Interceptors;
 
-namespace Mud.Feishu.Abstractions.Interceptors;
+namespace Mud.Feishu.WebSocket.Demo.Interceptors;
 
 /// <summary>
-/// 遥测拦截器
-/// 使用 OpenTelemetry API 收集事件处理的遥测数据
+/// WebSocket 遥测拦截器 - 使用 OpenTelemetry 收集事件处理指标
 /// </summary>
-public class TelemetryEventInterceptor : IFeishuEventInterceptor
+public class WebSocketTelemetryInterceptor : IFeishuEventInterceptor
 {
+    private readonly ILogger<WebSocketTelemetryInterceptor> _logger;
     private readonly ActivitySource _activitySource;
     private readonly ConcurrentDictionary<string, Activity> _activities = new();
+    private int _totalEvents;
+    private int _failedEvents;
 
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="componentName">组件名称，用于 ActivitySource</param>
-    public TelemetryEventInterceptor(string componentName)
+    public WebSocketTelemetryInterceptor(ILogger<WebSocketTelemetryInterceptor> logger)
     {
-        _activitySource = new ActivitySource(componentName);
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _activitySource = new ActivitySource("Mud.Feishu.WebSocket.Demo");
     }
 
-    /// <summary>
-    /// 事件处理前拦截
-    /// </summary>
     public Task<bool> BeforeHandleAsync(string eventType, EventData eventData, CancellationToken cancellationToken = default)
     {
-        var activity = _activitySource.StartActivity("HandleFeishuEvent");
+        var activity = _activitySource.StartActivity($"WebSocketEvent_{eventType}");
         if (activity != null)
         {
-            activity.SetTag("component", _activitySource.Name);
+            activity.SetTag("component", "Mud.Feishu.WebSocket.Demo");
             activity.SetTag("event.type", eventType);
             activity.SetTag("event.id", eventData.EventId);
             activity.SetTag("event.tenant_key", eventData.TenantKey);
@@ -45,12 +44,13 @@ public class TelemetryEventInterceptor : IFeishuEventInterceptor
         var eventId = eventData.EventId ?? Guid.NewGuid().ToString();
         _activities.TryAdd(eventId, activity);
 
+        Interlocked.Increment(ref _totalEvents);
+        _logger.LogDebug("[遥测] 开始处理 WebSocket 事件: EventType={EventType}, EventId={EventId}",
+            eventType, eventData.EventId);
+
         return Task.FromResult(true);
     }
 
-    /// <summary>
-    /// 事件处理后拦截
-    /// </summary>
     public Task AfterHandleAsync(string eventType, EventData eventData, Exception? exception, CancellationToken cancellationToken = default)
     {
         var eventId = eventData.EventId ?? string.Empty;
@@ -59,6 +59,7 @@ public class TelemetryEventInterceptor : IFeishuEventInterceptor
         {
             if (exception != null)
             {
+                Interlocked.Increment(ref _failedEvents);
                 activity?.SetTag("error", true);
                 activity?.SetTag("error.message", exception.Message);
                 activity?.SetTag("error.type", exception.GetType().Name);
@@ -72,6 +73,20 @@ public class TelemetryEventInterceptor : IFeishuEventInterceptor
             activity?.Dispose();
         }
 
+        _logger.LogDebug("[遥测] 完成 WebSocket 事件处理: EventType={EventType}, EventId={EventId}, Success={Success}",
+            eventType, eventData.EventId, exception == null);
+
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 获取统计信息
+    /// </summary>
+    public (int TotalEvents, int FailedEvents, double SuccessRate) GetStatistics()
+    {
+        var total = Interlocked.CompareExchange(ref _totalEvents, 0, 0);
+        var failed = Interlocked.CompareExchange(ref _failedEvents, 0, 0);
+        var successRate = total > 0 ? (double)(total - failed) / total * 100 : 100;
+        return (total, failed, successRate);
     }
 }

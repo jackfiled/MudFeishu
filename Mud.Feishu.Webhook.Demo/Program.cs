@@ -5,8 +5,10 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.Feishu.Abstractions.Interceptors;
 using Mud.Feishu.Webhook.Demo;
 using Mud.Feishu.Webhook.Demo.Handlers;
+using Mud.Feishu.Webhook.Demo.Interceptors;
 using Mud.Feishu.Webhook.Demo.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,8 +16,12 @@ var builder = WebApplication.CreateBuilder(args);
 // 注册演示服务
 builder.Services.AddSingleton<DemoEventService>();
 
-// 注册飞书Webhook服务
+// 注册飞书Webhook服务（添加拦截器）
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "FeishuWebhook")
+                .AddInterceptor<LoggingEventInterceptor>() // 日志拦截器（内置）
+                .AddInterceptor<TelemetryEventInterceptor>(sp => new TelemetryEventInterceptor("Mud.Feishu.Webhook.Demo")) // 遥测拦截器（内置）
+                .AddInterceptor<AuditLogInterceptor>() // 审计日志拦截器（自定义）
+                .AddInterceptor<PerformanceMonitoringInterceptor>() // 性能监控拦截器（自定义）
                 .AddHandler<DemoDepartmentEventHandler>()
                 .AddHandler<DemoDepartmentDeleteEventHandler>()
                 .AddHandler<DemoDepartmentUpdateEventHandler>()
