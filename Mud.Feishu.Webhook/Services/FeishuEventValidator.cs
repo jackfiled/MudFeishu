@@ -78,6 +78,14 @@ public class FeishuEventValidator : IFeishuEventValidator
     {
         try
         {
+            // 如果时间戳或 nonce 为空，跳过签名验证（飞书某些请求类型可能不包含这些字段）
+            if (timestamp == 0 || string.IsNullOrEmpty(nonce))
+            {
+                _logger.LogWarning("时间戳或 nonce 为空（Timestamp: {Timestamp}, Nonce: {Nonce}），跳过签名验证（请求可能来自飞书验证请求或其他特殊场景）",
+                    timestamp, nonce);
+                return true;
+            }
+
             // 检查 nonce 是否已使用（防止重放攻击）
             // TryMarkAsUsedAsync 返回 true 表示 Nonce 已被使用（重放攻击）
             // 返回 false 表示 Nonce 未被使用，并成功标记为已使用
@@ -177,9 +185,17 @@ public class FeishuEventValidator : IFeishuEventValidator
                 }
 
                 // 否则跳过验证（兼容旧版本）
-                _logger.LogWarning(
+                _logger.LogDebug(
                     "请求头中未包含 X-Lark-Signature，跳过头部签名验证（警告：此配置存在严重安全风险，" +
                     "建议在生产环境设置 EnforceHeaderSignatureValidation = true）");
+                return true;
+            }
+
+            // 如果时间戳或 nonce 为空，跳过签名验证（飞书某些请求类型可能不包含这些字段）
+            if (timestamp == 0 || string.IsNullOrEmpty(nonce))
+            {
+                _logger.LogWarning("时间戳或 nonce 为空（Timestamp: {Timestamp}, Nonce: {Nonce}），跳过签名验证（请求可能来自飞书验证请求或其他特殊场景）",
+                    timestamp, nonce);
                 return true;
             }
 
@@ -255,6 +271,13 @@ public class FeishuEventValidator : IFeishuEventValidator
     {
         try
         {
+            // 如果时间戳为 0，跳过验证（飞书某些请求类型可能不包含时间戳）
+            if (timestamp == 0)
+            {
+                _logger.LogDebug("时间戳为 0，跳过时间戳验证");
+                return true;
+            }
+
             var requestTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp);
             var now = DateTimeOffset.UtcNow;
             var diff = Math.Abs((now - requestTime).TotalSeconds);

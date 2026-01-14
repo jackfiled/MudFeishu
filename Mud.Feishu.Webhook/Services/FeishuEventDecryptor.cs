@@ -129,8 +129,9 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
         // 解析event
         if (root.TryGetProperty("event", out var eventElement))
         {
-            // 将event对象转换为JsonElement供后续使用
-            eventData.Event = eventElement;
+            // 将event对象转换为原始JSON字符串,避免依赖已释放的JsonDocument
+            // 这样可以确保eventData.Event不依赖于using块内的JsonDocument
+            eventData.Event = eventElement.GetRawText();
         }
 
         return eventData;
