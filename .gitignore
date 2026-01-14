@@ -3,6 +3,7 @@
 ################################################################################
 
 /.vs
+/.vscode
 /.qoder
 /Mud.Feishu/bin/Debug
 /Mud.Feishu/obj
@@ -20,7 +21,7 @@
 /Mud.Feishu.WebSocket.Demo/bin
 /Mud.Feishu.WebSocket.Demo/obj
 /Mud.Feishu.WebSocket.Demo/bin/Debug/net8.0
-/bin/Debug
+/bin
 /bin/Release
 /Mud.Feishu.Abstractions/bin/Debug
 /Mud.Feishu.Abstractions/obj
