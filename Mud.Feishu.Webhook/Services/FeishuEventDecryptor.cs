@@ -77,9 +77,8 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
             }
             else
             {
-                _logger.LogError("事件数据解密后EventType为空！原始JSON前500字符: {Json}",
-                    decryptedJson!.Length > 500 ? decryptedJson!.Substring(0, 500) + "..." : decryptedJson);
-                _logger.LogError("完整的解密JSON数据: {FullJson}", decryptedJson);
+                _logger.LogError("事件数据解密后EventType为空！解密数据长度: {Length}", decryptedJson!.Length);
+                // 不记录完整的解密JSON数据，避免泄露敏感信息
             }
 
             return eventData;
@@ -159,18 +158,20 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                 if (_logger.IsEnabled(LogLevel.Debug))
                     _logger.LogDebug("开始解密，密钥长度: {KeyLength}, 加密数据长度: {DataLength}", encryptKey.Length, encryptedBytes.Length);
 
-                var rijndaelManaged = Aes.Create();
+                using var aes = Aes.Create();
                 // 飞书的 EncryptKey 直接使用 UTF-8 编码后进行 SHA-256 哈希得到 32 字节密钥
                 byte[] keyBytes;
                 using (var sha256 = SHA256.Create())
                 {
                     keyBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(encryptKey));
                 }
-                rijndaelManaged.Key = keyBytes;
-                rijndaelManaged.Mode = CipherMode.CBC;
-                rijndaelManaged.IV = [.. encryptedBytes.Take(BlockSize)];
-                ICryptoTransform transform = rijndaelManaged.CreateDecryptor();
+                aes.Key = keyBytes;
+                aes.Mode = CipherMode.CBC;
+                aes.IV = [.. encryptedBytes.Take(BlockSize)];
+
+                using var transform = aes.CreateDecryptor();
                 var result = transform.TransformFinalBlock(encryptedBytes, BlockSize, encryptedBytes.Length - BlockSize);
+
                 // 再次检查取消令牌
                 cancellationToken.ThrowIfCancellationRequested();
                 if (result == null)

@@ -24,6 +24,8 @@ public class AuthenticationManager
     private readonly FeishuWebSocketOptions _options;
     private readonly SemaphoreSlim _authLock = new(1, 1);
     private int _authRetryCount = 0;
+    private int _totalAuthFailures = 0;
+    private DateTime _lastAuthFailureTime = DateTime.MinValue;
 
     /// <summary>
     /// 认证成功事件
@@ -200,16 +202,26 @@ public class AuthenticationManager
             else
             {
                 _isAuthenticated = false;
-                _logger.LogError("WebSocket认证失败: {Code} - {Message}", authResponse?.Code, authResponse?.Message);
+                _totalAuthFailures++;
+                _lastAuthFailureTime = DateTime.UtcNow;
+
+                _logger.LogError("WebSocket认证失败: {Code} - {Message}, 总失败次数: {TotalFailures}",
+                    authResponse?.Code, authResponse?.Message, _totalAuthFailures);
 
                 // 认证失败时重置会话
                 _sessionManager?.ResetSession();
 
+                // 根据不同的错误码记录详细信息
+                var errorCode = authResponse?.Code;
+                var errorMessage = authResponse?.Message;
+                LogDetailedAuthError(errorCode, errorMessage);
 
                 var errorArgs = new WebSocketErrorEventArgs
                 {
-                    ErrorMessage = $"WebSocket认证失败: {authResponse?.Code} - {authResponse?.Message}",
-                    IsAuthError = true
+                    ErrorMessage = $"WebSocket认证失败: {errorCode} - {errorMessage}",
+                    IsAuthError = true,
+                    ErrorType = $"AuthError_{errorCode}",
+                    Exception = new InvalidOperationException($"认证失败: {errorCode} - {errorMessage}")
                 };
 
                 AuthenticationFailed?.Invoke(this, errorArgs);
@@ -258,7 +270,72 @@ public class AuthenticationManager
     }
 
     /// <summary>
-    /// 获取认证重试次数
+    /// 获取认证重试次数（当前认证流程）
     /// </summary>
     public int AuthRetryCount => _authRetryCount;
+
+    /// <summary>
+    /// 获取总认证失败次数
+    /// </summary>
+    public int TotalAuthFailures => _totalAuthFailures;
+
+    /// <summary>
+    /// 获取最近一次认证失败时间
+    /// </summary>
+    public DateTime LastAuthFailureTime => _lastAuthFailureTime;
+
+    /// <summary>
+    /// 记录详细的认证错误信息
+    /// </summary>
+    /// <param name="errorCode">错误码</param>
+    /// <param name="errorMessage">错误消息</param>
+    private void LogDetailedAuthError(int? errorCode, string? errorMessage)
+    {
+        if (!errorCode.HasValue)
+        {
+            _logger.LogWarning("认证响应缺少错误码: {Message}", errorMessage ?? "未知错误");
+            return;
+        }
+
+        switch (errorCode.Value)
+        {
+            case 10009: // Token 过期
+                _logger.LogWarning("应用访问令牌已过期，请更新令牌");
+                break;
+            case 10010: // Token 无效
+                _logger.LogError("应用访问令牌无效，请检查 App ID 和 App Secret 配置");
+                break;
+            case 10011: // 权限不足
+                _logger.LogError("应用权限不足，请检查应用权限配置");
+                break;
+            case 10012: // 参数错误
+                _logger.LogError("认证参数错误: {Message}", errorMessage);
+                break;
+            case 10013: // 系统繁忙
+                _logger.LogWarning("飞书系统繁忙，建议稍后重试");
+                break;
+            case 10014: // 版本不支持
+                _logger.LogError("WebSocket 版本不支持，请更新 SDK");
+                break;
+            case 10015: // Session ID 无效
+                _logger.LogWarning("Session ID 无效，将重新建立会话");
+                break;
+            default:
+                _logger.LogWarning("未知的认证错误码: {Code}, 消息: {Message}", errorCode.Value, errorMessage);
+                break;
+        }
+
+        // 如果连续失败次数过多，记录警告
+        if (_totalAuthFailures > 5)
+        {
+            _logger.LogWarning("认证已连续失败 {Count} 次，请检查网络连接和配置", _totalAuthFailures);
+        }
+
+        // 记录最近失败时间间隔（如果有）
+        if (_lastAuthFailureTime != DateTime.MinValue)
+        {
+            var timeSinceLastFailure = DateTime.UtcNow - _lastAuthFailureTime;
+            _logger.LogInformation("距上次认证失败时间: {Minutes}分钟", timeSinceLastFailure.TotalMinutes);
+        }
+    }
 }

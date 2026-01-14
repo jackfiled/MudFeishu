@@ -48,4 +48,9 @@ public class WebSocketErrorEventArgs : EventArgs
     /// 是否为认证相关错误
     /// </summary>
     public bool IsAuthError { get; set; }
+
+    /// <summary>
+    /// 是否可恢复。
+    /// </summary>
+    public bool IsRecoverable{ get; set; }
 }

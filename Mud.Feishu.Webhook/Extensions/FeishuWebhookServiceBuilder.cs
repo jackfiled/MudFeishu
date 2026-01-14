@@ -293,7 +293,6 @@ public class FeishuWebhookServiceBuilder
     private void RegisterCoreServices()
     {
         // 单实例服务
-        _services.TryAddSingleton<IFeishuNonceDistributedDeduplicator, FeishuNonceDistributedDeduplicator>();
         _services.TryAddSingleton<FeishuWebhookConcurrencyService>();
         _services.TryAddSingleton<IFeishuEventDeduplicator, FeishuEventDeduplicator>();
 

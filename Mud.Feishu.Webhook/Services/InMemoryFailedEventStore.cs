@@ -17,10 +17,11 @@ namespace Mud.Feishu.Webhook;
 /// <remarks>
 /// 生产环境建议使用基于 Redis、数据库等持久化存储的实现
 /// </remarks>
-public class InMemoryFailedEventStore : IFailedEventStore
+public class InMemoryFailedEventStore : IFailedEventStore, IDisposable
 {
     private readonly ConcurrentDictionary<string, FailedEventInfo> _failedEvents = new();
     private readonly ILogger<InMemoryFailedEventStore> _logger;
+    private readonly Timer _cleanupTimer;
 
     /// <summary>
     /// 最大存储的失败事件数量
@@ -42,7 +43,7 @@ public class InMemoryFailedEventStore : IFailedEventStore
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // 每小时清理一次过期记录
-        _ = new Timer(
+        _cleanupTimer = new Timer(
             CleanupExpiredEvents,
             null,
             TimeSpan.FromHours(1),
@@ -108,43 +109,47 @@ public class InMemoryFailedEventStore : IFailedEventStore
     /// </summary>
     private void CleanupExpiredEvents(object? state)
     {
-        var cutoffTime = DateTime.UtcNow.AddHours(-RetentionHours);
-        var expiredKeys = _failedEvents.Values
-            .Where(e => e.FailedAt < cutoffTime)
-            .Select(e => e.EventId)
-            .ToList();
-
-        var removedCount = 0;
-        foreach (var key in expiredKeys)
+        // 使用锁保护清理操作，确保线程安全
+        lock (_failedEvents)
         {
-            if (_failedEvents.TryRemove(key, out _))
-            {
-                removedCount++;
-            }
-        }
-
-        // 限制存储数量
-        if (_failedEvents.Count > MaxStoredEvents)
-        {
-            var toRemoveCount = _failedEvents.Count - MaxStoredEvents;
-            var oldestEvents = _failedEvents.Values
-                .OrderBy(e => e.FailedAt)
-                .Take(toRemoveCount)
+            var cutoffTime = DateTime.UtcNow.AddHours(-RetentionHours);
+            var expiredKeys = _failedEvents.Values
+                .Where(e => e.FailedAt < cutoffTime)
                 .Select(e => e.EventId)
                 .ToList();
 
-            foreach (var key in oldestEvents)
+            var removedCount = 0;
+            foreach (var key in expiredKeys)
             {
                 if (_failedEvents.TryRemove(key, out _))
                 {
                     removedCount++;
                 }
             }
-        }
 
-        if (removedCount > 0)
-        {
-            _logger.LogInformation("清理了 {Count} 个过期的失败事件记录", removedCount);
+            // 限制存储数量
+            if (_failedEvents.Count > MaxStoredEvents)
+            {
+                var toRemoveCount = _failedEvents.Count - MaxStoredEvents;
+                var oldestEvents = _failedEvents.Values
+                    .OrderBy(e => e.FailedAt)
+                    .Take(toRemoveCount)
+                    .Select(e => e.EventId)
+                    .ToList();
+
+                foreach (var key in oldestEvents)
+                {
+                    if (_failedEvents.TryRemove(key, out _))
+                    {
+                        removedCount++;
+                    }
+                }
+            }
+
+            if (removedCount > 0)
+            {
+                _logger.LogInformation("清理了 {Count} 个过期的失败事件记录", removedCount);
+            }
         }
     }
 
@@ -152,4 +157,12 @@ public class InMemoryFailedEventStore : IFailedEventStore
     /// 获取当前存储的失败事件数量
     /// </summary>
     public int GetFailedEventCount() => _failedEvents.Count;
+
+    /// <summary>
+    /// 释放资源
+    /// </summary>
+    public void Dispose()
+    {
+        _cleanupTimer?.Dispose();
+    }
 }

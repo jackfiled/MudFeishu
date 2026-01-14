@@ -306,9 +306,55 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
                 await HandleReceivedMessageAsync(buffer, result, cancellationToken);
             }, cancellationToken);
         }
+        catch (WebSocketException wsEx) when (wsEx.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+        {
+            _logger.LogError(wsEx, "WebSocket 连接过早关闭，可能是网络问题或服务端主动断开");
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = wsEx,
+                ErrorMessage = "连接过早关闭",
+                ErrorType = "ConnectionClosedPrematurely",
+                IsRecoverable = true
+            });
+        }
+        catch (WebSocketException wsEx)
+        {
+            _logger.LogError(wsEx, "WebSocket 发生错误，错误代码: {ErrorCode}, 原因: {NativeErrorCode}",
+                wsEx.WebSocketErrorCode, wsEx.NativeErrorCode);
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = wsEx,
+                ErrorMessage = $"WebSocket错误: {wsEx.WebSocketErrorCode}",
+                ErrorType = "WebSocketError",
+                IsRecoverable = IsWebSocketErrorRecoverable(wsEx)
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("消息接收循环被正常取消");
+        }
+        catch (IOException ioEx)
+        {
+            _logger.LogError(ioEx, "发生 IO 错误，可能是网络中断: {HResult}", ioEx.HResult);
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = ioEx,
+                ErrorMessage = "IO 错误 - 可能是网络中断",
+                ErrorType = "NetworkError",
+                IsRecoverable = true
+            });
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "消息接收循环发生错误");
+            _logger.LogCritical(ex, "消息接收循环发生未预期的错误: {ExceptionType}, HResult: {HResult}",
+                ex.GetType().Name, ex.HResult);
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = ex,
+                ErrorMessage = $"未预期错误: {ex.GetType().Name}",
+                ErrorType = "UnexpectedError",
+                IsRecoverable = false
+            });
         }
     }
 
@@ -324,7 +370,8 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
                 var message = Encoding.UTF8.GetString(buffer.Array!, buffer.Offset, buffer.Count);
 
                 if (_options.EnableLogging)
-                    _logger.LogDebug("接收到文本消息: {Message}", message);
+                    _logger.LogDebug("接收到文本消息，长度: {MessageLength}, 队列大小: {QueueCount}",
+                        message.Length, _messageQueue.Count);
 
                 // 触发消息接收事件
                 MessageReceived?.Invoke(this, new WebSocketMessageEventArgs
@@ -354,9 +401,45 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
                 await _binaryProcessor.ProcessBinaryDataAsync(buffer.Array!, buffer.Offset, buffer.Count, result.EndOfMessage, cancellationToken);
             }
         }
+        catch (JsonException jsonEx)
+        {
+            _logger.LogError(jsonEx, "解析 JSON 消息失败，消息大小: {MessageSize}",
+                buffer.Count);
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = jsonEx,
+                ErrorMessage = "JSON 解析失败",
+                ErrorType = "JsonParseError",
+                IsRecoverable = true
+            });
+        }
+        catch (InvalidOperationException invEx)
+        {
+            _logger.LogError(invEx, "无效操作错误，可能是连接状态异常: {Message}",
+                invEx.Message);
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = invEx,
+                ErrorMessage = "无效操作 - 连接状态可能异常",
+                ErrorType = "InvalidStateError",
+                IsRecoverable = false
+            });
+        }
+        catch (Exception ex) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("消息处理被取消");
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "处理接收到的消息时发生错误");
+            _logger.LogError(ex, "处理接收到的消息时发生未预期的错误: {ExceptionType}, 消息类型: {MessageType}",
+                ex.GetType().Name, result.MessageType);
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = ex,
+                ErrorMessage = $"消息处理错误: {ex.GetType().Name}",
+                ErrorType = "MessageProcessingError",
+                IsRecoverable = true
+            });
         }
     }
 
@@ -556,6 +639,26 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
             if (_options.EnableLogging)
                 _logger.LogWarning(ex, "消息处理器执行失败: {Message}", message);
         }
+    }
+
+    /// <summary>
+    /// 判断 WebSocket 错误是否可恢复
+    /// </summary>
+    /// <param name="wsEx">WebSocket 异常</param>
+    /// <returns>如果错误可恢复返回 true，否则返回 false</returns>
+    private bool IsWebSocketErrorRecoverable(WebSocketException wsEx)
+    {
+        return wsEx.WebSocketErrorCode switch
+        {
+            WebSocketError.ConnectionClosedPrematurely => true,
+            WebSocketError.NotAWebSocket => false,
+            WebSocketError.UnsupportedVersion => false,
+            WebSocketError.UnsupportedProtocol => false,
+            WebSocketError.HeaderError => false,
+            WebSocketError.InvalidMessageType => false,
+            WebSocketError.Faulted => true,
+            _ => true
+        };
     }
 
 

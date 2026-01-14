@@ -79,6 +79,8 @@ public class FeishuEventValidator : IFeishuEventValidator
         try
         {
             // 检查 nonce 是否已使用（防止重放攻击）
+            // TryMarkAsUsedAsync 返回 true 表示 Nonce 已被使用（重放攻击）
+            // 返回 false 表示 Nonce 未被使用，并成功标记为已使用
             if (await _nonceDeduplicator.TryMarkAsUsedAsync(nonce))
             {
                 _logger.LogWarning("Nonce {Nonce} 已使用过，拒绝重放攻击", nonce);

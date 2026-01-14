@@ -42,11 +42,18 @@ public interface IFeishuEventHandlerFactory
     void RegisterHandler(IFeishuEventHandler handler);
 
     /// <summary>
-    /// 取消注册事件处理器
+    /// 取消注册事件处理器（根据事件类型）
     /// </summary>
     /// <param name="eventType">事件类型</param>
     /// <returns>是否成功取消注册</returns>
     bool UnregisterHandler(string eventType);
+
+    /// <summary>
+    /// 取消注册指定事件处理器
+    /// </summary>
+    /// <param name="handler">要取消注册的事件处理器</param>
+    /// <returns>是否成功取消注册</returns>
+    bool UnregisterHandler(IFeishuEventHandler handler);
 
     /// <summary>
     /// 获取所有已注册的事件类型
