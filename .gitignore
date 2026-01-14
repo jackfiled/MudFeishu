@@ -21,6 +21,7 @@
 /Mud.Feishu.WebSocket.Demo/obj
 /Mud.Feishu.WebSocket.Demo/bin/Debug/net8.0
 /bin/Debug
+/bin/Release
 /Mud.Feishu.Abstractions/bin/Debug
 /Mud.Feishu.Abstractions/obj
 /Mud.Feishu.Webbook/obj
@@ -31,3 +32,4 @@
 /Mud.Feishu.Webhook.Demo/obj
 /docs
 /Mud.Feishu.Redis/obj
+/Mud.Feishu.Webhook.Demo/bin/Release/net8.0
