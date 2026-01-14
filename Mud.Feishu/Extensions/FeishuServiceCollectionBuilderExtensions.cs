@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Configuration;
-using Mud.Feishu.Abstractions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -37,7 +36,7 @@ public static class FeishuServiceCollectionBuilderExtensions
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
 
-        services.AddTokenManagers();
+        services.AddTokenManagers(configuration, sectionName);
         return services.CreateFeishuServicesBuilder();
     }
 

@@ -8,13 +8,12 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.Internal;
 using Mud.Feishu.TokenManager;
 using Polly;
 using System.Net;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace Mud.Feishu.Abstractions;
 
 /// <summary>
 /// 飞书服务集合扩展方法
@@ -37,6 +36,9 @@ public static class FeishuServiceCollectionExtensions
     /// <returns>服务集合实例。支持链式调用</returns>
     public static IServiceCollection ConfigureFrom(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
     {
+        if (_isConfigured)
+            return services;
+
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
 
@@ -55,6 +57,8 @@ public static class FeishuServiceCollectionExtensions
     /// <returns>服务集合实例。支持链式调用</returns>
     public static IServiceCollection ConfigureOptions(this IServiceCollection services, Action<FeishuOptions> configureOptions)
     {
+        if (_isConfigured)
+            return services;
         if (configureOptions == null)
             throw new ArgumentNullException(nameof(configureOptions));
 
