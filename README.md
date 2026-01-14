@@ -47,15 +47,15 @@ graph TB
     end
 
     subgraph "MudFeishu SDK"
-        Core[Mud.Feishu<br/>核心HTTP API客户端]
+        Core["Mud.Feishu<br/>核心HTTP API客户端"]
         
         subgraph "核心功能模块"
-            WebSocket[Mud.Feishu.WebSocket<br/>实时事件订阅]
-            Webhook[Mud.Feishu.Webhook<br/>HTTP回调处理]
-            RedisExt[Mud.Feishu.Redis<br/>分布式去重扩展]
+            WebSocket["Mud.Feishu.WebSocket<br/>实时事件订阅"]
+            Webhook["Mud.Feishu.Webhook<br/>HTTP回调处理"]
+            RedisExt["Mud.Feishu.Redis<br/>分布式去重扩展"]
         end
         
-        Abstraction[Mud.Feishu.Abstractions<br/>事件处理抽象层]
+        Abstraction["Mud.Feishu.Abstractions<br/>事件处理抽象层"]
     end
 
     subgraph "基础设施/平台"
@@ -70,10 +70,10 @@ graph TB
     App --> Webhook
 
     %% SDK内部核心依赖关系
-    Core -.->|依赖| Abstraction
-    WebSocket -.->|依赖| Abstraction
-    Webhook -.->|依赖| Abstraction
-    RedisExt -.->|依赖| Abstraction
+    Core -.-> Abstraction
+    WebSocket -.-> Abstraction
+    Webhook -.-> Abstraction
+    RedisExt -.-> Abstraction
     
     %% 配置与日志
     Config --> Core
@@ -86,9 +86,9 @@ graph TB
     Webhook --> Logging
 
     %% 与外部服务的通信
-    Core <-->|HTTP API调用| Feishu
-    WebSocket <-->|WebSocket长连接| Feishu
-    Webhook <--|HTTP回调| Feishu
+    Core -- HTTP API调用 --> Feishu
+    WebSocket -- WebSocket长连接 --> Feishu
+    Feishu -- HTTP回调 --> Webhook
 ```
 
 ### 模块关系图
