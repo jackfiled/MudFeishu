@@ -7,7 +7,6 @@
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Mud.Feishu.Webhook.Configuration;
-using Mud.Feishu.Webhook.Models;
 
 namespace Mud.Feishu.Webhook;
 
@@ -18,17 +17,14 @@ public class FeishuWebhookHealthCheck : IHealthCheck
 {
     private readonly IOptionsMonitor<FeishuWebhookOptions> _options;
     private readonly FeishuWebhookConcurrencyService _concurrencyService;
-    private readonly MetricsCollector _metrics;
 
     /// <inheritdoc />
     public FeishuWebhookHealthCheck(
         IOptionsMonitor<FeishuWebhookOptions> options,
-        FeishuWebhookConcurrencyService concurrencyService,
-        MetricsCollector metrics)
+        FeishuWebhookConcurrencyService concurrencyService)
     {
         _options = options;
         _concurrencyService = concurrencyService;
-        _metrics = metrics;
     }
 
     /// <inheritdoc />
@@ -37,62 +33,18 @@ public class FeishuWebhookHealthCheck : IHealthCheck
         CancellationToken cancellationToken = default)
     {
         var options = _options.CurrentValue;
-        var counters = _metrics.GetAllCounters();
-
-        counters.TryGetValue("successful_events", out var successfulEvents);
-        counters.TryGetValue("failed_events", out var failedEvents);
-        var totalEvents = successfulEvents + failedEvents;
-
-        counters.TryGetValue("cancelled_events", out var cancelledEvents);
-        counters.TryGetValue("signature_validation_failures", out var signatureFailures);
-        counters.TryGetValue("decryption_failures", out var decryptionFailures);
 
         var healthData = new Dictionary<string, object>
         {
             ["configuration_valid"] = true,
             ["max_concurrent_events"] = options.MaxConcurrentEvents,
             ["timeout_ms"] = options.EventHandlingTimeoutMs,
-            ["successful_events"] = successfulEvents,
-            ["failed_events"] = failedEvents,
-            ["cancelled_events"] = cancelledEvents,
-            ["signature_failures"] = signatureFailures,
-            ["decryption_failures"] = decryptionFailures,
-            ["total_events"] = totalEvents,
             ["available_concurrent_slots"] = _concurrencyService.AvailableCount,
-            ["failure_rate_threshold_unhealthy"] = options.HealthCheckUnhealthyFailureRateThreshold,
-            ["failure_rate_threshold_degraded"] = options.HealthCheckDegradedFailureRateThreshold
+            ["health_check_notes"] = "Metrics now collected via interceptors (TelemetryEventInterceptor, PerformanceMonitoringInterceptor)"
         };
 
-        // 计算失败率
-        double failureRate = totalEvents > 0 ? (double)failedEvents / totalEvents : 0;
-        healthData["failure_rate"] = failureRate;
-
-        // 使用配置的阈值判断健康状态
-        var minEvents = options.HealthCheckMinEventsThreshold;
-        var unhealthyThreshold = options.HealthCheckUnhealthyFailureRateThreshold;
-        var degradedThreshold = options.HealthCheckDegradedFailureRateThreshold;
-
-        // 如果失败率超过不健康阈值，返回不健康状态
-        if (failureRate > unhealthyThreshold && totalEvents >= minEvents)
-        {
-            return Task.FromResult(HealthCheckResult.Unhealthy(
-                $"事件处理失败率过高：{failureRate:P2} (阈值: {unhealthyThreshold:P2})",
-                null,
-                healthData));
-        }
-
-        // 如果失败率超过降级阈值，返回降级状态
-        if (failureRate > degradedThreshold && totalEvents >= minEvents)
-        {
-            return Task.FromResult(HealthCheckResult.Degraded(
-                $"事件处理失败率略高：{failureRate:P2} (阈值: {degradedThreshold:P2})，建议检查",
-                null,
-                healthData));
-        }
-
-        // 返回健康状态
         return Task.FromResult(HealthCheckResult.Healthy(
-            $"飞书 Webhook 服务运行正常 (失败率: {failureRate:P2})",
+            "飞书 Webhook 服务运行正常",
             healthData));
     }
 }

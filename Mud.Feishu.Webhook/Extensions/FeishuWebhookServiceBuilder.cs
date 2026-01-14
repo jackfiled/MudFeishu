@@ -24,7 +24,6 @@ public class FeishuWebhookServiceBuilder
     private readonly List<Type> _handlerTypes = new();
     private readonly List<Type> _interceptorTypes = new();
     private bool _enableHealthChecks = true;
-    private bool _enableMetrics = true;
     private bool _autoRegisterEndpoint = true;
     private bool _configured = false;
     private Action<FeishuWebhookOptions>? _configureOptions;
@@ -85,26 +84,6 @@ public class FeishuWebhookServiceBuilder
     public FeishuWebhookServiceBuilder DisableHealthChecks()
     {
         _enableHealthChecks = false;
-        return this;
-    }
-
-    /// <summary>
-    /// 启用性能指标收集
-    /// </summary>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuWebhookServiceBuilder EnableMetrics()
-    {
-        _enableMetrics = true;
-        return this;
-    }
-
-    /// <summary>
-    /// 禁用性能指标收集
-    /// </summary>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuWebhookServiceBuilder DisableMetrics()
-    {
-        _enableMetrics = false;
         return this;
     }
 
@@ -285,12 +264,6 @@ public class FeishuWebhookServiceBuilder
         // 注册核心服务
         RegisterCoreServices();
 
-        // 注册性能监控组件
-        if (_enableMetrics)
-        {
-            RegisterMetricsServices();
-        }
-
         // 注册事件处理器工厂
         RegisterEventHandlerFactory();
 
@@ -388,13 +361,6 @@ public class FeishuWebhookServiceBuilder
         });
     }
 
-    /// <summary>
-    /// 注册性能监控服务
-    /// </summary>
-    private void RegisterMetricsServices()
-    {
-        _services.TryAddSingleton<MetricsCollector>();
-    }
 
     /// <summary>
     /// 注册事件处理器工厂

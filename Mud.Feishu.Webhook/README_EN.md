@@ -180,7 +180,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .ConfigureFrom(builder.Configuration, "FeishuWebhook")
     .EnableHealthChecks()    // Enable health checks
-    .EnableMetrics()         // Enable performance monitoring
     .AddHandler<MessageReceiveEventHandler>()
     .AddHandler<DepartmentCreatedEventHandler>()
     .Build();
@@ -557,21 +556,20 @@ After configuration is complete, publish the application, and Feishu servers wil
 
 ### Performance Monitoring
 
-Enable performance monitoring to collect event processing metrics:
+Performance monitoring is implemented through the interceptor mechanism, supporting OpenTelemetry and custom metrics collection:
 
 ```csharp
-// Method 1: Enable via builder pattern
+// Add telemetry interceptor (OpenTelemetry integration)
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .EnableMetrics()    // Enable performance metrics collection
+    .AddInterceptor<TelemetryEventInterceptor>()
     .AddHandler<MessageEventHandler>()
     .Build();
 
-// Method 2: Enable via configuration file
-{
-  "FeishuWebhook": {
-    "EnablePerformanceMonitoring": true
-  }
-}
+// Or use custom performance monitoring interceptor
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddInterceptor<PerformanceMonitoringInterceptor>()
+    .AddHandler<MessageEventHandler>()
+    .Build();
 ```
 
 ### Health Checks
@@ -910,7 +908,6 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 // Register Feishu Webhook service (advanced configuration)
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .EnableHealthChecks()    // Enable health checks
-    .EnableMetrics()         // Enable performance monitoring
     .AddHandler<MessageReceiveEventHandler>()
     .AddHandler<DepartmentCreatedEventHandler>()
     .Build();
@@ -984,7 +981,6 @@ builder.Services.CreateFeishuWebhookServiceBuilder(options => {
 // ✅ Advanced configuration
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .EnableHealthChecks()
-    .EnableMetrics()
     .AddHandler<Handler1>()
     .AddHandler<Handler2>()
     .Build();

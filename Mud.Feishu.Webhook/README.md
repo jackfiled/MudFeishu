@@ -194,7 +194,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .ConfigureFrom(builder.Configuration, "FeishuWebhook")
     .EnableHealthChecks()    // 启用健康检查
-    .EnableMetrics()         // 启用性能监控
     .AddHandler<MessageReceiveEventHandler>()
     .AddHandler<DepartmentCreatedEventHandler>()
     .Build();
@@ -562,21 +561,20 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 ### 性能监控
 
-启用性能监控可以收集事件处理的指标数据：
+性能监控通过拦截器机制实现,支持 OpenTelemetry 和自定义指标收集：
 
 ```csharp
-// 方式一：通过建造者模式启用
+// 添加遥测拦截器（OpenTelemetry 集成）
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .EnableMetrics()    // 启用性能指标收集
+    .AddInterceptor<TelemetryEventInterceptor>()
     .AddHandler<MessageEventHandler>()
     .Build();
 
-// 方式二：通过配置文件启用
-{
-  "FeishuWebhook": {
-    "EnablePerformanceMonitoring": true
-  }
-}
+// 或使用自定义性能监控拦截器
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddInterceptor<PerformanceMonitoringInterceptor>()
+    .AddHandler<MessageEventHandler>()
+    .Build();
 ```
 
 ### 健康检查
@@ -915,7 +913,6 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 // 注册飞书Webhook服务（高级配置）
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .EnableHealthChecks()    // 启用健康检查
-    .EnableMetrics()         // 启用性能监控
     .AddHandler<MessageReceiveEventHandler>()
     .AddHandler<DepartmentCreatedEventHandler>()
     .Build();
@@ -986,10 +983,10 @@ builder.Services.CreateFeishuWebhookServiceBuilder(options => {
 .AddHandler<YourEventHandler>()
 .Build();
 
+
 // ✅ 高级配置
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .EnableHealthChecks()
-    .EnableMetrics()
     .AddHandler<Handler1>()
     .AddHandler<Handler2>()
     .Build();
