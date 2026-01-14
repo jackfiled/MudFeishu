@@ -16,7 +16,8 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    private const string DefaultConfigurationSection = "Feishu:WebSocket";
+    private const string DefaultConfigurationSection = ":WebSocket";
+    private const string DefaultFeishuConfigurationSection = "Feishu";
 
     /// <summary>
     /// 注册飞书WebSocket服务（使用配置节）
@@ -26,7 +27,7 @@ public static class ServiceCollectionExtensions
     /// <returns>服务集合，支持链式调用</returns>
     public static FeishuWebSocketServiceBuilder CreateFeishuWebSocketServiceBuilder(this IServiceCollection services, IConfiguration configuration)
     {
-        return services.CreateFeishuWebSocketServiceBuilder(configuration, DefaultConfigurationSection);
+        return services.CreateFeishuWebSocketServiceBuilder(configuration, DefaultFeishuConfigurationSection);
     }
 
     /// <summary>
@@ -53,7 +54,9 @@ public static class ServiceCollectionExtensions
     /// <returns>WebSocket服务建造者</returns>
     public static FeishuWebSocketServiceBuilder CreateFeishuWebSocketServiceBuilder(this IServiceCollection services, IConfiguration configuration, string? sectionName = null)
     {
+        sectionName = sectionName ?? DefaultFeishuConfigurationSection;
+        services.AddTenantTokenManager(configuration, sectionName);
         var builder = new FeishuWebSocketServiceBuilder(services);
-        return builder.ConfigureFrom(configuration, sectionName);
+        return builder.ConfigureFrom(configuration, sectionName + DefaultConfigurationSection);
     }
 }

@@ -7,7 +7,6 @@
 
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.EventHandlers;
-using Mud.Feishu.Abstractions.Interceptors;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook;
 using Mud.Feishu.Webhook.Configuration;
@@ -20,6 +19,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public class FeishuWebhookServiceBuilder
 {
+    private const string DefaultConfigurationSection = "FeishuWebhook";
     private readonly IServiceCollection _services;
     private readonly List<Type> _handlerTypes = new();
     private readonly List<Type> _interceptorTypes = new();
@@ -49,7 +49,7 @@ public class FeishuWebhookServiceBuilder
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
 
-        var section = sectionName ?? "FeishuWebhook";
+        var section = sectionName ?? DefaultConfigurationSection;
         _services.Configure<FeishuWebhookOptions>(options => configuration.GetSection(section).Bind(options));
         return this;
     }

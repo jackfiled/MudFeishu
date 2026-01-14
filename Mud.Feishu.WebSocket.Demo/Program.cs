@@ -13,9 +13,6 @@ using Mud.Feishu.WebSocket.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 配置飞书基础令牌服务
-builder.Services.AddTenantTokenManager(builder.Configuration);
-
 // 配置Redis分布式去重服务
 builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
 
