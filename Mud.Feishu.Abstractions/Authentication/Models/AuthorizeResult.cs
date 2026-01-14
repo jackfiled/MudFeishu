@@ -5,27 +5,22 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu;
+namespace Mud.Feishu.DataModels;
 
-internal sealed class Consts
+/// <summary>
+/// 用户授权结果。
+/// </summary>
+public class AuthorizeResult
 {
     /// <summary>
-    /// 用户ID类型的默认值。
+    /// 授权码，用于获取 user_access_token。
     /// </summary>
-    public const string User_Id_Type = "open_id";
+    [JsonPropertyName("code")]
+    public int Code { get; set; }
 
     /// <summary>
-    /// 部门ID类型的默认值。
+    /// 打开授权页时传入的 state 参数的原值，如未传入此处不会返回。
     /// </summary>
-    public const string Department_Id_Type = "open_department_id";
-
-    /// <summary>
-    /// 授权Header名称。
-    /// </summary>
-    public const string Authorization = "Authorization";
-
-    /// <summary>
-    /// 每页的默认数量。
-    /// </summary>
-    public const int PageSize = 10;
+    [JsonPropertyName("state")]
+    public string? State { get; set; }
 }

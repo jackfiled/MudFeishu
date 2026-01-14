@@ -14,9 +14,14 @@ public class DepartmentWidget() : WidgetBase<List<DepartmentValue>>("department"
 {
 }
 
-
+/// <summary>
+/// 部门控件的值
+/// </summary>
 public class DepartmentValue
 {
+    /// <summary>
+    /// 部门的 OpenId
+    /// </summary>
     [JsonPropertyName("open_id")]
-    public string OpenId { get; set; }
+    public string? OpenId { get; set; }
 }

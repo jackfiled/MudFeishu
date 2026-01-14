@@ -5,17 +5,18 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Mud.Feishu.Abstractions;
+using Mud.Feishu.DataModels;
 
 namespace Mud.Feishu.TokenManager;
 
 /// <summary>
-/// 用户令牌管理器。
+/// 应用令牌管理器
 /// </summary>
-internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
+internal class AppTokenManager : TokenManagerWithCache, IAppTokenManager
 {
-    public UserTokenManager(
+    public AppTokenManager(
        IFeishuV3AuthenticationApi authenticationApi,
        IOptions<FeishuOptions> options,
        ILogger<TokenManagerWithCache> logger) : base(authenticationApi, options, logger, TokenType.UserAccessToken)

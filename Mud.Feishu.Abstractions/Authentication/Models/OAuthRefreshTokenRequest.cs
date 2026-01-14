@@ -5,22 +5,21 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu.Extensions;
+namespace Mud.Feishu.DataModels;
 
-internal static class ExceptionUtils
+/// <summary>
+/// 刷新令牌请求参数
+/// </summary>
+public class OAuthRefreshTokenRequest : OAuthTokenBaseRequest
 {
-    public static void ThrowIfNull(this object? argument, string? paramName = null)
-    {
-        if (argument == null)
-            throw new ArgumentNullException(paramName);
-    }
-
-    public static void ThrowIfNullOrEmpty(this string? argument, string? paramName = null)
-    {
-        if (argument == null)
-            throw new ArgumentNullException(paramName);
-
-        if (string.IsNullOrEmpty(argument))
-            throw new ArgumentNullException(paramName);
-    }
+    /// <summary>
+    /// 刷新令牌，用于刷新 user_access_token 以及 refresh_token。
+    ///</summary>
+    [JsonPropertyName("refresh_token")]
+    public
+#if NET7_0_OR_GREATER
+        required
+#endif
+ string? RefreshToken
+    { get; set; }
 }

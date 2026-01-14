@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Configuration;
+using Mud.Feishu.Abstractions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -24,7 +25,6 @@ public static class FeishuServiceCollectionBuilderExtensions
         return new FeishuServiceBuilder(services);
     }
 
-
     /// <summary>
     /// 使用配置文件创建飞书服务建造者
     /// </summary>
@@ -37,8 +37,8 @@ public static class FeishuServiceCollectionBuilderExtensions
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
 
-        return services.CreateFeishuServicesBuilder()
-                       .ConfigureFrom(configuration, sectionName);
+        services.AddTokenManagers();
+        return services.CreateFeishuServicesBuilder();
     }
 
 
@@ -53,6 +53,7 @@ public static class FeishuServiceCollectionBuilderExtensions
         if (configureOptions == null)
             throw new ArgumentNullException(nameof(configureOptions));
 
+        services.AddTokenManagers();
         return services.CreateFeishuServicesBuilder()
                        .ConfigureOptions(configureOptions);
     }
@@ -72,7 +73,7 @@ public static class FeishuServiceCollectionBuilderExtensions
                        .Build();
     }
 
-    
+
 
     /// <summary>
     /// 根据模块注册飞书服务
@@ -91,20 +92,4 @@ public static class FeishuServiceCollectionBuilderExtensions
                        .AddModules(modules)
                        .Build();
     }
-
-
-    /// <summary>
-    /// 快速注册飞书令牌管理服务（单模块注册）
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
-    /// <returns>服务集合，支持链式调用</returns>
-    public static IServiceCollection AddFeishuTokenManagers(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
-    {
-        return services.CreateFeishuServicesBuilder(configuration, sectionName)
-                       .AddTokenManagers()
-                       .Build();
-    }
-
 }

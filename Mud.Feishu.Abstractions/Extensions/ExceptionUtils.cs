@@ -14,4 +14,13 @@ internal static class ExceptionUtils
         if (argument == null)
             throw new ArgumentNullException(paramName);
     }
+
+    public static void ThrowIfNullOrEmpty(this string? argument, string? paramName = null)
+    {
+        if (argument == null)
+            throw new ArgumentNullException(paramName);
+
+        if (string.IsNullOrEmpty(argument))
+            throw new ArgumentNullException(paramName);
+    }
 }

@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.DataModels.ApprovalFile;
-using Mud.Feishu.Extensions;
 using System.Net.Http.Headers;
 
 namespace Mud.Feishu.Internal;

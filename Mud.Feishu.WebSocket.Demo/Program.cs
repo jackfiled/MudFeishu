@@ -6,9 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Interceptors;
-using Mud.Feishu.Redis.Configuration;
 using Mud.Feishu.Redis.Extensions;
-using Mud.Feishu.WebSocket;
 using Mud.Feishu.WebSocket.Demo.Handlers;
 using Mud.Feishu.WebSocket.Demo.Interceptors;
 using Mud.Feishu.WebSocket.Services;
@@ -16,10 +14,7 @@ using Mud.Feishu.WebSocket.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // 配置飞书基础令牌服务
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
-                .AddAuthenticationApi()
-                .AddTokenManagers()
-                .Build();
+builder.Services.AddTenantTokenManager(builder.Configuration);
 
 // 配置Redis分布式去重服务
 builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);

@@ -24,8 +24,6 @@ builder.Services.AddOpenApi();
 
 // 添加飞书服务
 builder.Services.CreateFeishuServicesBuilder(builder.Configuration, "Feishu")
-                .AddAuthenticationApi()
-                .AddTenantTokenManager()
                 .AddModules(FeishuModule.All)
                 .Build()
                 .AddLogging(option => option.AddConsole());

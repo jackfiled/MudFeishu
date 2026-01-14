@@ -16,8 +16,6 @@
 		<HttpClientOptionsName>FeishuOptions</HttpClientOptionsName>
 		<BaseOutputPath>..\bin</BaseOutputPath>
 	</PropertyGroup>
-
-	<Import Project="..\Mud.CodeGenerator\Mud.CodeGenerator.projitems" Label="Shared" />
 	<ItemGroup>
 		<CompilerVisibleProperty Include="HttpClientOptionsName" />
 	</ItemGroup>
@@ -25,5 +23,8 @@
 		<PackageReference Include="Mud.ServiceCodeGenerator" PrivateAssets="all" Version="1.4.8" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<None Include=".\README.md" Pack="true" PackagePath="\" />
 		<None Include="..\Icon.png" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\Mud.Feishu.Abstractions\Mud.Feishu.Abstractions.csproj" />
 	</ItemGroup>
 </Project>

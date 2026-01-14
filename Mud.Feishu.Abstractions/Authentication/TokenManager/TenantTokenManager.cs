@@ -5,20 +5,21 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Mud.Feishu.Abstractions;
+using Mud.Feishu.DataModels;
 
 namespace Mud.Feishu.TokenManager;
 
 /// <summary>
-/// 应用令牌管理器
+/// 租户令牌管理。
 /// </summary>
-internal class AppTokenManager : TokenManagerWithCache, IAppTokenManager
+internal class TenantTokenManager : TokenManagerWithCache, ITenantTokenManager
 {
-    public AppTokenManager(
+    public TenantTokenManager(
        IFeishuV3AuthenticationApi authenticationApi,
        IOptions<FeishuOptions> options,
-       ILogger<TokenManagerWithCache> logger) : base(authenticationApi, options, logger, TokenType.UserAccessToken)
+       ILogger<TokenManagerWithCache> logger) : base(authenticationApi, options, logger, TokenType.TenantAccessToken)
     {
 
     }
@@ -31,11 +32,12 @@ internal class AppTokenManager : TokenManagerWithCache, IAppTokenManager
             AppSecret = _options.AppSecret
         };
 
-        var res = await _authenticationApi.GetAppAccessTokenAsync(credentials, cancellationToken);
-        if (res == null) return null;
+        var res = await _authenticationApi.GetTenantAccessTokenAsync(credentials, cancellationToken);
+        if (res == null)
+            return null;
         return new CredentialToken
         {
-            AccessToken = res.AppAccessToken ?? string.Empty,
+            AccessToken = res?.TenantAccessToken ?? string.Empty,
             Expire = res.Expire,
             Code = res.Code,
             Msg = res.Msg

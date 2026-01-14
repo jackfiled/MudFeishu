@@ -9,8 +9,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Mud.Feishu.Abstractions;
-using Mud.Feishu.Abstractions.Interceptors;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.WebSocket;
 using Mud.Feishu.WebSocket.Handlers;
@@ -49,10 +47,7 @@ public class FeishuWebSocketServiceBuilder
 
         var section = sectionName ?? "Feishu:WebSocket";
         _services.Configure<FeishuWebSocketOptions>(options => configuration.GetSection(section).Bind(options));
-        _services.CreateFeishuServicesBuilder(configuration, "Feishu")
-                 .AddTenantTokenManager()
-                 .AddAuthenticationApi()
-                 .Build();
+        _services.AddTenantTokenManager(configuration, "Feishu");
         return this;
     }
 

@@ -9,6 +9,26 @@ namespace Mud.Feishu.Abstractions;
 
 internal class Consts
 {
+    /// <summary>
+    /// 用户ID类型的默认值。
+    /// </summary>
+    public const string User_Id_Type = "open_id";
+
+    /// <summary>
+    /// 部门ID类型的默认值。
+    /// </summary>
+    public const string Department_Id_Type = "open_department_id";
+
+    /// <summary>
+    /// 授权Header名称。
+    /// </summary>
+    public const string Authorization = "Authorization";
+
+    /// <summary>
+    /// 每页的默认数量。
+    /// </summary>
+    public const int PageSize = 10;
+
     public const string HandlerNamespace = "Mud.Feishu.Abstractions.EventHandlers";
     public const string InheritedFrom = "IdempotentFeishuEventHandler";
     public const string InheritedFromObject = "DefaultFeishuObjectEventHandler";

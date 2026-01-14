@@ -5,12 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using Mud.Feishu.Extensions;
-using Polly;
-using System.Net;
-
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -31,24 +25,6 @@ public class FeishuServiceBuilder
     }
 
     /// <summary>
-    /// 从配置文件读取配置
-    /// </summary>
-    /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuServiceBuilder ConfigureFrom(IConfiguration configuration, string sectionName = "Feishu")
-    {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
-
-        var section = sectionName ?? "Feishu";
-        _services.Configure<FeishuOptions>(options => configuration.GetSection(section).Bind(options));
-
-        _configuration.IsConfigured = true;
-        return this;
-    }
-
-    /// <summary>
     /// 使用代码配置
     /// </summary>
     /// <param name="configureOptions">配置选项的委托</param>
@@ -59,103 +35,6 @@ public class FeishuServiceBuilder
             throw new ArgumentNullException(nameof(configureOptions));
 
         _services.Configure(configureOptions);
-        _configuration.IsConfigured = true;
-        return this;
-    }
-
-    /// <summary>
-    /// 添加飞书HttpClient注册代码。
-    /// </summary>
-    /// <returns></returns>
-    public FeishuServiceBuilder AddFeishuHttpClient<TImplementation>()
-        where TImplementation : class, IEnhancedHttpClient
-    {
-        if (_configuration.IsFeishuHttpClient) return this;
-
-        _services.AddHttpClient<IEnhancedHttpClient, TImplementation>((serviceProvider, client) =>
-        {
-            var options = serviceProvider.GetRequiredService<IOptions<FeishuOptions>>().Value;
-            client.BaseAddress = new Uri(options.BaseUrl ?? "https://open.feishu.cn");
-            client.DefaultRequestHeaders.Add("User-Agent", "MudFeishuClient/1.0");
-            client.Timeout = TimeSpan.FromSeconds(options.TimeOut);
-        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-        {
-            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-        }).AddTransientHttpErrorPolicy(builder =>
-        {
-            return builder.WaitAndRetryAsync(
-                3,
-                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-        });
-
-        _configuration.IsFeishuHttpClient = true;
-        return this;
-    }
-
-    /// <summary>
-    /// 添加飞书HttpClient注册代码。
-    /// </summary>
-    /// <returns></returns>
-    public FeishuServiceBuilder AddFeishuHttpClient() => AddFeishuHttpClient<FeishuHttpClient>();
-
-
-    /// <summary>
-    /// 添加令牌管理服务
-    /// </summary>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuServiceBuilder AddTokenManagers()
-    {
-        if (!_configuration.TokenManagersAdded)
-        {
-            _services
-                .AddSingleton<ITenantTokenManager, TenantTokenManager>()
-                .AddSingleton<IAppTokenManager, AppTokenManager>()
-                .AddSingleton<IUserTokenManager, UserTokenManager>();
-
-            _configuration.TokenManagersAdded = true;
-        }
-        return this;
-    }
-
-    /// <summary>
-    /// 添加租户令牌管理服务
-    /// </summary>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuServiceBuilder AddTenantTokenManager()
-    {
-        if (!_configuration.TenantTokenManagerAdded)
-        {
-            _services.AddSingleton<ITenantTokenManager, TenantTokenManager>();
-            _configuration.TenantTokenManagerAdded = true;
-        }
-        return this;
-    }
-
-    /// <summary>
-    /// 添加应用令牌管理服务
-    /// </summary>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuServiceBuilder AddAppTokenManager()
-    {
-        if (!_configuration.AppTokenManagerAdded)
-        {
-            _services.AddSingleton<IAppTokenManager, AppTokenManager>();
-            _configuration.AppTokenManagerAdded = true;
-        }
-        return this;
-    }
-
-    /// <summary>
-    /// 添加用户令牌管理服务
-    /// </summary>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuServiceBuilder AddUserTokenManager()
-    {
-        if (!_configuration.UserTokenManagerAdded)
-        {
-            _services.AddSingleton<IUserTokenManager, UserTokenManager>();
-            _configuration.UserTokenManagerAdded = true;
-        }
         return this;
     }
 
@@ -167,8 +46,6 @@ public class FeishuServiceBuilder
     {
         if (!_configuration.OrganizationApiAdded)
         {
-            AddFeishuHttpClient();
-            AddTokenManagers(); // Organization API 通常需要令牌管理
             _services.AddOrganizationWebApiHttpClient();
             _configuration.OrganizationApiAdded = true;
         }
@@ -183,8 +60,6 @@ public class FeishuServiceBuilder
     {
         if (!_configuration.MessageApiAdded)
         {
-            AddFeishuHttpClient();
-            AddTokenManagers(); // Message API 通常需要令牌管理
             _services.AddMessageWebApiHttpClient();
             _configuration.MessageApiAdded = true;
         }
@@ -199,8 +74,6 @@ public class FeishuServiceBuilder
     {
         if (!_configuration.ChatGroupApiAdded)
         {
-            AddFeishuHttpClient();
-            AddTokenManagers(); // ChatGroup API 通常需要令牌管理
             _services.AddChatGroupWebApiHttpClient();
             _configuration.ChatGroupApiAdded = true;
         }
@@ -215,8 +88,6 @@ public class FeishuServiceBuilder
     {
         if (!_configuration.ApprovalApiAdded)
         {
-            AddFeishuHttpClient();
-            AddTokenManagers(); // Approval API 通常需要令牌管理
             _services.AddApprovalWebApiHttpClient();
             _configuration.ApprovalApiAdded = true;
         }
@@ -231,8 +102,6 @@ public class FeishuServiceBuilder
     {
         if (!_configuration.TaskApiAdded)
         {
-            AddFeishuHttpClient();
-            AddTokenManagers();
             _services.AddTaskWebApiHttpClient();
             _configuration.TaskApiAdded = true;
         }
@@ -247,8 +116,6 @@ public class FeishuServiceBuilder
     {
         if (!_configuration.CardApiAdded)
         {
-            AddFeishuHttpClient();
-            AddTokenManagers();
             _services.AddCardsWebApiHttpClient();
             _configuration.CardApiAdded = true;
         }
@@ -261,39 +128,12 @@ public class FeishuServiceBuilder
     /// <returns>建造者实例，支持链式调用</returns>
     public FeishuServiceBuilder AddAllApis()
     {
-        return AddFeishuHttpClient()
-               .AddTokenManagers()
-               .AddOrganizationApi()
+        return AddOrganizationApi()
                .AddMessageApi()
                .AddChatGroupApi()
                .AddApprovalApi()
                .AddTaskApi()
                .AddCardApi();
-    }
-
-    /// <summary>
-    /// 添加核心令牌管理服务（不包含具体的 API 客户端）
-    /// </summary>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuServiceBuilder AddCoreServices()
-    {
-        return AddFeishuHttpClient().
-               AddTokenManagers();
-    }
-
-    /// <summary>
-    /// 添加认证 API 服务
-    /// </summary>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuServiceBuilder AddAuthenticationApi()
-    {
-        if (!_configuration.AuthenticationApiAdded)
-        {
-            AddFeishuHttpClient();
-            _services.AddTransient<IFeishuV3AuthenticationApi, FeishuV3AuthenticationApi>();
-            _configuration.AuthenticationApiAdded = true;
-        }
-        return this;
     }
 
     /// <summary>
@@ -307,9 +147,6 @@ public class FeishuServiceBuilder
         {
             switch (module)
             {
-                case FeishuModule.TokenManagement:
-                    AddTokenManagers();
-                    break;
                 case FeishuModule.Organization:
                     AddOrganizationApi();
                     break;
@@ -321,9 +158,6 @@ public class FeishuServiceBuilder
                     break;
                 case FeishuModule.Approval:
                     AddApprovalApi();
-                    break;
-                case FeishuModule.Authentication:
-                    AddAuthenticationApi();
                     break;
                 case FeishuModule.All:
                     AddAllApis();
@@ -339,12 +173,6 @@ public class FeishuServiceBuilder
     /// <returns>服务集合，支持链式调用</returns>
     public IServiceCollection Build()
     {
-        // 验证配置
-        if (!_configuration.IsConfigured)
-        {
-            throw new InvalidOperationException("必须先配置 FeishuOptions，请使用 ConfigureFrom 或 ConfigureOptions 方法。");
-        }
-
         // 验证至少添加了一个服务
         if (!_configuration.HasAnyService())
         {
@@ -381,11 +209,6 @@ public class FeishuServiceBuilder
 public enum FeishuModule
 {
     /// <summary>
-    /// 令牌管理
-    /// </summary>
-    TokenManagement,
-
-    /// <summary>
     /// 组织管理
     /// </summary>
     Organization,
@@ -399,11 +222,6 @@ public enum FeishuModule
     /// 群聊管理
     /// </summary>
     ChatGroup,
-
-    /// <summary>
-    /// 认证服务
-    /// </summary>
-    Authentication,
 
     /// <summary>
     /// 流程审批管理
@@ -421,12 +239,6 @@ public enum FeishuModule
 /// </summary>
 internal class FeishuServiceConfiguration
 {
-    public bool IsConfigured { get; set; }
-    public bool IsFeishuHttpClient { get; set; }
-    public bool TokenManagersAdded { get; set; }
-    public bool TenantTokenManagerAdded { get; set; }
-    public bool AppTokenManagerAdded { get; set; }
-    public bool UserTokenManagerAdded { get; set; }
     public bool OrganizationApiAdded { get; set; }
     public bool MessageApiAdded { get; set; }
     public bool ChatGroupApiAdded { get; set; }
@@ -441,10 +253,7 @@ internal class FeishuServiceConfiguration
     /// <returns>是否添加了服务</returns>
     public bool HasAnyService()
     {
-        return TokenManagersAdded ||
-               TenantTokenManagerAdded ||
-               AppTokenManagerAdded ||
-               UserTokenManagerAdded ||
+        return
                OrganizationApiAdded ||
                MessageApiAdded ||
                ChatGroupApiAdded ||

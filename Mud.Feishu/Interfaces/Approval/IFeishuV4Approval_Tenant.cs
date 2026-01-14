@@ -17,7 +17,6 @@ namespace Mud.Feishu;
 [Header(Consts.Authorization)]
 public interface IFeishuTenantV4Approval
 {
-
     /// <summary>
     /// 用于创建审批定义，可以灵活指定审批定义的基础信息、表单和流程等。
     /// </summary>
