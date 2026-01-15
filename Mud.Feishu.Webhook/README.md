@@ -183,7 +183,28 @@ app.UseFeishuWebhook();
 app.Run();
 ```
 
-### 🔧 方式三：高级建造者模式
+### 🔌 方式三：添加事件拦截器
+
+```csharp
+using Mud.Feishu.Webhook.Extensions;
+using Mud.Feishu.Abstractions.Interceptors;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 添加内置和自定义拦截器
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddInterceptor<LoggingEventInterceptor>()  // 内置日志拦截器
+    .AddInterceptor<TelemetryEventInterceptor>()  // 内置遥测拦截器
+    .AddInterceptor<AuditLogInterceptor>()  // 自定义审计拦截器
+    .AddHandler<MessageEventHandler>()
+    .Build();
+
+var app = builder.Build();
+app.UseFeishuWebhook();
+app.Run();
+```
+
+### 🔧 方式四：高级建造者模式
 
 ```csharp
 using Mud.Feishu.Webhook.Extensions;
@@ -192,7 +213,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 使用建造者模式进行复杂配置
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .ConfigureFrom(builder.Configuration, "FeishuWebhook")
     .EnableHealthChecks()    // 启用健康检查
     .AddHandler<MessageReceiveEventHandler>()
     .AddHandler<DepartmentCreatedEventHandler>()
@@ -207,7 +227,7 @@ app.UseFeishuWebhook();
 app.Run();
 ```
 
-### 🔥 方式四：指定配置节名称
+### 🔥 方式五：指定配置节名称
 
 ```csharp
 using Mud.Feishu.Webhook.Extensions;
@@ -462,6 +482,129 @@ builder.Services.CreateFeishuWebhookServiceBuilder(options =>
     .Build();
 ```
 
+## 事件拦截器（Interceptors）
+
+事件拦截器允许在事件处理前后执行自定义逻辑，如日志记录、指标收集、权限验证等。
+
+### 内置拦截器
+
+**LoggingEventInterceptor** - 记录事件处理日志
+
+```csharp
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddInterceptor<LoggingEventInterceptor>()  // 记录事件处理开始和结束
+    .AddHandler<MessageEventHandler>()
+    .Build();
+```
+
+**TelemetryEventInterceptor** - 遥测数据收集
+
+```csharp
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddInterceptor<TelemetryEventInterceptor>(sp =>
+        new TelemetryEventInterceptor("My.Application"))  // 指定应用名称
+    .AddHandler<MessageEventHandler>()
+    .Build();
+```
+
+### 自定义拦截器
+
+创建自定义拦截器需要实现 `IFeishuEventInterceptor` 接口：
+
+```csharp
+using Mud.Feishu.Abstractions;
+
+/// <summary>
+/// 审计日志拦截器示例
+/// </summary>
+public class AuditLogInterceptor : IFeishuEventInterceptor
+{
+    private readonly ILogger<AuditLogInterceptor> _logger;
+
+    public AuditLogInterceptor(ILogger<AuditLogInterceptor> logger)
+        => _logger = logger;
+
+    /// <summary>
+    /// 事件处理前拦截
+    /// </summary>
+    /// <returns>返回 false 将中断事件处理流程</returns>
+    public Task<bool> BeforeHandleAsync(string eventType, EventData eventData, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[审计] 事件开始: {EventType}, EventId: {EventId}, TenantKey: {TenantKey}",
+            eventType, eventData.EventId, eventData.TenantKey);
+        return Task.FromResult(true); // 返回 true 继续处理，false 中断
+    }
+
+    /// <summary>
+    /// 事件处理后拦截
+    /// </summary>
+    public Task AfterHandleAsync(string eventType, EventData eventData, Exception? exception, CancellationToken cancellationToken = default)
+    {
+        if (exception == null)
+        {
+            _logger.LogInformation("[审计] 事件成功: {EventType}, EventId: {EventId}", eventType, eventData.EventId);
+        }
+        else
+        {
+            _logger.LogError(exception, "[审计] 事件失败: {EventType}, EventId: {EventId}", eventType, eventData.EventId);
+        }
+        return Task.CompletedTask;
+    }
+}
+```
+
+### 注册自定义拦截器
+
+```csharp
+// 类型注册
+.AddInterceptor<AuditLogInterceptor>()
+
+// 工厂注册
+.AddInterceptor(sp => new AuditLogInterceptor(
+    sp.GetRequiredService<ILogger<AuditLogInterceptor>>()))
+
+// 实例注册
+var interceptor = new AuditLogInterceptor(logger);
+.AddInterceptor(interceptor)
+```
+
+### 拦截器执行顺序
+
+拦截器按注册顺序依次执行，完整流程：
+
+```
+Webhook 事件到达
+    ↓
+拦截器1: BeforeHandleAsync
+    ↓
+拦截器2: BeforeHandleAsync
+    ↓
+...
+    ↓
+拦截器N: BeforeHandleAsync
+    ↓
+[事件处理器处理事件]
+    ↓
+拦截器N: AfterHandleAsync
+    ↓
+...
+    ↓
+拦截器2: AfterHandleAsync
+    ↓
+拦截器1: AfterHandleAsync
+    ↓
+处理完成
+```
+
+### 应用场景
+
+- **日志记录**：记录事件处理的开始、成功、失败
+- **指标收集**：统计事件处理时间、成功率等
+- **安全审计**：记录敏感事件的处理情况
+- **权限控制**：根据事件类型或内容决定是否处理
+- **性能监控**：记录处理耗时，识别性能瓶颈
+- **业务追踪**：将事件信息写入审计日志或追踪系统
+
 ## 注册事件处理器
 
 ### 链式调用注册多个处理器
@@ -481,7 +624,7 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 ```csharp
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .AddHandler<MessageEventHandler>(sp => 
+    .AddHandler<MessageEventHandler>(sp =>
     {
         var logger = sp.GetRequiredService<ILogger<MessageEventHandler>>();
         var myService = sp.GetRequiredService<MyCustomService>();

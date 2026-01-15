@@ -131,10 +131,8 @@ var app = builder.Build();
 ```csharp
 // 按需灵活注册服务（使用配置文件）
 builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
-    .AddTokenManagers()                   // 令牌管理
-    .AddAuthenticationApi()               // 认证 API
-    .AddOrganizationApi()                 // 组织架构
-    .AddMessageApi()                      // 消息服务
+    .AddOrganizationApi()                  // 组织架构
+    .AddMessageApi()                       // 消息服务
     .AddChatGroupApi()                    // 群组服务
     .AddApprovalApi()                     // 流程审批
     .AddTaskApi()                         // 任务管理
@@ -161,7 +159,6 @@ builder.Services.CreateFeishuServicesBuilder(options =>
 // 仅注册需要的模块
 builder.Services.AddFeishuServices(builder.Configuration, new[]
 {
-    FeishuModule.TokenManagement,  // 令牌管理
     FeishuModule.Organization,      // 组织架构
     FeishuModule.Message,          // 消息服务
     FeishuModule.ChatGroup         // 群组服务
@@ -399,22 +396,16 @@ public async Task<List<UserInfo>> GetDepartmentUsersAsync(string departmentId)
 #### 服务注册
 
 ```csharp
-// 配置基础令牌服务
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
-    .AddAuthenticationApi()
-    .AddTokenManagers()
-    .Build();
-
-// 配置 Redis 分布式去重（可选）
-builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
-
-// 配置 WebSocket 服务
+// 配置 WebSocket 服务（自动包含令牌管理）
 builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<MessageEventHandler>()        // 消息事件
     .AddHandler<UserEventHandler>()           // 用户事件
     .AddHandler<DepartmentCreatedEventHandler>()  // 部门创建事件
     .AddHandler<DepartmentDeletedEventHandler>()  // 部门删除事件
     .Build();
+
+// 配置 Redis 分布式去重（可选）
+builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
 ```
 
 #### 配置选项

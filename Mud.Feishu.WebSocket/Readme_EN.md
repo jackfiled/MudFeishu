@@ -11,6 +11,7 @@ Enterprise-grade Feishu event subscription WebSocket client, providing reliable 
 - 🫀 **Heartbeat Message Processing** - Supports Feishu heartbeat message type, real-time connection status monitoring
 - 🚀 **High-Performance Message Processing** - Async processing, message queuing, parallel execution
 - 🎯 **Strategy Pattern Event Handling** - Extensible event handler architecture
+- 🔌 **Event Interceptors** - Support inserting custom logic before/after event handling (logging, telemetry, rate limiting, etc.)
 - 🛡️ **Enterprise-Grade Stability** - Comprehensive error handling, resource management, logging
 - ⚙️ **Flexible Configuration** - Supports configuration files, code configuration, and builder pattern
 - 📊 **Monitoring-Friendly** - Detailed event notifications, performance metrics, heartbeat statistics
@@ -33,7 +34,7 @@ using Mud.Feishu.WebSocket;
 var builder = WebApplication.CreateBuilder(args);
 
 // One line to register WebSocket service (requires at least one event handler)
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<ReceiveMessageEventHandler>()
     .Build();
 
@@ -45,7 +46,7 @@ app.Run();
 
 ```csharp
 // Register from configuration file and add event handlers
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<ReceiveMessageEventHandler>()
     .AddHandler<UserCreatedEventHandler>()
     .Build();
@@ -150,33 +151,60 @@ Mud.Feishu.WebSocket/
 
 ```csharp
 // One line to complete basic configuration
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration);
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+    .AddHandler<ReceiveMessageEventHandler>()
+    .Build();
+```
 
-// Add event handlers
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
+### 📋 Register Multiple Event Handlers
+
+```csharp
+// Support chaining, register multiple handlers
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<ReceiveMessageEventHandler>()
     .AddHandler<UserCreatedEventHandler>()
-    .UseMultiHandler();
+    .AddHandler<MessageReadEventHandler>()
+    .Build();
 ```
 
 ### ⚙️ Code Configuration
 
 ```csharp
-builder.Services.AddFeishuWebSocketServiceBuilder(options =>
+// Use delegate to configure options
+builder.Services.CreateFeishuWebSocketServiceBuilder(options =>
 {
     options.AppId = "your_app_id";
     options.AppSecret = "your_app_secret";
     options.AutoReconnect = true;
     options.HeartbeatIntervalMs = 30000;
-});
+})
+.AddHandler<ReceiveMessageEventHandler>()
+.Build();
 ```
 
-### 🔧 Advanced Configuration (Builder Pattern)
+### 🔌 Add Event Interceptors
 
 ```csharp
-builder.Services.AddFeishuWebSocketServiceBuilder(configuration)
+// Add built-in logging interceptor and custom interceptor
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+    .AddInterceptor<LoggingEventInterceptor>()  // Built-in logging interceptor
+    .AddInterceptor<CustomTelemetryInterceptor>()  // Custom telemetry interceptor
     .AddHandler<ReceiveMessageEventHandler>()
     .Build();
+```
+
+### 🎯 Three Handler Registration Methods
+
+```csharp
+// Method 1: Type registration (recommended)
+.AddHandler<ReceiveMessageEventHandler>()
+
+// Method 2: Factory registration
+.AddHandler(sp => new FactoryEventHandler(
+    sp.GetRequiredService<ILogger<FactoryEventHandler>>()))
+
+// Method 3: Instance registration
+.AddHandler(new InstanceEventHandler())
 ```
 
 ---
@@ -423,16 +451,115 @@ public class CustomEventHandler : IFeishuEventHandler
 
 ```csharp
 // Register handlers (multiple ways)
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<CustomEventHandler>()                    // Type registration
     .AddHandler(sp => new FactoryEventHandler(           // Factory registration
         sp.GetRequiredService<ILogger<FactoryEventHandler>>()))
-    .AddHandler(new InstanceEventHandler());               // Instance registration
-
-// Or use builder pattern
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
-    .AddHandler<CustomEventHandler>()
+    .AddHandler(new InstanceEventHandler())               // Instance registration
     .Build();
+```
+
+### Event Interceptors
+
+Event interceptors allow executing custom logic before and after event handling, such as logging, metrics collection, permission verification, etc.
+
+#### Built-in Interceptor
+
+**LoggingEventInterceptor** - Record event handling logs
+
+```csharp
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+    .AddInterceptor<LoggingEventInterceptor>()  // Record event handling start and end
+    .AddHandler<ReceiveMessageEventHandler>()
+    .Build();
+```
+
+#### Custom Interceptors
+
+Create custom interceptors by implementing the `IFeishuEventInterceptor` interface:
+
+```csharp
+using Mud.Feishu.Abstractions;
+
+/// <summary>
+/// Custom telemetry interceptor example
+/// </summary>
+public class CustomTelemetryInterceptor : IFeishuEventInterceptor
+{
+    private readonly ILogger<CustomTelemetryInterceptor> _logger;
+
+    public CustomTelemetryInterceptor(ILogger<CustomTelemetryInterceptor> logger)
+        => _logger = logger;
+
+    /// <summary>
+    /// Before event handling interceptor
+    /// </summary>
+    /// <returns>Return false to interrupt event handling flow</returns>
+    public Task<bool> BeforeHandleAsync(string eventType, EventData eventData, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[Telemetry] Event started: {EventType}, EventId: {EventId}", eventType, eventData.EventId);
+        return Task.FromResult(true); // Return true to continue, false to interrupt
+    }
+
+    /// <summary>
+    /// After event handling interceptor
+    /// </summary>
+    public Task AfterHandleAsync(string eventType, EventData eventData, Exception? exception, CancellationToken cancellationToken = default)
+    {
+        if (exception == null)
+        {
+            _logger.LogInformation("[Telemetry] Event succeeded: {EventType}", eventType);
+        }
+        else
+        {
+            _logger.LogError(exception, "[Telemetry] Event failed: {EventType}", eventType);
+        }
+        return Task.CompletedTask;
+    }
+}
+```
+
+#### Register Custom Interceptors
+
+```csharp
+// Type registration
+.AddInterceptor<CustomTelemetryInterceptor>()
+
+// Factory registration
+.AddInterceptor(sp => new CustomTelemetryInterceptor(
+    sp.GetRequiredService<ILogger<CustomTelemetryInterceptor>>()))
+
+// Instance registration
+var interceptor = new CustomTelemetryInterceptor(logger);
+.AddInterceptor(interceptor)
+```
+
+#### Interceptor Execution Order
+
+Interceptors execute in registration order, complete flow:
+
+```
+WebSocket Event Arrives
+    ↓
+Interceptor 1: BeforeHandleAsync
+    ↓
+Interceptor 2: BeforeHandleAsync
+    ↓
+...
+    ↓
+Interceptor N: BeforeHandleAsync
+    ↓
+[Event Handler Handles Event]
+    ↓
+Interceptor N: AfterHandleAsync
+    ↓
+...
+    ↓
+Interceptor 2: AfterHandleAsync
+    ↓
+Interceptor 1: AfterHandleAsync
+    ↓
+Handling Complete
 ```
 
 #### Runtime Dynamic Registration
@@ -479,35 +606,16 @@ public class ServiceManager
 | `MaxBinaryMessageSize` | long | 10485760 | Max binary message size (bytes) |
 | `HealthCheckIntervalMs` | int | 60000 | Health check interval (ms) |
 | `ParallelMultiHandlers` | bool | true | Parallel execution for multiple handlers *Not currently used* |
-
-## ⚙️ Configuration Options
-
-### Main Configuration Items
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `AutoReconnect` | bool | true | Auto reconnect |
-| `MaxReconnectAttempts` | int | 5 | Max reconnect attempts |
-| `ReconnectDelayMs` | int | 5000 | Reconnect delay (ms) |
-| `MaxReconnectDelayMs` | int | 30000 | Max reconnect delay (ms) |
-| `HeartbeatIntervalMs` | int | 30000 | Heartbeat interval (ms) |
-| `ConnectionTimeoutMs` | int | 10000 | Connection timeout (ms) |
-| `ReceiveBufferSize` | int | 4096 | Receive buffer size |
-| `MaxMessageSize` | int | 1048576 | Max message size (characters) |
-| `EnableLogging` | bool | true | Enable logging |
-| `EnableMessageQueue` | bool | true | Enable message queue |
-| `MessageQueueCapacity` | int | 1000 | Message queue capacity |
-| `EmptyQueueCheckIntervalMs` | int | 100 | Empty queue check interval (ms) |
-| `MaxBinaryMessageSize` | long | 10485760 | Max binary message size (bytes) |
-| `HealthCheckIntervalMs` | int | 60000 | Health check interval (ms) |
-| `ParallelMultiHandlers` | bool | true | Parallel execution for multiple handlers *Not currently used* |
+| `EnableDetailedErrorTracking` | bool | false | Enable detailed error tracking |
+| `MaxAuthenticationFailureCount` | int | 5 | Max authentication failure count |
+| `AuthenticationFailureWindowMinutes` | int | 10 | Authentication failure statistics window (minutes) |
 
 ## 🎯 Advanced Usage
 
 ### Multi-Environment Configuration
 
 ```csharp
-var webSocketBuilder = builder.Services.AddFeishuWebSocketServiceBuilder(configuration);
+var webSocketBuilder = builder.Services.CreateFeishuWebSocketServiceBuilder(configuration);
 
 if (builder.Environment.IsDevelopment())
 {
@@ -518,7 +626,7 @@ if (builder.Environment.IsDevelopment())
 }
 else
 {
-    webSocketBuilder.ConfigureFrom(configuration, "Production:WebSocket");
+    webSocketBuilder.ConfigureFrom(configuration, "Production:Feishu:WebSocket");
 }
 
 webSocketBuilder.AddHandler<DevEventHandler>()
@@ -529,15 +637,42 @@ webSocketBuilder.AddHandler<DevEventHandler>()
 ### Conditional Handler Registration
 
 ```csharp
-builder.Services.AddFeishuWebSocketServiceBuilder(configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(configuration)
     .AddHandler<BaseEventHandler>()
     .Apply(webSocketBuilder => {
         if (configuration.GetValue<bool>("Features:EnableAudit"))
             webSocketBuilder.AddHandler<AuditEventHandler>();
-        
+
         if (configuration.GetValue<bool>("Features:EnableAnalytics"))
             webSocketBuilder.AddHandler<AnalyticsEventHandler>();
+
+        if (configuration.GetValue<bool>("Features:EnableTelemetry"))
+            webSocketBuilder.AddInterceptor<TelemetryInterceptor>();
     })
+    .Build();
+```
+
+### Configure Redis Distributed Deduplication
+
+```csharp
+// Register Redis distributed deduplication service
+builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
+
+// Configure Feishu WebSocket service
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+    .AddInterceptor<LoggingEventInterceptor>()
+    .AddHandler<ReceiveMessageEventHandler>()
+    .Build();
+```
+
+### Specify Configuration Section Name
+
+```csharp
+// Use non-default configuration section
+builder.Services.CreateFeishuWebSocketServiceBuilder(
+        configuration,
+        sectionName: "CustomFeishu")  // Configuration section name
+    .AddHandler<ReceiveMessageEventHandler>()
     .Build();
 ```
 

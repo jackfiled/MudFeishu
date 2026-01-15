@@ -229,7 +229,7 @@ builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
     .Build();
 
 // Register WebSocket Event Subscription
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<MessageEventHandler>()
     .Build();
 
@@ -451,7 +451,7 @@ public class MessageHandler : IFeishuEventHandler
 }
 
 // Register handler
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<MessageHandler>()
     .Build();
 ```
