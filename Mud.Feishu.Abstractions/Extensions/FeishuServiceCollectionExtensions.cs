@@ -12,6 +12,7 @@ using Mud.Feishu.Abstractions.Internal;
 using Mud.Feishu.TokenManager;
 using Polly;
 using System.Net;
+using System.Text.Json;
 
 namespace Mud.Feishu.Abstractions;
 
@@ -92,7 +93,8 @@ public static class FeishuServiceCollectionExtensions
                 retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
         });
 
-        services.AddTransient<IFeishuV3AuthenticationApi, FeishuV3AuthenticationApi>();
+        services.AddSingleton<IFeishuV3AuthenticationApi, FeishuV3AuthenticationApi>();
+        services.Configure<JsonSerializerOptions>(options => HttpClientExtensions.GetDefaultJsonSerializerOptions());
         _isFeishuHttpClient = true;
         return services;
     }

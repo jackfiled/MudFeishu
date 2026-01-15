@@ -11,7 +11,18 @@ using Mud.Feishu.Abstractions;
 namespace Mud.Feishu.TokenManager;
 
 /// <summary>
-/// 用户令牌管理器。
+/// 用户令牌管理器
+/// <para>
+/// 注意：此管理器需要通过 OAuth 授权流程获取用户令牌。
+/// 服务器端无法自动获取用户令牌，必须经过用户授权后才能使用。
+/// </para>
+/// <para>
+/// 使用流程：
+/// 1. 引导用户到飞书授权页面（通过 <see cref="IFeishuV3AuthenticationApi.GetUserAccessTokenAsync"/>）
+/// 2. 用户授权后获取授权码 code
+/// 3. 使用授权码调用 <see cref="IFeishuV3AuthenticationApi.GetOAuthenAccessTokenAsync"/> 获取用户令牌
+/// 4. 令牌有效期2小时，可使用 refresh_token 刷新
+/// </para>
 /// </summary>
 internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
 {
@@ -25,20 +36,68 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
 
     protected override async Task<CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)
     {
-        var credentials = new AppCredentials
+        throw new NotSupportedException(
+            "用户令牌无法自动获取。请先通过 OAuth 授权流程获取用户授权码，" +
+            "然后使用授权码调用 GetOAuthenAccessTokenAsync 获取用户令牌。" +
+            "参考文档：https://open.feishu.cn/document/server-docs/authentication-management/access-token/obtain-user_token");
+    }
+
+    /// <summary>
+    /// 使用授权码获取用户令牌
+    /// </summary>
+    /// <param name="code">授权码</param>
+    /// <param name="redirectUri">重定向地址</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>用户令牌信息</returns>
+    public async Task<CredentialToken?> GetUserTokenWithCodeAsync(string code, string redirectUri, CancellationToken cancellationToken = default)
+    {
+        var credentials = new DataModels.OAuthTokenRequest
         {
-            AppId = _options.AppId,
-            AppSecret = _options.AppSecret
+            GrantType = "authorization_code",
+            ClientId = _options.AppId,
+            ClientSecret = _options.AppSecret,
+            Code = code,
+            RedirectUri = redirectUri
         };
 
-        var res = await _authenticationApi.GetTenantAccessTokenAsync(credentials, cancellationToken);
+        var res = await _authenticationApi.GetOAuthenAccessTokenAsync(credentials, cancellationToken);
         if (res == null) return null;
+
         return new CredentialToken
         {
-            AccessToken = res.TenantAccessToken ?? string.Empty,
-            Expire = res.Expire,
+            AccessToken = res.AccessToken ?? string.Empty,
+            Expire = res.ExpiresIn,
             Code = res.Code,
-            Msg = res.Msg
+            Msg = res.ErrorDescription ?? "Success"
+        };
+    }
+
+    /// <summary>
+    /// 使用刷新令牌获取新的用户令牌
+    /// </summary>
+    /// <param name="refreshToken">刷新令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>新的用户令牌信息</returns>
+    public async Task<CredentialToken?> RefreshUserTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        var credentials = new DataModels.OAuthRefreshTokenRequest
+        {
+            GrantType = "refresh_token",
+            ClientId = _options.AppId,
+            ClientSecret = _options.AppSecret,
+            RefreshToken = refreshToken
+        };
+
+        var res = await _authenticationApi.GetOAuthenRefreshAccessTokenAsync(credentials, cancellationToken);
+        if (res == null) return null;
+
+        return new CredentialToken
+        {
+            AccessToken = res.AccessToken ?? string.Empty,
+            Expire = res.ExpiresIn,
+            Code = res.Code,
+            Msg = res.ErrorDescription ?? "Success"
         };
     }
 }
+
