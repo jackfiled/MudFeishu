@@ -7,7 +7,6 @@
 
 using Microsoft.Extensions.Options;
 using Mud.Feishu.Abstractions;
-using Mud.Feishu.DataModels;
 
 namespace Mud.Feishu.TokenManager;
 
@@ -32,11 +31,11 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
             AppSecret = _options.AppSecret
         };
 
-        var res = await _authenticationApi.GetAppAccessTokenAsync(credentials, cancellationToken);
+        var res = await _authenticationApi.GetTenantAccessTokenAsync(credentials, cancellationToken);
         if (res == null) return null;
         return new CredentialToken
         {
-            AccessToken = res.AppAccessToken ?? string.Empty,
+            AccessToken = res.TenantAccessToken ?? string.Empty,
             Expire = res.Expire,
             Code = res.Code,
             Msg = res.Msg

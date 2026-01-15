@@ -5,8 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.Extensions.Logging;
-
 namespace Mud.Feishu.Abstractions.Services;
 
 /// <summary>
@@ -74,6 +72,33 @@ public class FeishuSeqIDDeduplicator : IFeishuSeqIDDeduplicator, IAsyncDisposabl
 
             _logger?.LogDebug("SeqID {SeqId} 标记为已处理，当前最大 SeqID: {MaxSeqId}", seqId, _maxProcessedSeqId);
             return false; // 未处理，新消息
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<bool> TryMarkAsProcessedAsync(ulong seqId)
+    {
+        lock (_lock)
+        {
+            // 检查是否已存在
+            if (_processedSeqIds.Contains(seqId))
+            {
+                _logger?.LogDebug("SeqID {SeqId} 已处理过，跳过", seqId);
+                return Task.FromResult(true); // 已处理
+            }
+
+            // 记录新 SeqID
+            _processedSeqIds.Add(seqId);
+            _seqIdTimestamps[seqId] = DateTimeOffset.UtcNow;
+
+            // 更新最大 SeqID
+            if (seqId > _maxProcessedSeqId)
+            {
+                _maxProcessedSeqId = seqId;
+            }
+
+            _logger?.LogDebug("SeqID {SeqId} 标记为已处理，当前最大 SeqID: {MaxSeqId}", seqId, _maxProcessedSeqId);
+            return Task.FromResult(false); // 未处理，新消息
         }
     }
 

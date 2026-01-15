@@ -15,19 +15,19 @@ internal class FeishuHttpClient : IEnhancedHttpClient
     private readonly HttpClient _httpClient;
     private readonly ILogger<FeishuHttpClient> _logger;
     private readonly FeishuOptions _feishuOptions;
-    private readonly JsonSerializerOptions _jsonSerializerOptions;
+    private readonly IOptionsMonitor<JsonSerializerOptions> _jsonSerializerOptionsMonitor;
 
     public FeishuHttpClient(
         HttpClient httpClient,
         ILogger<FeishuHttpClient> logger,
         IOptions<FeishuOptions> options,
-        IOptions<JsonSerializerOptions> serializerOptions)
+        IOptionsMonitor<JsonSerializerOptions> serializerOptions)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _feishuOptions = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _jsonSerializerOptions = serializerOptions?.Value ?? HttpClientExtensions.GetDefaultJsonSerializerOptions();
+        _jsonSerializerOptionsMonitor = serializerOptions ?? throw new ArgumentNullException(nameof(serializerOptions));
 
     }
 
@@ -45,7 +45,7 @@ internal class FeishuHttpClient : IEnhancedHttpClient
 
             var result = await _httpClient.SendRequestAsync<TResult>(
                 request,
-                jsonSerializerOptions: _jsonSerializerOptions,
+                jsonSerializerOptions: _jsonSerializerOptionsMonitor.CurrentValue,
                 logger: _feishuOptions.EnableLogging ? _logger : null,
                 cancellationToken: cancellationToken);
 

@@ -81,6 +81,41 @@ public class RedisFeishuSeqIDDeduplicator : IFeishuSeqIDDeduplicator, IAsyncDisp
         }
     }
 
+    /// <summary>
+    /// 尝试标记 SeqID 为已处理（异步版本）
+    /// </summary>
+    public async Task<bool> TryMarkAsProcessedAsync(ulong seqId)
+    {
+        try
+        {
+            var redisKey = GetRedisKey(seqId);
+
+            // 使用 SETNX + EXPIRE 实现原子性去重
+            var setResult = await _database.StringSetAsync(
+                redisKey,
+                "1",
+                _defaultCacheExpiration,
+                When.NotExists);
+
+            if (!setResult)
+            {
+                _logger?.LogDebug("SeqID {SeqId} 已处理过，跳过", seqId);
+                return true; // 已处理
+            }
+
+            // 更新最大 SeqID（使用 ZINCRBY 记录在 Sorted Set 中）
+            var sortedSetKey = $"{_keyPrefix}set";
+            await _database.SortedSetAddAsync(sortedSetKey, seqId.ToString(), seqId);
+
+            return false; // 未处理，新消息
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "尝试标记 SeqID {SeqId} 为已处理时发生错误", seqId);
+            return false;
+        }
+    }
+
     /// <inheritdoc />
     public bool IsProcessed(ulong seqId)
     {

@@ -19,7 +19,7 @@ internal class AppTokenManager : TokenManagerWithCache, IAppTokenManager
     public AppTokenManager(
        IFeishuV3AuthenticationApi authenticationApi,
        IOptions<FeishuOptions> options,
-       ILogger<TokenManagerWithCache> logger) : base(authenticationApi, options, logger, TokenType.UserAccessToken)
+       ILogger<TokenManagerWithCache> logger) : base(authenticationApi, options, logger, TokenType.AppAccessToken)
     {
 
     }
