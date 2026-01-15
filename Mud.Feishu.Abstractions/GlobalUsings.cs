@@ -8,6 +8,7 @@
 global using Microsoft.Extensions.Logging;
 global using Mud.CodeGenerator;
 global using Mud.Feishu.Abstractions.EventHandlers;
-global using System.Text.Json.Serialization;
 global using Mud.Feishu.Abstractions.Services;
+global using Mud.Feishu.DataModels;
+global using System.Text.Json.Serialization;
 

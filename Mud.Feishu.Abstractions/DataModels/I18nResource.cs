@@ -5,28 +5,40 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu.Abstractions.DataModels;
+namespace Mud.Feishu.DataModels;
 
 /// <summary>
-/// 国际化文案。
+/// <para>国际化文案</para>
 /// </summary>
 public class I18nResource
 {
     /// <summary>
-    /// 当前语言是否为默认语言。
+    /// <para>语言。</para>
+    /// <para>必填：是</para>
+    /// <para>示例值：zh-CN</para>
+    /// <para>可选值：<list type="bullet">
+    /// <item>zh-CN：中文</item>
+    /// <item>en-US：英文</item>
+    /// <item>ja-JP：日文</item>
+    /// </list></para>
+    /// </summary>
+    [JsonPropertyName("locale")]
+    public string Locale { get; set; } = string.Empty;
+
+    /// <summary>
+    /// <para>文案的 key、value。</para>
+    /// <para>必填：是</para>
+    /// <para>示例值：{ "@i18n@1": "权限申请", "@i18n@2": "OA审批", "@i18n@3": "Permission" }</para>
+    /// </summary>
+    [JsonPropertyName("texts")]
+    public I18nResourceText[] Texts { get; set; } = [];
+
+
+    /// <summary>
+    /// <para>是否为默认语言。默认语言需要包含所有 key，非默认语言如果 key 不存在会使用默认语言代替。</para>
+    /// <para>必填：是</para>
+    /// <para>示例值：true</para>
     /// </summary>
     [JsonPropertyName("is_default")]
     public bool IsDefault { get; set; }
-
-    /// <summary>
-    /// 当前的语言，例如 zh_cn 代表中文。
-    /// </summary>
-    [JsonPropertyName("locale")]
-    public string? Locale { get; set; }
-
-    /// <summary>
-    /// 国际化文案。
-    /// </summary>
-    [JsonPropertyName("texts")]
-    public Dictionary<string, string>? Texts { get; set; }
 }
