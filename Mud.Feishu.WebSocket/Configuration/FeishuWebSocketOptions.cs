@@ -157,16 +157,6 @@ public class FeishuWebSocketOptions
     }
 
     /// <summary>
-    /// 是否启用SSL证书验证，默认为true
-    /// </summary>
-    public bool EnableCertificateValidation { get; set; } = true;
-
-    /// <summary>
-    /// 是否允许无效证书（仅限开发环境使用），默认为false
-    /// </summary>
-    public bool AllowInvalidCertificates { get; set; } = false;
-
-    /// <summary>
     /// 验证配置项的有效性
     /// </summary>
     /// <exception cref="InvalidOperationException">当配置项无效时抛出</exception>
@@ -207,13 +197,6 @@ public class FeishuWebSocketOptions
 
         if (MaxConcurrentMessageProcessing < 1)
             throw new InvalidOperationException("MaxConcurrentMessageProcessing必须至少为1");
-
-        // SSL证书配置保护
-        if (AllowInvalidCertificates)
-        {
-            // 注意：在生产环境中应该记录警告，但由于配置类没有依赖ILogger，这里无法直接记录
-            // 建议在配置选项中使用时添加警告日志
-        }
 
         // 去重配置保护
         if (!EnableEventDeduplication && !EnableDistributedDeduplication)

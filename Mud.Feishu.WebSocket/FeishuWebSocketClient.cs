@@ -10,6 +10,7 @@ using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.DataModels.WsEndpoint;
 using Mud.Feishu.WebSocket.DataModels;
+using Mud.Feishu.WebSocket.Exceptions;
 using Mud.Feishu.WebSocket.Handlers;
 using Mud.Feishu.WebSocket.SocketEventArgs;
 using System.Collections.Concurrent;
@@ -316,22 +317,39 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
             _logger.LogError(wsEx, "WebSocket 连接过早关闭，可能是网络问题或服务端主动断开");
             Error?.Invoke(this, new WebSocketErrorEventArgs
             {
-                Exception = wsEx,
+                Exception = new FeishuConnectionException("连接过早关闭", _connectionManager.State.ToString()),
                 ErrorMessage = "连接过早关闭",
                 ErrorType = "ConnectionClosedPrematurely",
                 IsRecoverable = true
             });
         }
+        catch (WebSocketException wsEx) when (wsEx.WebSocketErrorCode == WebSocketError.NotAWebSocket)
+        {
+            _logger.LogError(wsEx, "WebSocket 协议错误，端点可能不是WebSocket服务");
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = new FeishuConnectionException("WebSocket协议错误", wsEx),
+                ErrorMessage = "WebSocket协议错误",
+                ErrorType = "ProtocolError",
+                IsRecoverable = false
+            });
+        }
+        catch (WebSocketException wsEx) when (wsEx.WebSocketErrorCode == WebSocketError.Success)
+        {
+            _logger.LogWarning(wsEx, "WebSocket 连接已关闭");
+            // 不触发Error事件，因为这是正常的关闭
+        }
         catch (WebSocketException wsEx)
         {
             _logger.LogError(wsEx, "WebSocket 发生错误，错误代码: {ErrorCode}, 原因: {NativeErrorCode}",
                 wsEx.WebSocketErrorCode, wsEx.NativeErrorCode);
+            var isRecoverable = IsWebSocketErrorRecoverable(wsEx);
             Error?.Invoke(this, new WebSocketErrorEventArgs
             {
-                Exception = wsEx,
+                Exception = new FeishuConnectionException($"WebSocket错误: {wsEx.WebSocketErrorCode}", wsEx),
                 ErrorMessage = $"WebSocket错误: {wsEx.WebSocketErrorCode}",
                 ErrorType = "WebSocketError",
-                IsRecoverable = IsWebSocketErrorRecoverable(wsEx)
+                IsRecoverable = isRecoverable
             });
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -343,20 +361,69 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
             _logger.LogError(ioEx, "发生 IO 错误，可能是网络中断: {HResult}", ioEx.HResult);
             Error?.Invoke(this, new WebSocketErrorEventArgs
             {
-                Exception = ioEx,
-                ErrorMessage = "IO 错误 - 可能是网络中断",
+                Exception = new FeishuNetworkException("网络错误 - 可能是网络中断", ioEx),
+                ErrorMessage = "网络错误 - 可能是网络中断",
                 ErrorType = "NetworkError",
                 IsRecoverable = true
             });
         }
+        catch (JsonException jsonEx)
+        {
+            _logger.LogError(jsonEx, "JSON 解析错误，消息格式可能不正确");
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = new FeishuMessageException("消息格式错误", jsonEx),
+                ErrorMessage = "消息格式错误",
+                ErrorType = "MessageFormatError",
+                IsRecoverable = true
+            });
+        }
+        catch (ArgumentException argEx)
+        {
+            _logger.LogError(argEx, "参数验证错误: {Message}", argEx.Message);
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = argEx,
+                ErrorMessage = "参数验证错误",
+                ErrorType = "ArgumentError",
+                IsRecoverable = false
+            });
+        }
+        catch (TimeoutException timeoutEx)
+        {
+            _logger.LogWarning(timeoutEx, "操作超时");
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = timeoutEx,
+                ErrorMessage = "操作超时",
+                ErrorType = "TimeoutError",
+                IsRecoverable = true
+            });
+        }
+        catch (TaskCanceledException taskCanceledEx) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(taskCanceledEx, "任务被取消，可能是超时导致的");
+            Error?.Invoke(this, new WebSocketErrorEventArgs
+            {
+                Exception = taskCanceledEx,
+                ErrorMessage = "任务超时",
+                ErrorType = "TaskTimeoutError",
+                IsRecoverable = true
+            });
+        }
+        catch (ObjectDisposedException disposedEx)
+        {
+            _logger.LogWarning(disposedEx, "对象已释放: {ObjectName}", disposedEx.ObjectName);
+            // 不触发Error事件，因为这是正常的关闭流程
+        }
         catch (Exception ex)
         {
-            _logger.LogCritical(ex, "消息接收循环发生未预期的错误: {ExceptionType}, HResult: {HResult}",
-                ex.GetType().Name, ex.HResult);
+            _logger.LogCritical(ex, "消息接收循环发生未预期的错误: {ExceptionType}, HResult: {HResult}, Message: {Message}",
+                ex.GetType().Name, ex.HResult, ex.Message);
             Error?.Invoke(this, new WebSocketErrorEventArgs
             {
                 Exception = ex,
-                ErrorMessage = $"未预期错误: {ex.GetType().Name}",
+                ErrorMessage = $"未预期错误: {ex.GetType().Name} - {ex.Message}",
                 ErrorType = "UnexpectedError",
                 IsRecoverable = false
             });

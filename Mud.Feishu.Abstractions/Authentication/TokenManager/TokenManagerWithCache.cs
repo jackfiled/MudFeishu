@@ -101,6 +101,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// </summary>
     /// <remarks>
     /// 令牌过期前提前刷新的时间间隔，默认为5分钟。
+    /// 可通过 FeishuOptions.TokenRefreshThreshold 配置项自定义。
     /// </remarks>
     private readonly TimeSpan _tokenRefreshThreshold;
 
@@ -171,7 +172,10 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
         _authenticationApi = authenticationApi ?? throw new ArgumentNullException(nameof(authenticationApi));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _tokenRefreshThreshold = TimeSpan.FromSeconds(DefaultRefreshThresholdSeconds);
+        // 支持从配置读取刷新阈值，默认为5分钟
+        _tokenRefreshThreshold = TimeSpan.FromSeconds(_options.TokenRefreshThreshold > 0
+            ? _options.TokenRefreshThreshold
+            : DefaultRefreshThresholdSeconds);
         _tokeType = tokeType;
     }
 

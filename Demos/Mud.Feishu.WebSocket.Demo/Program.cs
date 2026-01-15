@@ -20,7 +20,7 @@ builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
 builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
                 .AddInterceptor<LoggingEventInterceptor>() // 日志拦截器（内置）
                 .AddInterceptor<WebSocketTelemetryInterceptor>() // 遥测拦截器（自定义）
-                .AddInterceptor<RateLimitingInterceptor>(sp => new RateLimitingInterceptor(
+                .AddInterceptor(sp => new RateLimitingInterceptor(
                     sp.GetRequiredService<ILogger<RateLimitingInterceptor>>(),
                     minIntervalMs: 50)) // 限流拦截器（自定义，50ms 间隔）
                 .AddHandler<DemoDepartmentEventHandler>()

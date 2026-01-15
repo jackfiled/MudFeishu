@@ -221,6 +221,80 @@ var count = await deduplicator.GetCachedCountAsync();
 }
 ```
 
+### 5. Redis 异常时的降级策略
+
+当 Redis 连接失败或操作异常时，本库提供了多种降级策略：
+
+#### 5.1 标准去重器的异常行为
+
+`RedisFeishuEventDistributedDeduplicator`、`RedisFeishuNonceDistributedDeduplicator` 和 `RedisFeishuSeqIDDeduplicator` 在 Redis 异常时的行为：
+
+- **IsDuplicateAsync**: 返回 `false`（允许处理事件，但记录错误日志）
+- **MarkAsProcessedAsync**: 返回 `false`（标记失败，但记录错误日志）
+
+**影响**: Redis 故障时可能导致重复处理事件，但不会阻塞整个系统。
+
+**适用场景**: 对重复处理容忍度较高的场景，如日志记录、统计分析等。
+
+#### 5.2 带降级的去重器
+
+`RedisFeishuEventDistributedDeduplicatorWithFallback` 提供了更智能的降级策略：
+
+- Redis 正常时使用 Redis 去重
+- Redis 故障时自动降级到内存去重
+- 支持 fallback 配置（内存缓存过期时间、清理间隔等）
+
+**使用示例**:
+
+```csharp
+builder.Services
+    .AddFeishuRedis()
+    .AddFeishuRedisEventDeduplicatorWithFallback(options =>
+    {
+        options.MemoryCacheExpiration = TimeSpan.FromHours(1);
+        options.MemoryCacheCleanupInterval = TimeSpan.FromMinutes(10);
+    });
+```
+
+**适用场景**: 对去重要求较高，但可以在 Redis 故障时暂时降级到内存去重的场景。
+
+#### 5.3 选择建议
+
+| 去重器类型 | Redis 故障时行为 | 适用场景 |
+|-----------|----------------|---------|
+| `RedisFeishuEventDistributedDeduplicator` | 允许重复处理，不阻塞 | 日志分析、统计等容忍重复的场景 |
+| `RedisFeishuEventDistributedDeduplicatorWithFallback` | 降级到内存去重 | 对去重要求高，可接受临时内存存储的场景 |
+| 自定义处理 | 抛出异常或自定义逻辑 | 需要精确控制异常行为的场景 |
+
+#### 5.4 最佳实践
+
+1. **监控 Redis 健康状态**: 实现健康检查，及时发现 Redis 故障
+2. **配置告警**: 当 Redis 连接失败超过阈值时发送告警
+3. **定期备份**: 对于关键业务，定期将内存缓存同步到 Redis
+4. **使用连接池**: 配置合理的连接池大小，提高 Redis 连接稳定性
+5. **启用 Redis 持久化**: 使用 RDB 或 AOF 持久化，防止数据丢失
+
+```csharp
+// 建议配置
+builder.Services
+    .AddFeishuRedis(options =>
+    {
+        options.ConnectionString = "localhost:6379";
+        options.ConnectTimeout = 5000;
+        options.SyncTimeout = 5000;
+        options.ConnectRetry = 3;
+    })
+    .AddFeishuRedisEventDeduplicatorWithFallback(fallbackOptions =>
+    {
+        fallbackOptions.MemoryCacheExpiration = TimeSpan.FromHours(2);
+        fallbackOptions.MemoryCacheCleanupInterval = TimeSpan.FromMinutes(5);
+    });
+
+// 添加健康检查
+builder.Services.AddHealthChecks()
+    .AddRedis(options.ConnectionString, name: "redis");
+```
+
 ## 许可证
 
 MIT License

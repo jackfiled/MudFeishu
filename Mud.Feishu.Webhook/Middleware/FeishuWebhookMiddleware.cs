@@ -7,7 +7,9 @@
 
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Webhook.Configuration;
+using Mud.Feishu.Webhook.Exceptions;
 using Mud.Feishu.Webhook.Models;
+using Mud.Feishu.Webhook.Serialization;
 using System.Diagnostics;
 
 namespace Mud.Feishu.Webhook;
@@ -30,18 +32,20 @@ public class FeishuWebhookMiddleware
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<FeishuWebhookMiddleware> _logger;
     private readonly FeishuWebhookOptions _options;
+    private readonly bool _isDevelopment;
     private ISecurityAuditService? _securityAuditService;
     private IThreatDetectionService? _threatDetectionService;
     private IFailedEventStore? _failedEventStore;
 
     /// <summary>
-    /// 
+    /// 初始化 FeishuWebhookMiddleware 实例
     /// </summary>
-    /// <param name="next"></param>
-    /// <param name="scopeFactory"></param>
-    /// <param name="logger"></param>
-    /// <param name="options"></param>
-    public FeishuWebhookMiddleware(RequestDelegate next,
+    /// <param name="next">请求委托</param>
+    /// <param name="scopeFactory">服务作用域工厂</param>
+    /// <param name="logger">日志记录器</param>
+    /// <param name="options">Webhook配置选项</param>
+    public FeishuWebhookMiddleware(
+            RequestDelegate next,
             IServiceScopeFactory scopeFactory,
             ILogger<FeishuWebhookMiddleware> logger,
             IOptions<FeishuWebhookOptions> options)
@@ -50,6 +54,8 @@ public class FeishuWebhookMiddleware
         _scopeFactory = scopeFactory;
         _logger = logger;
         _options = options.Value;
+        // 检测开发环境(兼容netstandard2.0)
+        _isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")?.ToLowerInvariant() == "development";
     }
 
     /// <summary>
@@ -75,6 +81,10 @@ public class FeishuWebhookMiddleware
         activity?.SetTag("request.path", context.Request.Path);
         activity?.SetTag("request.method", context.Request.Method);
 
+        // 记录请求信息（放在try块外，以便catch块中使用）
+        var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        activity?.SetTag("request.client_ip", clientIp);
+
         try
         {
             // 检查请求路径是否匹配
@@ -84,23 +94,13 @@ public class FeishuWebhookMiddleware
                 return;
             }
 
-            // 记录请求信息
-            var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            activity?.SetTag("request.client_ip", clientIp);
-
             // 检查 HTTP 方法
             if (!_options.AllowedHttpMethods.Contains(context.Request.Method))
             {
-                // 记录安全审计日志
-                _ = _securityAuditService?.LogSecurityFailureAsync(
-                    SecurityEventType.Other,
-                    clientIp,
-                    context.Request.Path,
+                throw new FeishuWebhookValidationException(
                     $"不支持的HTTP方法: {context.Request.Method}",
-                    requestId);
-
-                await WriteErrorResponse(context, 405, "Method Not Allowed", requestId);
-                return;
+                    fieldName: "Method",
+                    requestId: requestId);
             }
 
             // 检查 Content-Type
@@ -112,54 +112,39 @@ public class FeishuWebhookMiddleware
                 !contentType.Contains("application/json"))
 #endif
             {
-                // 记录安全审计日志
-                _ = _securityAuditService?.LogSecurityFailureAsync(
-                    SecurityEventType.InvalidContentType,
-                    clientIp,
-                    context.Request.Path,
+                throw new FeishuWebhookValidationException(
                     $"不支持的 Content-Type: {contentType}",
-                    requestId);
-
-                await WriteErrorResponse(context, 415, "Unsupported Media Type: Only application/json is supported", requestId);
-                return;
+                    fieldName: "Content-Type",
+                    requestId: requestId);
             }
 
             // 检查请求体大小
             if (context.Request.ContentLength > _options.MaxRequestBodySize)
             {
-                // 记录安全审计日志
-                _ = _securityAuditService?.LogSecurityFailureAsync(
-                    SecurityEventType.RequestSizeLimit,
-                    clientIp,
-                    context.Request.Path,
+                throw new FeishuWebhookValidationException(
                     $"请求体大小 {context.Request.ContentLength ?? 0} 超过限制 {_options.MaxRequestBodySize}",
-                    requestId);
-
-                await WriteErrorResponse(context, 413, "Request Entity Too Large", requestId);
-                return;
+                    fieldName: "Content-Length",
+                    requestId: requestId);
             }
 
             // 验证来源 IP（如果启用）
             if (_options.ValidateSourceIP && !ValidateSourceIP(context.Connection.RemoteIpAddress?.ToString()))
             {
-                // 记录安全审计日志
-                _ = _securityAuditService?.LogSecurityFailureAsync(
-                    SecurityEventType.IpValidation,
-                    clientIp,
-                    context.Request.Path,
+                throw new FeishuWebhookSecurityException(
                     $"IP地址不在白名单中: {clientIp}",
-                    requestId);
-
-                await WriteErrorResponse(context, 403, "Forbidden", requestId);
-                return;
+                    clientIp: clientIp,
+                    securityEventType: SecurityEventType.IpValidation,
+                    requestId: requestId);
             }
 
             // 读取请求体
             var requestBody = await ReadRequestBodyAsync(context.Request);
             if (string.IsNullOrEmpty(requestBody))
             {
-                await WriteErrorResponse(context, 400, "Bad Request: Empty request body", requestId);
-                return;
+                throw new FeishuWebhookValidationException(
+                    "请求体为空",
+                    fieldName: "Body",
+                    requestId: requestId);
             }
 
             // 进行威胁检测
@@ -182,8 +167,11 @@ public class FeishuWebhookMiddleware
                     switch (threatResult.RecommendedAction)
                     {
                         case ThreatAction.Block:
-                            await WriteErrorResponse(context, 403, "Forbidden: Potential threat detected", requestId);
-                            return;
+                            throw new FeishuWebhookSecurityException(
+                                $"检测到威胁: {threatResult.Description}",
+                                clientIp: clientIp,
+                                securityEventType: SecurityEventType.ThreatDetection,
+                                requestId: requestId);
                         case ThreatAction.RateLimit:
                             // 这里可以触发额外的限流措施
                             break;
@@ -208,6 +196,57 @@ public class FeishuWebhookMiddleware
             // 处理请求
             await ProcessWebhookRequest(context, requestBody, requestId, clientIp);
         }
+        catch (FeishuWebhookSecurityException ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+            {
+                { "exception.message", ex.Message },
+                { "exception.type", ex.GetType().Name },
+                { "exception.stacktrace", ex.StackTrace ?? string.Empty },
+                { "exception.error_type", ex.ErrorType },
+                { "exception.security_event_type", ex.SecurityEventType?.ToString() ?? "null" }
+            }));
+            _logger.LogError(ex, "飞书 Webhook 安全异常, RequestId: {RequestId}, ClientIp: {ClientIp}", requestId, ex.ClientIp);
+
+            // 记录安全审计日志
+            _ = _securityAuditService?.LogSecurityFailureAsync(
+                ex.SecurityEventType ?? SecurityEventType.Other,
+                ex.ClientIp ?? clientIp,
+                context.Request.Path,
+                ex.Message,
+                requestId);
+
+            await WriteErrorResponse(context, 403, $"Forbidden: {ex.Message}", requestId);
+        }
+        catch (FeishuWebhookValidationException ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+            {
+                { "exception.message", ex.Message },
+                { "exception.type", ex.GetType().Name },
+                { "exception.stacktrace", ex.StackTrace ?? string.Empty },
+                { "exception.error_type", ex.ErrorType },
+                { "exception.field_name", ex.FieldName ?? "null" }
+            }));
+            _logger.LogWarning(ex, "飞书 Webhook 验证异常, RequestId: {RequestId}", requestId);
+            await WriteErrorResponse(context, 400, $"Bad Request: {ex.Message}", requestId);
+        }
+        catch (FeishuWebhookException ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+            {
+                { "exception.message", ex.Message },
+                { "exception.type", ex.GetType().Name },
+                { "exception.stacktrace", ex.StackTrace ?? string.Empty },
+                { "exception.error_type", ex.ErrorType },
+                { "exception.is_retryable", ex.IsRetryable }
+            }));
+            _logger.LogError(ex, "飞书 Webhook 异常, RequestId: {RequestId}, ErrorType: {ErrorType}", requestId, ex.ErrorType);
+            await WriteErrorResponse(context, 500, $"Internal Server Error: {ex.Message}", requestId);
+        }
         catch (Exception ex)
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
@@ -217,7 +256,7 @@ public class FeishuWebhookMiddleware
                 { "exception.type", ex.GetType().Name },
                 { "exception.stacktrace", ex.StackTrace ?? string.Empty }
             }));
-            _logger.LogError(ex, "处理飞书 Webhook 请求时发生错误, RequestId: {RequestId}", requestId);
+            _logger.LogError(ex, "处理飞书 Webhook 请求时发生未预期的错误, RequestId: {RequestId}", requestId);
 
             if (_options.EnableExceptionHandling)
             {
@@ -344,14 +383,16 @@ public class FeishuWebhookMiddleware
             }
 
             // 步骤 2：解析加密请求
-            var eventRequest = JsonSerializer.Deserialize(
+            var eventRequest = JsonSerializer.Deserialize<FeishuWebhookRequest>(
                 requestBody,
                 FeishuJsonContext.Default.FeishuWebhookRequest);
 
             if (eventRequest == null || string.IsNullOrEmpty(eventRequest.Encrypt))
             {
-                await WriteErrorResponse(context, 400, "Bad Request: Invalid request format", requestId);
-                return;
+                throw new FeishuWebhookValidationException(
+                    "请求格式无效：缺少 encrypt 字段",
+                    fieldName: "Encrypt",
+                    requestId: requestId);
             }
 
             // 步骤 3：解密请求数据
@@ -391,10 +432,7 @@ public class FeishuWebhookMiddleware
             }
 
             // 步骤 5：验证签名
-            if (!await ValidateRequestSignatureAsync(context, eventRequest, requestBody, encryptKey, clientIp, requestId, validator))
-            {
-                return;
-            }
+            await ValidateRequestSignatureAsync(context, eventRequest, requestBody, encryptKey, clientIp, requestId, validator);
 
             // 步骤 6：处理事件请求
             await HandleEventRequestAsync(context, decryptedData, webhookService, requestId);
@@ -409,7 +447,11 @@ public class FeishuWebhookMiddleware
                 { "exception.stacktrace", ex.StackTrace ?? string.Empty }
             }));
             _logger.LogError(ex, "反序列化请求体时发生错误, RequestId: {RequestId}", requestId);
-            await WriteErrorResponse(context, 400, "Bad Request: Invalid JSON format", requestId);
+            throw new FeishuWebhookSerializationException(
+                "JSON格式无效",
+                ex,
+                format: "JSON",
+                requestId: requestId);
         }
     }
 
@@ -426,12 +468,13 @@ public class FeishuWebhookMiddleware
 
             if (string.IsNullOrEmpty(decryptedJson))
             {
-                await WriteErrorResponse(context, 400, "Bad Request: Failed to decrypt verification request", requestId);
-                return;
+                throw new FeishuWebhookDecryptionException(
+                    "解密验证请求失败",
+                    requestId: requestId);
             }
 
             // 解析为验证请求
-            var verificationRequest = JsonSerializer.Deserialize(
+            var verificationRequest = JsonSerializer.Deserialize<EventVerificationRequest>(
                 decryptedJson,
                 FeishuJsonContext.Default.EventVerificationRequest);
 
@@ -446,12 +489,22 @@ public class FeishuWebhookMiddleware
                 return;
             }
 
-            await WriteErrorResponse(context, 400, "Bad Request: Invalid verification request format", requestId);
+            throw new FeishuWebhookValidationException(
+                "无效的验证请求格式",
+                requestId: requestId);
+        }
+        catch (FeishuWebhookException)
+        {
+            // 重新抛出自定义异常
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "处理加密验证请求时发生错误");
-            await WriteErrorResponse(context, 400, "Bad Request: Failed to process verification request", requestId);
+            throw new FeishuWebhookDecryptionException(
+                "处理验证请求失败",
+                ex,
+                requestId: requestId);
         }
     }
 
@@ -494,7 +547,7 @@ public class FeishuWebhookMiddleware
     /// </summary>
     private async Task<bool> TryHandlePlaintextVerificationAsync(HttpContext context, string requestBody, IFeishuWebhookService webhookService)
     {
-        var verificationRequest = JsonSerializer.Deserialize(
+        var verificationRequest = JsonSerializer.Deserialize<EventVerificationRequest>(
             requestBody,
             FeishuJsonContext.Default.EventVerificationRequest);
 
@@ -546,7 +599,7 @@ public class FeishuWebhookMiddleware
     /// <summary>
     /// 验证请求签名
     /// </summary>
-    private async Task<bool> ValidateRequestSignatureAsync(HttpContext context, FeishuWebhookRequest eventRequest, string requestBody, string encryptKey, string clientIp, string requestId, IFeishuEventValidator validator)
+    private async Task ValidateRequestSignatureAsync(HttpContext context, FeishuWebhookRequest eventRequest, string requestBody, string encryptKey, string clientIp, string requestId, IFeishuEventValidator validator)
     {
         var headerSignature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault();
         if (!await validator.ValidateHeaderSignatureAsync(
@@ -556,15 +609,11 @@ public class FeishuWebhookMiddleware
             headerSignature,
             encryptKey))
         {
-            _ = _securityAuditService?.LogSecurityFailureAsync(
-                SecurityEventType.SignatureValidation,
-                clientIp,
-                context.Request.Path,
+            throw new FeishuWebhookSecurityException(
                 "X-Lark-Signature 请求头签名验证失败",
-                requestId);
-
-            await WriteErrorResponse(context, 401, "Unauthorized: Invalid X-Lark-Signature", requestId);
-            return false;
+                clientIp: clientIp,
+                securityEventType: SecurityEventType.SignatureValidation,
+                requestId: requestId);
         }
 
         _ = _securityAuditService?.LogSecuritySuccessAsync(
@@ -573,8 +622,6 @@ public class FeishuWebhookMiddleware
             context.Request.Path,
             "X-Lark-Signature 请求头签名验证成功",
             requestId);
-
-        return true;
     }
 
     /// <summary>
@@ -616,7 +663,11 @@ public class FeishuWebhookMiddleware
                             {
                                 await _failedEventStore.StoreFailedEventAsync(
                                     eventData,
-                                    new InvalidOperationException(result.ErrorReason ?? "Unknown error"),
+                                    new FeishuWebhookProcessingException(
+                                        result.ErrorReason ?? "Unknown error",
+                                        eventType: eventData.EventType,
+                                        eventId: eventData.EventId,
+                                        requestId: requestId),
                                     CancellationToken.None);
 
                                 _logger.LogInformation("失败事件已保存到存储, RequestId: {RequestId}", requestId);
@@ -646,7 +697,12 @@ public class FeishuWebhookMiddleware
                         {
                             await _failedEventStore.StoreFailedEventAsync(
                                 eventData,
-                                ex,
+                                new FeishuWebhookProcessingException(
+                                    ex.Message,
+                                    ex,
+                                    eventType: eventData.EventType,
+                                    eventId: eventData.EventId,
+                                    requestId: requestId),
                                 CancellationToken.None);
 
                             _logger.LogInformation("失败事件已保存到存储, RequestId: {RequestId}", requestId);
@@ -688,9 +744,7 @@ public class FeishuWebhookMiddleware
     private string GetSafeErrorMessage(string errorReason)
     {
         // 开发环境可以返回详细错误，生产环境返回通用错误
-        var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
-
-        if (isDevelopment)
+        if (_isDevelopment)
         {
             return $"Bad Request: {errorReason}";
         }

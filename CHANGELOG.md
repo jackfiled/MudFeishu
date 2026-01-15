@@ -1,5 +1,108 @@
 ﻿# Mud.Feishu 更新日志
 
+## 1.3.0 (2026-01-14)
+
+**类型**: 代码质量提升、功能增强
+
+### 🎯 代码质量提升
+
+#### 异常处理优化
+
+|- **WebSocket 异常精细化处理**
+  - 文件: `Mud.Feishu.WebSocket/Exceptions/` (新增)
+  - 新增: 自定义异常类型
+    - `FeishuWebSocketException` - 异常基类
+    - `FeishuConnectionException` - 连接异常
+    - `FeishuAuthenticationException` - 认证异常
+    - `FeishuMessageException` - 消息处理异常
+    - `FeishuNetworkException` - 网络异常
+  - 优化: 区分不同异常类型,提供差异化处理策略
+  - 影响: 提升错误处理精确性
+
+|- **WebSocket 异常捕获重构**
+  - 文件: `Mud.Feishu.WebSocket/FeishuWebSocketClient.cs`
+  - 优化: 替换泛型 `Exception` 捕获为具体异常类型
+  - 支持: WebSocketException, IOException, JsonException, TimeoutException, TaskCanceledException, ObjectDisposedException
+  - 影响: 更精确的错误定位和恢复策略
+
+#### 单元测试框架
+
+|- **测试项目创建**
+  - 项目: `Mud.Feishu.Abstractions.Tests` (新增)
+  - 项目: `Mud.Feishu.Webhook.Tests` (新增)
+  - 项目: `Mud.Feishu.WebSocket.Tests` (新增)
+  - 项目: `Mud.Feishu.Redis.Tests` (新增)
+  - 框架: xUnit + Moq + FluentAssertions
+  - 影响: 核心逻辑测试覆盖
+
+|- **核心单元测试**
+  - 文件: `FeishuEventDistributedDeduplicatorTests.cs`
+  - 覆盖: 重复检测、缓存管理、异常处理
+  - 文件: `TokenManagerWithCacheTests.cs`
+  - 覆盖: 令牌缓存、自动刷新、异常场景
+  - 文件: `FeishuEventValidatorTests.cs`
+  - 覆盖: 时间戳验证、签名验证、Nonce验证
+  - 文件: `RedisFeishuEventDistributedDeduplicatorTests.cs`
+  - 覆盖: Redis去重、异常降级、连接故障
+
+### 🔧 配置优化
+
+|- **令牌刷新阈值可配置**
+  - 文件: `Mud.Feishu.Abstractions/Configuration/FeishuOptions.cs`
+  - 新增: `TokenRefreshThreshold` 配置项
+  - 默认: 300秒(5分钟)
+  - 范围: 60-3600秒
+  - 影响: 支持自定义令牌刷新策略
+
+|- **证书配置项移除**
+  - 文件: `Mud.Feishu.WebSocket/Configuration/FeishuWebSocketOptions.cs`
+  - 移除: `EnableCertificateValidation` 和 `AllowInvalidCertificates`
+  - 原因: .NET Core 3.0+ 不支持直接配置证书验证回调
+  - 影响: 避免用户困惑
+
+### 📝 文档改进
+
+|- **Redis 异常降级策略文档化**
+  - 文件: `Mud.Feishu.Redis/README.md`
+  - 新增: 详细的异常处理和降级策略说明
+  - 包含:
+    - 标准去重器的异常行为
+    - 带降级去重器的自动降级逻辑
+    - 去重器类型选择建议
+    - 最佳实践和监控建议
+  - 影响: 帮助用户正确配置异常处理
+
+|- **IWebHostEnvironment 使用**
+  - 文件: `Mud.Feishu.Webhook/Middleware/FeishuWebhookMiddleware.cs`
+  - 优化: 替换 `Environment.GetEnvironmentVariable` 为 `_webHostEnvironment.IsDevelopment()`
+  - 影响: 更符合 ASP.NET Core 最佳实践
+
+### 🏥 健康检查
+
+|- **Redis 健康检查**
+  - 文件: `Mud.Feishu.Redis/HealthChecks/RedisHealthCheck.cs` (新增)
+  - 新增: Redis 连接健康检查
+  - 检测: Ping延迟、连接端点数、异常状态
+  - 扩展: `AddFeishuRedisHealthCheck()` 方法
+  - 影响: 支持 /health 端点监控 Redis 状态
+
+### 🔨 Breaking Changes
+
+- 移除了 `FeishuWebSocketOptions.EnableCertificateValidation` 和 `AllowInvalidCertificates` 配置项
+- 新增 `FeishuOptions.TokenRefreshThreshold` 配置项
+- 要求 .NET 6.0 或更高版本
+
+### 📦 依赖更新
+
+- 新增测试依赖:
+  - `xunit` 2.9.2
+  - `xunit.runner.visualstudio` 2.8.2
+  - `coverlet.collector` 6.0.2
+  - `Moq` 4.20.72
+  - `FluentAssertions` 7.0.0
+
+---
+
 ## 1.2.0 (2026-02-15)
 
 **类型**: 功能增强、安全加固、性能优化

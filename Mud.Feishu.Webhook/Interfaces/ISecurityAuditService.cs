@@ -84,6 +84,11 @@ public enum SecurityEventType
     RequestSizeLimit,
 
     /// <summary>
+    /// 威胁检测
+    /// </summary>
+    ThreatDetection,
+
+    /// <summary>
     /// 其他安全事件
     /// </summary>
     Other

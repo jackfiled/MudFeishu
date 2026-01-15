@@ -100,6 +100,13 @@ public class FeishuOptions
         set => _retryCount = Math.Max(0, Math.Min(value, 10));
     }
 
+    /// <summary>
+    /// 令牌刷新阈值时间（秒）。
+    /// <para>默认值：300秒（5分钟）</para>
+    /// <para>范围：60-3600秒</para>
+    /// <para>在令牌过期前提前刷新的时间间隔，避免因网络延迟等原因导致令牌失效</para>
+    /// </summary>
+    public int TokenRefreshThreshold { get; set; } = 300;
 
     /// <summary>
     /// 是否启用日志记录，默认为true
@@ -117,6 +124,9 @@ public class FeishuOptions
 
         if (RetryCount < 0 || RetryCount > 10)
             throw new InvalidOperationException("RetryCount必须在0-10次之间");
+
+        if (TokenRefreshThreshold < 60 || TokenRefreshThreshold > 3600)
+            throw new InvalidOperationException("TokenRefreshThreshold必须在60-3600秒之间");
 
         if (!string.IsNullOrEmpty(BaseUrl) && !Uri.TryCreate(BaseUrl, UriKind.Absolute, out var uriResult))
             throw new InvalidOperationException("BaseUrl必须是有效的URI格式");

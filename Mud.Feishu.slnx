@@ -1,14 +1,20 @@
 <Solution>
   <Folder Name="/Samples/">
-    <Project Path="Mud.Feishu.Test/Mud.Feishu.Test.csproj" />
-    <Project Path="Mud.Feishu.Webhook.Demo/Mud.Feishu.Webhook.Demo.csproj" Id="33cbe001-6cfc-489d-8f5b-12dea3b659ed" />
-    <Project Path="Mud.Feishu.WebSocket.Demo/Mud.Feishu.WebSocket.Demo.csproj" />
+    <Project Path="Demos/Mud.Feishu.Demo/Mud.Feishu.Demo.csproj" />
+    <Project Path="Demos/Mud.Feishu.Webhook.Demo/Mud.Feishu.Webhook.Demo.csproj" Id="33cbe001-6cfc-489d-8f5b-12dea3b659ed" />
+    <Project Path="Demos/Mud.Feishu.WebSocket.Demo/Mud.Feishu.WebSocket.Demo.csproj" />
   </Folder>
   <Folder Name="/Solution/">
     <File Path="CHANGELOG.md" />
     <File Path="Directory.Build.props" />
     <File Path="icon.png" />
     <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Mud.Feishu.Abstractions.Tests/Mud.Feishu.Abstractions.Tests.csproj" />
+    <Project Path="Tests/Mud.Feishu.Webhook.Tests/Mud.Feishu.Webhook.Tests.csproj" />
+    <Project Path="Tests/Mud.Feishu.WebSocket.Tests/Mud.Feishu.WebSocket.Tests.csproj" />
+    <Project Path="Tests/Mud.Feishu.Redis.Tests/Mud.Feishu.Redis.Tests.csproj" />
   </Folder>
   <Project Path="Mud.CodeGenerator/Mud.CodeGenerator.shproj" />
   <Project Path="Mud.Feishu.Abstractions/Mud.Feishu.Abstractions.csproj" Id="b04973d2-c477-49a7-a00f-04288a8cabac" />

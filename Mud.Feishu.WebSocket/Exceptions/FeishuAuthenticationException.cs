@@ -5,26 +5,26 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.Feishu.Abstractions;
-using Mud.Feishu.Webhook.Models;
-
-namespace Mud.Feishu.Webhook.Serialization;
-
+namespace Mud.Feishu.WebSocket.Exceptions;
 
 /// <summary>
-/// 飞书 Webhook JSON 序列化上下文
-/// 支持源生成，兼容 Native AOT 部署
+/// 飞书WebSocket认证异常
 /// </summary>
-/// <remarks>
-/// 使用说明：
-/// 1. 此类使用 .NET 源生成器生成高效的序列化代码
-/// 2. 替代传统的反射序列化，提升性能并支持 AOT
-/// 3. 使用方式：JsonSerializer.Deserialize&lt;T&gt;(json, FeishuJsonContext.Default.T)
-/// </remarks>
-[JsonSerializable(typeof(FeishuWebhookRequest))]
-[JsonSerializable(typeof(EventVerificationRequest))]
-[JsonSerializable(typeof(EventVerificationResponse))]
-[JsonSerializable(typeof(EventData))]
-internal partial class FeishuJsonContext : JsonSerializerContext
+public class FeishuAuthenticationException : FeishuWebSocketException
 {
+    /// <summary>
+    /// 初始化 <see cref="FeishuAuthenticationException"/> 的新实例
+    /// </summary>
+    public FeishuAuthenticationException(string message, int? errorCode = null)
+        : base("AuthenticationError", message, errorCode, isRecoverable: false)
+    {
+    }
+
+    /// <summary>
+    /// 初始化 <see cref="FeishuAuthenticationException"/> 的新实例
+    /// </summary>
+    public FeishuAuthenticationException(string message, Exception innerException, int? errorCode = null)
+        : base("AuthenticationError", message, innerException, errorCode, isRecoverable: false)
+    {
+    }
 }
