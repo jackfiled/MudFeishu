@@ -74,10 +74,20 @@ public class RedisFeishuSeqIDDeduplicator : IFeishuSeqIDDeduplicator, IAsyncDisp
 
             return false; // 未处理，新消息
         }
-        catch (Exception ex)
+        catch (RedisConnectionException ex)
         {
-            _logger?.LogError(ex, "尝试标记 SeqID {SeqId} 为已处理时发生错误", seqId);
-            return false;
+            _logger.LogError(ex, "Redis 连接异常，SeqID {SeqId} 去重失败", seqId);
+            throw new InvalidOperationException("Redis 连接失败，无法完成 SeqID 去重", ex);
+        }
+        catch (RedisTimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Redis 超时，SeqID {SeqId} 去重失败", seqId);
+            throw new InvalidOperationException("Redis 操作超时", ex);
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogError(ex, "Redis 操作异常，SeqID {SeqId} 去重失败", seqId);
+            throw new InvalidOperationException("Redis 操作失败", ex);
         }
     }
 
@@ -109,10 +119,20 @@ public class RedisFeishuSeqIDDeduplicator : IFeishuSeqIDDeduplicator, IAsyncDisp
 
             return false; // 未处理，新消息
         }
-        catch (Exception ex)
+        catch (RedisConnectionException ex)
         {
-            _logger?.LogError(ex, "尝试标记 SeqID {SeqId} 为已处理时发生错误", seqId);
-            return false;
+            _logger.LogError(ex, "Redis 连接异常，SeqID {SeqId} 去重失败", seqId);
+            throw new InvalidOperationException("Redis 连接失败，无法完成 SeqID 去重", ex);
+        }
+        catch (RedisTimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Redis 超时，SeqID {SeqId} 去重失败", seqId);
+            throw new InvalidOperationException("Redis 操作超时", ex);
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogError(ex, "Redis 操作异常，SeqID {SeqId} 去重失败", seqId);
+            throw new InvalidOperationException("Redis 操作失败", ex);
         }
     }
 

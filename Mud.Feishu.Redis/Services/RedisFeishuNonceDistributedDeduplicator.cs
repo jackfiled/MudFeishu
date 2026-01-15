@@ -79,12 +79,20 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
             _logger?.LogDebug("Nonce {Nonce} 标记为已使用，TTL: {Ttl}", nonce, actualTtl);
             return false; // 未使用
         }
-        catch (Exception ex)
+        catch (RedisConnectionException ex)
         {
-            _logger?.LogError(ex, "尝试标记 Nonce {Nonce} 为已使用时发生错误", nonce);
-            // Redis 异常时，为防止阻塞处理，返回 false（允许处理，但记录错误）
-            // 生产环境应根据业务需求调整此行为
-            return false;
+            _logger.LogError(ex, "Redis 连接异常，Nonce {Nonce} 去重失败", nonce);
+            throw new InvalidOperationException("Redis 连接失败，无法完成 Nonce 去重", ex);
+        }
+        catch (RedisTimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Redis 超时，Nonce {Nonce} 去重失败", nonce);
+            throw new InvalidOperationException("Redis 操作超时", ex);
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogError(ex, "Redis 操作异常，Nonce {Nonce} 去重失败", nonce);
+            throw new InvalidOperationException("Redis 操作失败", ex);
         }
     }
 
@@ -104,10 +112,20 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
             _logger?.LogDebug("Nonce {Nonce} 使用状态: {Status}", nonce, exists ? "已使用" : "未使用");
             return exists;
         }
-        catch (Exception ex)
+        catch (RedisConnectionException ex)
         {
-            _logger?.LogError(ex, "检查 Nonce {Nonce} 使用状态时发生错误", nonce);
-            return false;
+            _logger.LogError(ex, "Redis 连接异常，检查 Nonce {Nonce} 使用状态失败", nonce);
+            throw new InvalidOperationException("Redis 连接失败，无法检查 Nonce 状态", ex);
+        }
+        catch (RedisTimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Redis 超时，检查 Nonce {Nonce} 使用状态失败", nonce);
+            throw new InvalidOperationException("Redis 操作超时", ex);
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogError(ex, "Redis 操作异常，检查 Nonce {Nonce} 使用状态失败", nonce);
+            throw new InvalidOperationException("Redis 操作失败", ex);
         }
     }
 

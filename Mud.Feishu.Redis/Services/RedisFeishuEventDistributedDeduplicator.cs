@@ -79,12 +79,20 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
             _logger?.LogDebug("事件 {EventId} 标记为已处理，TTL: {Ttl}", eventId, actualTtl);
             return false; // 未处理，新事件
         }
-        catch (Exception ex)
+        catch (RedisConnectionException ex)
         {
-            _logger?.LogError(ex, "尝试标记事件 {EventId} 为已处理时发生错误", eventId);
-            // Redis 异常时，为防止阻塞处理，返回 false（允许处理，但记录错误）
-            // 生产环境应根据业务需求调整此行为
-            return false;
+            _logger.LogError(ex, "Redis 连接异常，事件 {EventId} 去重失败", eventId);
+            throw new InvalidOperationException("Redis 连接失败，无法完成去重", ex);
+        }
+        catch (RedisTimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Redis 超时，事件 {EventId} 去重失败", eventId);
+            throw new InvalidOperationException("Redis 操作超时", ex);
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogError(ex, "Redis 操作异常，事件 {EventId} 去重失败", eventId);
+            throw new InvalidOperationException("Redis 操作失败", ex);
         }
     }
 
@@ -104,10 +112,20 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
             _logger?.LogDebug("事件 {EventId} 处理状态: {Status}", eventId, exists ? "已处理" : "未处理");
             return exists;
         }
-        catch (Exception ex)
+        catch (RedisConnectionException ex)
         {
-            _logger?.LogError(ex, "检查事件 {EventId} 处理状态时发生错误", eventId);
-            return false;
+            _logger.LogError(ex, "Redis 连接异常，检查事件 {EventId} 处理状态失败", eventId);
+            throw new InvalidOperationException("Redis 连接失败，无法检查处理状态", ex);
+        }
+        catch (RedisTimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Redis 超时，检查事件 {EventId} 处理状态失败", eventId);
+            throw new InvalidOperationException("Redis 操作超时", ex);
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogError(ex, "Redis 操作异常，检查事件 {EventId} 处理状态失败", eventId);
+            throw new InvalidOperationException("Redis 操作失败", ex);
         }
     }
 

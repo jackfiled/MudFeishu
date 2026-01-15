@@ -78,12 +78,40 @@ public class FeishuEventValidator : IFeishuEventValidator
     {
         try
         {
-            // 如果时间戳或 nonce 为空，跳过签名验证（飞书某些请求类型可能不包含这些字段）
+            // 为空，跳过签名验证（飞书某些请求类型可能不包含这些字段）
             if (timestamp == 0 || string.IsNullOrEmpty(nonce))
             {
-                _logger.LogWarning("时间戳或 nonce 为空（Timestamp: {Timestamp}, Nonce: {Nonce}），跳过签名验证（请求可能来自飞书验证请求或其他特殊场景）",
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                var isProduction = string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase);
+
+                if (isProduction)
+                {
+                    _logger.LogError(
+                        "时间戳或 nonce 为空（Timestamp: {Timestamp}, Nonce: {Nonce}），拒绝请求（生产环境不允许跳过签名验证）",
+                        timestamp, nonce);
+
+                    // 记录安全审计日志
+                    _ = _securityAuditService?.LogSecurityFailureAsync(
+                        SecurityEventType.SignatureValidation,
+                        "unknown",
+                        "FeishuEventValidator",
+                        $"时间戳或 nonce 为空（Timestamp: {timestamp}, Nonce: {nonce}），拒绝请求",
+                        "");
+
+                    return true;
+                }
+
+                _logger.LogWarning(
+                    "时间戳或 nonce 为空（Timestamp: {Timestamp}, Nonce: {Nonce}），跳过签名验证（开发环境，警告：此配置存在安全风险）",
                     timestamp, nonce);
-                return true;
+
+                // 记录安全审计日志
+                _ = _securityAuditService?.LogSecurityFailureAsync(
+                    SecurityEventType.SignatureValidation,
+                    "unknown",
+                    "FeishuEventValidator",
+                    $"开发环境：时间戳或 nonce 为空（Timestamp: {timestamp}, Nonce: {nonce}），跳过签名验证",
+                    "");
             }
 
             // 检查 nonce 是否已使用（防止重放攻击）
@@ -194,9 +222,37 @@ public class FeishuEventValidator : IFeishuEventValidator
             // 如果时间戳或 nonce 为空，跳过签名验证（飞书某些请求类型可能不包含这些字段）
             if (timestamp == 0 || string.IsNullOrEmpty(nonce))
             {
-                _logger.LogWarning("时间戳或 nonce 为空（Timestamp: {Timestamp}, Nonce: {Nonce}），跳过签名验证（请求可能来自飞书验证请求或其他特殊场景）",
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                var isProduction = string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase);
+
+                if (isProduction)
+                {
+                    _logger.LogError(
+                        "时间戳或 nonce 为空（Timestamp: {Timestamp}, Nonce: {Nonce}），拒绝请求（生产环境不允许跳过签名验证）",
+                        timestamp, nonce);
+
+                    // 记录安全审计日志
+                    _ = _securityAuditService?.LogSecurityFailureAsync(
+                        SecurityEventType.SignatureValidation,
+                        "unknown",
+                        "FeishuEventValidator",
+                        $"时间戳或 nonce 为空（Timestamp: {timestamp}, Nonce: {nonce}），拒绝请求",
+                        "");
+
+                    return true;
+                }
+
+                _logger.LogWarning(
+                    "时间戳或 nonce 为空（Timestamp: {Timestamp}, Nonce: {Nonce}），跳过签名验证（开发环境，警告：此配置存在安全风险）",
                     timestamp, nonce);
-                return true;
+
+                // 记录安全审计日志
+                _ = _securityAuditService?.LogSecurityFailureAsync(
+                    SecurityEventType.SignatureValidation,
+                    "unknown",
+                    "FeishuEventValidator",
+                    $"开发环境：时间戳或 nonce 为空（Timestamp: {timestamp}, Nonce: {nonce}），跳过签名验证",
+                    "");
             }
 
             // 检查 nonce 是否已使用（防止重放攻击）
