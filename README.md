@@ -250,14 +250,10 @@ builder.Services.AddFeishuServices(builder.Configuration, new[] {
     FeishuModule.Organization,
     FeishuModule.Message,
     FeishuModule.ChatGroup,
-    FeishuModule.Approval,
-    FeishuModule.Authentication
+    FeishuModule.Approval
 });
 
-// 注册 HTTP API 服务（方式四：仅令牌管理服务）
-builder.Services.AddFeishuTokenManagers(builder.Configuration);
-
-// 注册 HTTP API 服务（方式五：代码配置）
+// 注册 HTTP API 服务（方式四：代码配置）
 builder.Services.CreateFeishuServicesBuilder(options =>
 {
     options.AppId = "your_app_id";
@@ -268,7 +264,7 @@ builder.Services.CreateFeishuServicesBuilder(options =>
 .Build();
 
 // 注册 WebSocket 事件订阅服务
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<MessageEventHandler>()
     .Build();
 
@@ -483,7 +479,7 @@ public class MessageHandler : IFeishuEventHandler
 }
 
 // 注册处理器
-builder.Services.AddFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
     .AddHandler<MessageHandler>()
     .Build();
 ```

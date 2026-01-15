@@ -61,16 +61,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Register all Feishu API services with one line of code (Lazy mode)
 builder.Services.AddFeishuServices(builder.Configuration);
 
-// Register services flexibly as needed (Builder pattern)
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
-    .AddTokenManagers()                   // Token management
-    .AddOrganizationApi()                 // Organization structure
-    .AddMessageApi()                      // Message service
-    .AddChatGroupApi()                    // Group service
-    .Build();
+var app = builder.Build();
+```
 
-// Quick single module registration
-builder.Services.AddFeishuTokenManagers(builder.Configuration);     // Token management
+#### 🔧 Builder Pattern (Recommended for Advanced Users)
+
+```csharp
+// Register services flexibly as needed (using configuration file)
 builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
     .AddOrganizationApi()                 // Organization structure
     .AddMessageApi()                      // Message service
@@ -80,42 +77,17 @@ builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
     .AddCardApi()                         // Card service
     .Build();
 
-// Modular registration
-builder.Services.AddFeishuServices(builder.Configuration, new[]
-{
-    FeishuModule.TokenManagement,
-    FeishuModule.Organization,
-    FeishuModule.Message,
-    FeishuModule.ChatGroup
-});
-
-var app = builder.Build();
-```
-
-#### 🔧 Builder Pattern (Recommended for Advanced Users)
-
-```csharp
-// Register services flexibly as needed (using configuration file)
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
-    .AddTokenManagers()                   // Token management
-    .AddOrganizationApi()                 // Organization structure
-    .AddMessageApi()                      // Message service
-    .Build();
-
 // Register services flexibly as needed (using code configuration)
 builder.Services.CreateFeishuServicesBuilder(options =>
 {
     options.AppId = "your_app_id";
     options.AppSecret = "your_app_secret";
     options.BaseUrl = "https://open.feishu.cn";
+    options.TimeOut = 30;
+    options.RetryCount = 3;
 })
-    .AddTokenManagers()                   // Token management
-    .AddOrganizationApi()                 // Organization structure
-    .AddMessageApi()                      // Message service
-    .Build();
-    .AddTokenManagers()                   // Token management
-    .AddOrganizationApi()                 // Organization structure
-    .AddMessageApi()                      // Message service
+    .AddOrganizationApi()
+    .AddMessageApi()
     .Build();
 ```
 
@@ -126,18 +98,18 @@ builder.Services.CreateFeishuServicesBuilder(options =>
 builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
     .AddOrganizationApi()                 // Organization structure
     .AddMessageApi()                      // Message service
-    .AddTokenManagers()                   // Token management
     .Build();
 ```
 
 #### 📦 Modular Registration
 
 ```csharp
-builder.Services.AddFeishuModules(builder.Configuration, new[]
+// Register only services you need
+builder.Services.AddFeishuServices(builder.Configuration, new[]
 {
-    FeishuModule.TokenManagement,
-    FeishuModule.Organization,
-    FeishuModule.Message
+    FeishuModule.Organization,      // Organization structure
+    FeishuModule.Message,          // Message service
+    FeishuModule.ChatGroup         // Group service
 });
 ```
 

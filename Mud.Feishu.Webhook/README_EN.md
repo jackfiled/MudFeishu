@@ -169,7 +169,28 @@ app.UseFeishuWebhook();
 app.Run();
 ```
 
-### 🔧 Method 3: Advanced Builder Pattern
+### 🔌 Method 3: Add Event Interceptors
+
+```csharp
+using Mud.Feishu.Webhook.Extensions;
+using Mud.Feishu.Abstractions.Interceptors;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add built-in and custom interceptors
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddInterceptor<LoggingEventInterceptor>()  // Built-in logging interceptor
+    .AddInterceptor<TelemetryEventInterceptor>()  // Built-in telemetry interceptor
+    .AddInterceptor<AuditLogInterceptor>()  // Custom audit interceptor
+    .AddHandler<MessageEventHandler>()
+    .Build();
+
+var app = builder.Build();
+app.UseFeishuWebhook();
+app.Run();
+```
+
+### 🔧 Method 4: Advanced Builder Pattern
 
 ```csharp
 using Mud.Feishu.Webhook.Extensions;
@@ -178,7 +199,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Use builder pattern for complex configuration
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .ConfigureFrom(builder.Configuration, "FeishuWebhook")
     .EnableHealthChecks()    // Enable health checks
     .AddHandler<MessageReceiveEventHandler>()
     .AddHandler<DepartmentCreatedEventHandler>()
@@ -193,7 +213,7 @@ app.UseFeishuWebhook();
 app.Run();
 ```
 
-### 🔥 Method 4: Specify Configuration Section Name
+### 🔥 Method 5: Specify Configuration Section Name
 
 ```csharp
 using Mud.Feishu.Webhook.Extensions;
@@ -457,6 +477,129 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 // System will automatically detect and apply new concurrency limits
 ```
 
+## Event Interceptors
+
+Event interceptors allow executing custom logic before and after event handling, such as logging, metrics collection, permission verification, etc.
+
+### Built-in Interceptors
+
+**LoggingEventInterceptor** - Record event handling logs
+
+```csharp
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddInterceptor<LoggingEventInterceptor>()  // Record event handling start and end
+    .AddHandler<MessageEventHandler>()
+    .Build();
+```
+
+**TelemetryEventInterceptor** - Telemetry data collection
+
+```csharp
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddInterceptor<TelemetryEventInterceptor>(sp =>
+        new TelemetryEventInterceptor("My.Application"))  // Specify application name
+    .AddHandler<MessageEventHandler>()
+    .Build();
+```
+
+### Custom Interceptors
+
+Create custom interceptors by implementing the `IFeishuEventInterceptor` interface:
+
+```csharp
+using Mud.Feishu.Abstractions;
+
+/// <summary>
+/// Audit log interceptor example
+/// </summary>
+public class AuditLogInterceptor : IFeishuEventInterceptor
+{
+    private readonly ILogger<AuditLogInterceptor> _logger;
+
+    public AuditLogInterceptor(ILogger<AuditLogInterceptor> logger)
+        => _logger = logger;
+
+    /// <summary>
+    /// Before event handling interceptor
+    /// </summary>
+    /// <returns>Return false to interrupt event handling flow</returns>
+    public Task<bool> BeforeHandleAsync(string eventType, EventData eventData, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[Audit] Event started: {EventType}, EventId: {EventId}, TenantKey: {TenantKey}",
+            eventType, eventData.EventId, eventData.TenantKey);
+        return Task.FromResult(true); // Return true to continue, false to interrupt
+    }
+
+    /// <summary>
+    /// After event handling interceptor
+    /// </summary>
+    public Task AfterHandleAsync(string eventType, EventData eventData, Exception? exception, CancellationToken cancellationToken = default)
+    {
+        if (exception == null)
+        {
+            _logger.LogInformation("[Audit] Event succeeded: {EventType}, EventId: {EventId}", eventType, eventData.EventId);
+        }
+        else
+        {
+            _logger.LogError(exception, "[Audit] Event failed: {EventType}, EventId: {EventId}", eventType, eventData.EventId);
+        }
+        return Task.CompletedTask;
+    }
+}
+```
+
+### Register Custom Interceptors
+
+```csharp
+// Type registration
+.AddInterceptor<AuditLogInterceptor>()
+
+// Factory registration
+.AddInterceptor(sp => new AuditLogInterceptor(
+    sp.GetRequiredService<ILogger<AuditLogInterceptor>>()))
+
+// Instance registration
+var interceptor = new AuditLogInterceptor(logger);
+.AddInterceptor(interceptor)
+```
+
+### Interceptor Execution Order
+
+Interceptors execute in registration order, complete flow:
+
+```
+Webhook Event Arrives
+    ↓
+Interceptor 1: BeforeHandleAsync
+    ↓
+Interceptor 2: BeforeHandleAsync
+    ↓
+...
+    ↓
+Interceptor N: BeforeHandleAsync
+    ↓
+[Event Handler Handles Event]
+    ↓
+Interceptor N: AfterHandleAsync
+    ↓
+...
+    ↓
+Interceptor 2: AfterHandleAsync
+    ↓
+Interceptor 1: AfterHandleAsync
+    ↓
+Handling Complete
+```
+
+### Use Cases
+
+- **Logging**: Record event handling start, success, and failure
+- **Metrics Collection**: Statistics on event processing time, success rate, etc.
+- **Security Audit**: Record handling of sensitive events
+- **Permission Control**: Decide whether to handle based on event type or content
+- **Performance Monitoring**: Record processing time to identify performance bottlenecks
+- **Business Tracing**: Write event information to audit logs or tracing systems
+
 ## Registering Event Handlers
 
 ### Register Multiple Handlers with Chain Calls
@@ -476,7 +619,7 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 ```csharp
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
-    .AddHandler<MessageEventHandler>(sp => 
+    .AddHandler<MessageEventHandler>(sp =>
     {
         var logger = sp.GetRequiredService<ILogger<MessageEventHandler>>();
         var myService = sp.GetRequiredService<MyCustomService>();
