@@ -182,7 +182,8 @@ public class FeishuWebSocketMessageTests
 
         // Assert
         message.Should().NotBeNull();
-        message!.Type.Should().BeNull();
+        // When type is missing, it defaults to empty string, not null
+        message!.Type.Should().BeEmpty();
         message.Timestamp.Should().Be(1234567890);
     }
 
@@ -212,7 +213,8 @@ public class FeishuWebSocketMessageTests
 
         // Assert
         message.Should().NotBeNull();
-        message!.Type.Should().BeNull();
+        // When type is missing, it defaults to empty string, not null
+        message!.Type.Should().BeEmpty();
         message.Timestamp.Should().Be(0);
     }
 

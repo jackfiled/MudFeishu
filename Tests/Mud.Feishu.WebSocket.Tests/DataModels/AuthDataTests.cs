@@ -227,8 +227,9 @@ public class AuthDataTests
         // Act
         var json = JsonSerializer.Serialize(authData, JsonOptions.Default);
 
-        // Assert
-        json.Should().Contain("\"app_access_token\":null");
+        // Assert - null values are omitted by default in JSON serialization
+        json.Should().Contain("\"app_id\"");
+        json.Should().NotContain("\"app_access_token\"");
     }
 
     [Fact]

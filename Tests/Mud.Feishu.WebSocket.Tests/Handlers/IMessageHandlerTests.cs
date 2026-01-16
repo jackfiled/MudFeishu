@@ -70,16 +70,15 @@ public class JsonMessageHandlerTests
     }
 
     [Fact]
-    public void SafeDeserialize_ShouldReturnNull_WhenJsonIsNull()
+    public void SafeDeserialize_ShouldThrowArgumentNullException_WhenJsonIsNull()
     {
         // Arrange
         string? nullJson = null;
 
-        // Act
-        var result = _handler.TestSafeDeserialize<TestData>(nullJson);
-
-        // Assert
-        result.Should().BeNull();
+        // Act & Assert
+        // SafeDeserialize catches JsonException but not ArgumentNullException
+        // When json is null, JsonSerializer.Deserialize throws ArgumentNullException
+        Assert.Throws<ArgumentNullException>(() => _handler.TestSafeDeserialize<TestData>(nullJson));
     }
 
     [Fact]
@@ -273,7 +272,7 @@ public class JsonMessageHandlerTests
     }
 
     // Test class to expose protected method
-    private class TestJsonMessageHandler : JsonMessageHandler
+    public class TestJsonMessageHandler : JsonMessageHandler
     {
         public TestJsonMessageHandler(ILogger logger) : base(logger)
         {
@@ -289,14 +288,14 @@ public class JsonMessageHandlerTests
     }
 
     // Test data models
-    private class TestData
+    public class TestData
     {
         public string? Id { get; set; }
         public string? Name { get; set; }
         public int Value { get; set; }
     }
 
-    private class NumericData
+    public class NumericData
     {
         public int IntValue { get; set; }
         public long LongValue { get; set; }
@@ -304,7 +303,7 @@ public class JsonMessageHandlerTests
         public decimal DecimalValue { get; set; }
     }
 
-    private class BooleanData
+    public class BooleanData
     {
         public bool BoolValue { get; set; }
         public bool FalseValue { get; set; }

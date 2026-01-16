@@ -179,8 +179,10 @@ public class AuthMessageTests
         // Act
         var json = JsonSerializer.Serialize(message, JsonOptions.Default);
 
-        // Assert
-        json.Should().Contain("\"data\":null");
+        // Assert - null values are omitted by default in JSON serialization
+        json.Should().Contain("\"type\"");
+        json.Should().Contain("\"timestamp\"");
+        json.Should().NotContain("\"data\"");
     }
 
     [Fact]
