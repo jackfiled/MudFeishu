@@ -217,16 +217,31 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
     /// 获取当前缓存中的事件数量
     /// </summary>
     /// <returns>事件数量</returns>
+    /// <remarks>
+    /// 使用 SCAN 命令迭代计数，避免 KEYS 命令阻塞 Redis
+    /// 注意：此操作可能较耗时，不建议频繁调用
+    /// </remarks>
     public async Task<long> GetCachedCountAsync()
     {
         try
         {
-            var server = _redis.GetServer(_redis.GetEndPoints().First());
-            var keys = server.Keys(pattern: $"{_keyPrefix}*");
-            var count = keys.Count();
+            var totalCount = 0L;
+            var pattern = $"{_keyPrefix}*";
 
-            _logger?.LogDebug("当前缓存中的事件数量: {Count}", count);
-            return count;
+            // 使用 SCAN 迭代器遍历所有端点
+            foreach (var endPoint in _redis.GetEndPoints())
+            {                
+                var redisServer = _redis.GetServer(endPoint);
+
+                // 直接遍历 Keys，StackExchange.Redis 内部已处理 SCAN 迭代
+               await foreach (var key in redisServer.KeysAsync(pattern: pattern, pageSize: 1000))
+                {
+                    totalCount++;
+                }
+            }
+
+            _logger?.LogDebug("当前缓存中的事件数量: {Count}", totalCount);
+            return totalCount;
         }
         catch (Exception ex)
         {

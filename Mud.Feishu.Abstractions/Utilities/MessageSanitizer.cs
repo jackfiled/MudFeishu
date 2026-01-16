@@ -6,93 +6,107 @@
 // -----------------------------------------------------------------------
 
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Mud.Feishu.Abstractions.Utilities;
 
 /// <summary>
-/// 消息脱敏工具，用于保护日志中的敏感信息
+/// 改进版消息脱敏工具
 /// </summary>
 public static class MessageSanitizer
 {
+    // 添加更多常见敏感字段
     private static readonly HashSet<string> SensitiveFields = new(StringComparer.OrdinalIgnoreCase)
     {
-        "app_access_token",
-        "appAccessToken",
-        "token",
-        "password",
-        "secret",
-        "access_token",
-        "refresh_token",
-        "auth_token",
-        "session_token",
-        "api_key",
-        "private_key",
-        "phone",
-        "mobile",
-        "email",
-        "id_card"
+        "app_access_token", "appAccessToken", "token", "password", "secret",
+        "access_token", "refresh_token", "auth_token", "session_token",
+        "api_key", "apiKey", "private_key", "privateKey",
+        "phone", "mobile", "tel", "telephone",
+        "email", "mail",
+        "id_card", "idcard", "id_number", "idNumber",
+        "card_no", "card_number", "bank_card", "bankCard",
+        "real_name", "realName", "name",
+        "address", "住址",
+        "passport", "driver_license"
     };
 
+    // 添加敏感字段值模式匹配（正则表达式）
+    private static readonly Regex TokenPattern = new Regex(
+        @"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$|" +  // Base64格式
+        @"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$|" +  // UUID
+        @"^[A-Za-z0-9_\-]{20,}$",  // 长token格式
+        RegexOptions.Compiled);
+
+    private static readonly Regex PhonePattern = new Regex(@"^1[3-9]\d{9}$", RegexOptions.Compiled);
+    private static readonly Regex EmailPattern = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
+    private static readonly Regex IdCardPattern = new Regex(@"^\d{17}[\dXx]$", RegexOptions.Compiled);
+
     /// <summary>
-    /// 脱敏消息内容
+    /// 脱敏消息内容（改进版）
     /// </summary>
-    /// <param name="message">原始消息</param>
-    /// <param name="maxLength">最大输出长度（截断用），默认500</param>
-    /// <returns>脱敏后的消息</returns>
     public static string Sanitize(string message, int maxLength = 500)
     {
         if (string.IsNullOrWhiteSpace(message))
             return message;
 
-        // 如果消息过长，先截断
-        if (message.Length > maxLength)
-            message = message.Substring(0, maxLength) + "...";
-
         try
         {
-            var json = JsonDocument.Parse(message);
+            using var json = JsonDocument.Parse(message, new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip
+            });
+
             var sanitized = SanitizeJsonElement(json.RootElement);
-            return sanitized.ToString();
+            var result = sanitized.ToString();
+
+            // 脱敏后再截断
+            return result.Length > maxLength ?
+                result.Substring(0, Math.Min(result.Length, maxLength)) + "..." :
+                result;
         }
         catch (JsonException)
         {
-            // 不是JSON格式，直接返回截断后的内容
-            return message;
+            // 不是JSON格式，进行文本脱敏
+            return SanitizePlainText(message, maxLength);
         }
     }
 
     /// <summary>
-    /// 递归脱敏JSON元素
+    /// 递归脱敏JSON元素（优化性能版）
     /// </summary>
-    private static JsonElement SanitizeJsonElement(JsonElement element)
+    private static JsonElement SanitizeJsonElement(JsonElement element, int depth = 0)
     {
+        // 防止深度递归导致栈溢出
+        if (depth > 32) return JsonSerializer.Deserialize<JsonElement>("\"***RECURSION_DEPTH_EXCEEDED***\"");
+
         switch (element.ValueKind)
         {
             case JsonValueKind.Object:
-                var properties = new Dictionary<string, JsonElement>();
+                var dict = new Dictionary<string, JsonElement>();
                 foreach (var property in element.EnumerateObject())
                 {
                     if (SensitiveFields.Contains(property.Name))
                     {
-                        properties[property.Name] = JsonSerializer.Deserialize<JsonElement>("\"***\"");
+                        // 根据字段名选择不同的脱敏策略
+                        dict[property.Name] = GetMaskedValue(property.Name, property.Value);
                     }
                     else
                     {
-                        properties[property.Name] = SanitizeJsonElement(property.Value);
+                        dict[property.Name] = SanitizeJsonElement(property.Value, depth + 1);
                     }
                 }
-                return JsonSerializer.SerializeToElement(properties);
+                return JsonSerializer.SerializeToElement(dict);
 
             case JsonValueKind.Array:
-                var items = new List<JsonElement>();
+                var list = new List<JsonElement>();
                 foreach (var item in element.EnumerateArray())
                 {
-                    items.Add(SanitizeJsonElement(item));
+                    list.Add(SanitizeJsonElement(item, depth + 1));
                 }
-                return JsonSerializer.SerializeToElement(items);
+                return JsonSerializer.SerializeToElement(list);
 
             case JsonValueKind.String:
-                // 字符串值也检查是否为token格式
                 var strValue = element.GetString();
                 if (IsSensitiveString(strValue))
                 {
@@ -106,23 +120,102 @@ public static class MessageSanitizer
     }
 
     /// <summary>
-    /// 判断字符串是否为敏感信息
+    /// 根据字段名获取脱敏值
+    /// </summary>
+    private static JsonElement GetMaskedValue(string fieldName, JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.String)
+            return JsonSerializer.Deserialize<JsonElement>("\"***\"");
+
+        var str = value.GetString();
+        if (string.IsNullOrEmpty(str))
+            return value;
+
+        // 根据不同字段类型采用不同的脱敏策略
+        if (fieldName.IndexOf("phone", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            fieldName.IndexOf("mobile", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            // 手机号保留前3后4
+            return JsonSerializer.Deserialize<JsonElement>($"\"{MaskPhone(str)}\"");
+        }
+        else if (fieldName.IndexOf("email", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 fieldName.IndexOf("mail", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            // 邮箱保留前1位和域名
+            return JsonSerializer.Deserialize<JsonElement>($"\"{MaskEmail(str)}\"");
+        }
+        else if (fieldName.IndexOf("name", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            // 姓名保留第一个字
+            return JsonSerializer.Deserialize<JsonElement>($"\"{MaskName(str)}\"");
+        }
+        else if (str.Length <= 8)
+        {
+            // 短值完全脱敏
+            return JsonSerializer.Deserialize<JsonElement>("\"***\"");
+        }
+        else
+        {
+            // 长token保留前4后4
+            return JsonSerializer.Deserialize<JsonElement>($"\"{str.Substring(0, 4)}***{str.Substring(str.Length - 4)}\"");
+        }
+    }
+
+    /// <summary>
+    /// 判断字符串是否为敏感信息（改进版）
     /// </summary>
     private static bool IsSensitiveString(string? value)
     {
-        if (string.IsNullOrEmpty(value) || value.Length < 20)
+        if (string.IsNullOrEmpty(value))
             return false;
 
-        // 检查是否符合token的常见特征
-        // 假设token通常包含字母、数字、下划线、短横线，长度通常大于20
-        bool hasLetters = value.Any(char.IsLetter);
-        bool hasDigits = value.Any(char.IsDigit);
-        bool hasSpecialChars = value.Contains('_') || value.Contains('-');
+        // 检查常见敏感数据格式
+        return TokenPattern.IsMatch(value) ||
+               PhonePattern.IsMatch(value) ||
+               EmailPattern.IsMatch(value) ||
+               IdCardPattern.IsMatch(value);
+    }
 
-        if (!hasLetters || !hasDigits)
-            return false;
+    /// <summary>
+    /// 纯文本脱敏（用于非JSON格式）
+    /// </summary>
+    private static string SanitizePlainText(string text, int maxLength)
+    {
+        // 简单的正则替换
+        var patterns = new Dictionary<Regex, string>
+        {
+            [new Regex(@"(?i)(token|password|secret|key)\s*[:=]\s*['\""]?([^'\""\s]{6,})['\""]?")] = "$1: ***",
+            [PhonePattern] = "***",
+            [EmailPattern] = "***",
+            [IdCardPattern] = "***"
+        };
 
-        // 如果看起来像token，进行脱敏
-        return hasSpecialChars || value.Length > 32;
+        foreach (var pattern in patterns)
+        {
+            text = pattern.Key.Replace(text, pattern.Value);
+        }
+
+        return text.Length > maxLength ? text.Substring(0, Math.Min(text.Length, maxLength)) + "..." : text;
+    }
+
+    private static string MaskPhone(string phone)
+    {
+        if (phone.Length < 7) return "***";
+        return $"{phone.Substring(0, 3)}****{phone.Substring(phone.Length - 4)}";
+    }
+
+    private static string MaskEmail(string email)
+    {
+        var parts = email.Split('@');
+        if (parts.Length != 2) return "***";
+        var name = parts[0];
+        return $"{(name.Length > 0 ? name[0] : "*")}***@{parts[1]}";
+    }
+
+    private static string MaskName(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "**";
+        if (name.Length == 1) return "*";
+        return $"{name[0]}*";
     }
 }

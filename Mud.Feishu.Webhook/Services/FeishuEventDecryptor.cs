@@ -170,7 +170,7 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                 }
                 aes.Key = keyBytes;
                 aes.Mode = CipherMode.CBC;
-                aes.IV = [.. encryptedBytes.Take(BlockSize)];
+                aes.IV = encryptedBytes.Take(BlockSize).ToArray();
 
                 using var transform = aes.CreateDecryptor();
                 var result = transform.TransformFinalBlock(encryptedBytes, BlockSize, encryptedBytes.Length - BlockSize);

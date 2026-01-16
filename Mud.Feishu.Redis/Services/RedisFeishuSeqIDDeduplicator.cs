@@ -174,8 +174,36 @@ public class RedisFeishuSeqIDDeduplicator : IFeishuSeqIDDeduplicator, IAsyncDisp
         try
         {
             var server = _redis.GetServer(_redis.GetEndPoints().First());
-            var keys = server.Keys(pattern: $"{_keyPrefix}*");
-            var count = _database.KeyDelete(keys.ToArray());
+            var count = 0;
+
+            // 使用 SCAN 命令迭代删除所有键，避免 KEYS 命令阻塞 Redis
+            foreach (var endPoint in _redis.GetEndPoints())
+            {
+                var redisServer = _redis.GetServer(endPoint);
+                var pattern = $"{_keyPrefix}*";
+
+                // 使用 SCAN 迭代器遍历键
+                var keysToDelete = new List<RedisKey>();
+                foreach (var key in redisServer.Keys(pattern: pattern, pageSize: 1000))
+                {
+                    keysToDelete.Add(key);
+
+                    // 批量删除，每批1000个
+                    if (keysToDelete.Count >= 1000)
+                    {
+                        var deleted = _database.KeyDelete(keysToDelete.ToArray());
+                        count += (int)deleted;
+                        keysToDelete.Clear();
+                    }
+                }
+
+                // 删除剩余的键
+                if (keysToDelete.Count > 0)
+                {
+                    var deleted = _database.KeyDelete(keysToDelete.ToArray());
+                    count += (int)deleted;
+                }
+            }
 
             _logger?.LogInformation("清空了 {Count} 个 SeqID 缓存条目", count);
         }
@@ -191,8 +219,13 @@ public class RedisFeishuSeqIDDeduplicator : IFeishuSeqIDDeduplicator, IAsyncDisp
         try
         {
             var sortedSetKey = $"{_keyPrefix}set";
-            var count = (long)_database.SortedSetLength(sortedSetKey);
-            return (int)count;
+            var sortedSetCount = (long)_database.SortedSetLength(sortedSetKey);
+            var totalCount = sortedSetCount;
+
+            _logger?.LogDebug("SeqID 缓存数量: SortedSet={SortedSetCount}, Total={Total}",
+                sortedSetCount, totalCount);
+
+            return (int)totalCount;
         }
         catch (Exception ex)
         {

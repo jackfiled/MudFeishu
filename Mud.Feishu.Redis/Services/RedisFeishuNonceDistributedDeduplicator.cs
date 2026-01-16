@@ -223,8 +223,11 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
         {
             var server = _redis.GetServer(_redis.GetEndPoints().First());
             var keys = server.Keys(pattern: $"{_keyPrefix}*");
-            var count = keys.Count();
-
+            int count = 0;
+            await foreach (var key in server.KeysAsync(pattern: $"{_keyPrefix}*"))
+            {
+                count++;
+            }
             _logger?.LogDebug("当前缓存中的 Nonce 数量: {Count}", count);
             return count;
         }

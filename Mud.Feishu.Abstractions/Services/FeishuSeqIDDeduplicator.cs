@@ -156,34 +156,50 @@ public class FeishuSeqIDDeduplicator : IFeishuSeqIDDeduplicator, IAsyncDisposabl
     /// </summary>
     private void CleanupExpiredEntries(object? state)
     {
-        lock (_lock)
+        try
         {
-            var now = DateTimeOffset.UtcNow;
-            var expiredKeys = _seqIdTimestamps
-                .Where(kvp => (now - kvp.Value) > _cacheExpiration)
-                .Select(kvp => kvp.Key)
-                .ToList();
-
-            foreach (var key in expiredKeys)
+            lock (_lock)
             {
-                _processedSeqIds.Remove(key);
-                _seqIdTimestamps.Remove(key);
-            }
+                var now = DateTimeOffset.UtcNow;
+                var expiredKeys = _seqIdTimestamps
+                    .Where(kvp => (now - kvp.Value) > _cacheExpiration)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
 
-            if (expiredKeys.Count > 0)
-            {
-                _logger?.LogDebug("清理了 {Count} 个过期的 SeqID 缓存条目", expiredKeys.Count);
-
-                // 清理完成后统一重新计算最大 SeqID
-                if (_seqIdTimestamps.Count > 0)
+                foreach (var key in expiredKeys)
                 {
-                    _maxProcessedSeqId = _seqIdTimestamps.Keys.Max();
+                    _processedSeqIds.Remove(key);
+                    _seqIdTimestamps.Remove(key);
                 }
-                else
+
+                if (expiredKeys.Count > 0)
                 {
-                    _maxProcessedSeqId = 0;
+                    _logger?.LogDebug("清理了 {Count} 个过期的 SeqID 缓存条目", expiredKeys.Count);
+
+                    // 清理完成后统一重新计算最大 SeqID，添加异常捕获防止空集合异常
+                    try
+                    {
+                        if (_seqIdTimestamps.Count > 0)
+                        {
+                            _maxProcessedSeqId = _seqIdTimestamps.Keys.Max();
+                        }
+                        else
+                        {
+                            _maxProcessedSeqId = 0;
+                        }
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        _logger?.LogWarning(ex, "计算最大 SeqID 时集合为空，已重置为0");
+                        _maxProcessedSeqId = 0;
+                    }
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            // Timer 回调异常不会影响主流程，仅记录日志
+            _logger?.LogError(ex, "清理过期 SeqID 条目时发生异常");
         }
     }
 

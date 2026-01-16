@@ -99,10 +99,15 @@ public class AuthenticationManager
                     var baseDelay = TimeSpan.FromMilliseconds(_options.ReconnectDelayMs);
                     var exponentialDelay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * Math.Pow(2, attempt));
                     var maxDelay = TimeSpan.FromMilliseconds(_options.MaxReconnectDelayMs);
-                    var delay = exponentialDelay > maxDelay ? maxDelay : exponentialDelay;
 
-                    _logger.LogInformation("等待 {Delay}ms 后进行第 {NextAttempt} 次认证尝试",
-                        delay.TotalMilliseconds, attempt + 2);
+                    // 添加随机抖动，避免多个客户端同时重试造成雪崩
+                    var random = new Random();
+                    var jitter = random.Next(0, 1000); // 0-1000ms 的随机抖动
+                    var delay = exponentialDelay > maxDelay ? maxDelay : exponentialDelay;
+                    delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds + jitter);
+
+                    _logger.LogInformation("等待 {Delay}ms 后进行第 {NextAttempt} 次认证尝试（含 {Jitter}ms 抖动）",
+                        delay.TotalMilliseconds, attempt + 2, jitter);
 
                     await Task.Delay(delay, cancellationToken);
                 }
