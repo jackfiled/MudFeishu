@@ -11,6 +11,7 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/Tests/">
+    <File Path="Tests/Directory.Build.props" />
     <Project Path="Tests/Mud.Feishu.Abstractions.Tests/Mud.Feishu.Abstractions.Tests.csproj" />
     <Project Path="Tests/Mud.Feishu.Webhook.Tests/Mud.Feishu.Webhook.Tests.csproj" />
     <Project Path="Tests/Mud.Feishu.WebSocket.Tests/Mud.Feishu.WebSocket.Tests.csproj" />

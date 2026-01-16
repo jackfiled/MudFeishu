@@ -8,13 +8,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Mud.Feishu.Abstractions;
-using Mud.Feishu.Exceptions;
 using Mud.Feishu.DataModels;
+using Mud.Feishu.Exceptions;
 using Mud.Feishu.TokenManager;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
@@ -138,7 +134,7 @@ public class TenantTokenManagerTests
         Assert.NotNull(result2);
         Assert.Equal($"Bearer {expectedToken}", result1);
         Assert.Equal(result1, result2);
-        
+
         // Verify API was only called once
         _authenticationApiMock.Verify(x => x.GetTenantAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()), Times.Once);
     }
