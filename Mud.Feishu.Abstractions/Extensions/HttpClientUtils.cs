@@ -7,6 +7,7 @@
 
 using System.Text;
 using System.Text.Json;
+using Mud.Feishu.Abstractions.Utilities;
 
 namespace Mud.Feishu.Abstractions;
 
@@ -311,7 +312,12 @@ internal static class HttpClientExtensions
         }
 
         string errorMessage = $"HTTP请求失败: {statusCode} {response.StatusCode} - {errorContent}";
-        logger?.LogError("HTTP请求失败: {StatusCode}, 响应: {Response}", statusCode, errorContent);
+        
+        // 对错误响应内容进行脱敏处理，防止敏感信息泄露
+        var sanitizedContent = logger != null 
+            ? MessageSanitizer.Sanitize(errorContent, maxLength: 200)
+            : "[日志未启用]";
+        logger?.LogError("HTTP请求失败: {StatusCode}, 响应（已脱敏）: {Response}", statusCode, sanitizedContent);
 
         // 尝试释放响应内容
         response.Content.Dispose();

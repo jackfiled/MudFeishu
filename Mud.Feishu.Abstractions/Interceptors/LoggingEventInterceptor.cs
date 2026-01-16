@@ -5,6 +5,9 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.Feishu.Abstractions.Utilities;
+using System.Text.Json;
+
 namespace Mud.Feishu.Abstractions.Interceptors;
 
 /// <summary>
@@ -14,14 +17,19 @@ namespace Mud.Feishu.Abstractions.Interceptors;
 public class LoggingEventInterceptor : IFeishuEventInterceptor
 {
     private readonly ILogger<LoggingEventInterceptor> _logger;
+    private readonly bool _enableSanitization;
 
     /// <summary>
     /// 构造函数
     /// </summary>
     /// <param name="logger">日志记录器</param>
-    public LoggingEventInterceptor(ILogger<LoggingEventInterceptor> logger)
+    /// <param name="enableSanitization">是否启用脱敏（默认启用）</param>
+    public LoggingEventInterceptor(
+        ILogger<LoggingEventInterceptor> logger,
+        bool enableSanitization = true)
     {
         _logger = logger;
+        _enableSanitization = enableSanitization;
     }
 
     /// <summary>
@@ -43,6 +51,21 @@ public class LoggingEventInterceptor : IFeishuEventInterceptor
         {
             _logger.LogInformation("事件处理成功: {EventType}, EventId: {EventId}, TenantKey: {TenantKey}",
                 eventType, eventData.EventId, eventData.TenantKey);
+
+            // 如果启用了脱敏且是 Debug 日志级别，则记录脱敏后的事件数据
+            if (_enableSanitization && _logger.IsEnabled(LogLevel.Debug))
+            {
+                try
+                {
+                    var eventDataJson = JsonSerializer.Serialize(eventData);
+                    var sanitizedData = MessageSanitizer.Sanitize(eventDataJson, maxLength: 200);
+                    _logger.LogDebug("事件数据（已脱敏）: {EventData}", sanitizedData);
+                }
+                catch
+                {
+                    // 序列化失败时忽略，不影响主要日志
+                }
+            }
         }
         else
         {

@@ -59,8 +59,9 @@ public abstract class DefaultFeishuEventHandler<T> : IFeishuEventHandler
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "事件数据反序列化失败，事件类型: {EventType}, 原始数据: {RawData}",
-                eventData.EventType, eventData.Event?.ToString());
+            var rawDataLength = eventData.Event?.ToString()?.Length ?? 0;
+            _logger.LogError(ex, "事件数据反序列化失败，事件类型: {EventType}, 数据长度: {DataLength}",
+                eventData.EventType, rawDataLength);
             throw new InvalidOperationException("事件数据格式无效", ex);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

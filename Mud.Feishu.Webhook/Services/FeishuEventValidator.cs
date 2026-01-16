@@ -274,11 +274,9 @@ public class FeishuEventValidator : IFeishuEventValidator
             // 注意：这里不使用换行符连接！
             var signString = $"{timestamp}{nonce}{encryptKey}{body}";
 
-            // 调试日志：显示签名计算信息
-            _logger.LogDebug("请求头签名计算 - Timestamp: {Timestamp}, Nonce: {Nonce}, EncryptKey前8位: {KeyPrefix}, Body长度: {BodyLength}",
-                timestamp, nonce, encryptKey.Substring(0, Math.Min(8, encryptKey.Length)), body.Length);
-            _logger.LogDebug("签名字符串前150字符: {SignStringPrefix}",
-                signString.Length > 150 ? signString.Substring(0, 150) + "..." : signString);
+            // 调试日志：显示签名计算信息（不记录敏感的 EncryptKey 内容，仅记录长度）
+            _logger.LogDebug("请求头签名计算 - Timestamp: {Timestamp}, Nonce: {Nonce}, EncryptKey长度: {KeyLength}, Body长度: {BodyLength}",
+                timestamp, nonce, encryptKey.Length, body.Length);
 
             // 使用 SHA-256 计算签名（不是 HMAC-SHA256！）
             using var sha256 = SHA256.Create();

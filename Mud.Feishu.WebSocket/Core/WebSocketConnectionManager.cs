@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
+using Mud.Feishu.Abstractions.Utilities;
 using Mud.Feishu.WebSocket.SocketEventArgs;
 using System.Net.WebSockets;
 

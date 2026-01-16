@@ -7,10 +7,10 @@
 
 using System.Text.Json;
 
-namespace Mud.Feishu.WebSocket;
+namespace Mud.Feishu.Abstractions.Utilities;
 
 /// <summary>
-/// 消息脱敏工具
+/// 消息脱敏工具，用于保护日志中的敏感信息
 /// </summary>
 public static class MessageSanitizer
 {
@@ -37,7 +37,7 @@ public static class MessageSanitizer
     /// 脱敏消息内容
     /// </summary>
     /// <param name="message">原始消息</param>
-    /// <param name="maxLength">最大输出长度（截断用）</param>
+    /// <param name="maxLength">最大输出长度（截断用），默认500</param>
     /// <returns>脱敏后的消息</returns>
     public static string Sanitize(string message, int maxLength = 500)
     {
