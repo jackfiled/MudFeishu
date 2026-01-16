@@ -5,6 +5,8 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using System.ComponentModel.DataAnnotations;
+
 namespace Mud.Feishu.Webhook.Configuration;
 
 /// <summary>
@@ -15,11 +17,14 @@ public class FeishuWebhookOptions
     /// <summary>
     /// 应用验证 Token，用于飞书事件订阅验证
     /// </summary>
+    [Required(ErrorMessage = "生产环境必须配置 VerificationToken")]
     public string VerificationToken { get; set; } = string.Empty;
 
     /// <summary>
     /// 事件加密 Key，用于解密飞书推送的事件数据
     /// </summary>
+    [Required(ErrorMessage = "启用请求体签名验证时必须配置 EncryptKey")]
+    [StringLength(32, ErrorMessage = "EncryptKey 长度必须为 32 字符", MinimumLength = 32)]
     public string EncryptKey { get; set; } = string.Empty;
 
     /// <summary>
@@ -185,6 +190,9 @@ public class FeishuWebhookOptions
         if (string.IsNullOrEmpty(EncryptKey) && EnableBodySignatureValidation)
             throw new InvalidOperationException("启用请求体签名验证时必须配置 EncryptKey");
 
+        if (!string.IsNullOrEmpty(EncryptKey) && EncryptKey.Length != 32)
+            throw new InvalidOperationException("EncryptKey 长度必须为 32 字符");
+
         if (EventHandlingTimeoutMs < 1000)
             throw new InvalidOperationException("EventHandlingTimeoutMs 必须至少为 1000 毫秒");
 
@@ -202,5 +210,20 @@ public class FeishuWebhookOptions
 
         // 验证重试配置
         Retry.Validate();
+    }
+
+    /// <summary>
+    /// 返回配置的字符串表示（敏感信息已掩码）
+    /// </summary>
+    public override string ToString()
+    {
+        return $"FeishuWebhookOptions {{ RoutePrefix: {RoutePrefix}, VerificationToken: {MaskSensitiveData(VerificationToken)}, EncryptKey: {MaskSensitiveData(EncryptKey)}, EventHandlingTimeoutMs: {EventHandlingTimeoutMs}, MaxConcurrentEvents: {MaxConcurrentEvents}, EnforceHeaderSignatureValidation: {EnforceHeaderSignatureValidation} }}";
+    }
+
+    private static string MaskSensitiveData(string? data)
+    {
+        if (string.IsNullOrEmpty(data) || data.Length <= 4)
+            return "****";
+        return $"{data.Substring(0, 2)}****{data.Substring(data.Length - 2)}";
     }
 }

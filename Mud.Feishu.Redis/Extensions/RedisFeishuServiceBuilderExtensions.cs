@@ -35,11 +35,8 @@ public static class RedisFeishuServiceBuilderExtensions
 
             configuration?.GetSection("Feishu:Redis").Bind(options);
 
-            // 验证必要配置
-            if (string.IsNullOrWhiteSpace(options.ServerAddress))
-            {
-                throw new InvalidOperationException("Redis ServerAddress is not configured. Please check your configuration under 'Feishu:Redis' section.");
-            }
+            // 验证配置
+            options.Validate();
 
             logger?.LogInformation("Redis options loaded. Server: {ServerAddress}", options.ServerAddress);
             return options;

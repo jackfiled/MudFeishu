@@ -1,9 +1,11 @@
 ﻿// -----------------------------------------------------------------------
-//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
+
+using System.ComponentModel.DataAnnotations;
 
 namespace Mud.Feishu.Abstractions;
 
@@ -43,6 +45,9 @@ public class FeishuOptions
     /// <para>可在飞书开发者后台的应用详情页面中找到此值。</para>
     /// </summary>
     /// <exception cref="ArgumentNullException">当 AppId 为 null 或空字符串时抛出</exception>
+    [Required(ErrorMessage = "AppId 不能为空")]
+    [RegularExpression(@"^(cli_|app_).+", ErrorMessage = "AppId 格式无效，应以 'cli_' 或 'app_' 开头")]
+    [MinLength(20, ErrorMessage = "AppId 长度无效")]
     public
 #if NET7_0_OR_GREATER
         required
@@ -57,6 +62,8 @@ public class FeishuOptions
     /// <para>请在飞书开发者后台的应用详情页面中找到此值，并确保其安全性。</para>
     /// </summary>
     /// <exception cref="ArgumentNullException">当 AppSecret 为 null 或空字符串时抛出</exception>
+    [Required(ErrorMessage = "AppSecret 不能为空")]
+    [MinLength(16, ErrorMessage = "AppSecret 长度必须至少为 16 字符")]
     public
 #if NET7_0_OR_GREATER
         required
@@ -119,6 +126,23 @@ public class FeishuOptions
     /// <exception cref="InvalidOperationException">当配置项无效时抛出</exception>
     public void Validate()
     {
+        // 验证 AppId
+        if (string.IsNullOrWhiteSpace(AppId))
+            throw new InvalidOperationException("AppId 不能为空");
+
+        if (!AppId.StartsWith("cli_") && !AppId.StartsWith("app_"))
+            throw new InvalidOperationException("AppId 格式无效，应以 'cli_' 或 'app_' 开头");
+
+        if (AppId.Length < 20)
+            throw new InvalidOperationException("AppId 长度无效");
+
+        // 验证 AppSecret
+        if (string.IsNullOrWhiteSpace(AppSecret))
+            throw new InvalidOperationException("AppSecret 不能为空");
+
+        if (AppSecret.Length < 16)
+            throw new InvalidOperationException("AppSecret 长度必须至少为 16 字符");
+
         if (TimeOut < 1 || TimeOut > 300)
             throw new InvalidOperationException("TimeOut必须在1-300秒之间");
 
@@ -128,7 +152,7 @@ public class FeishuOptions
         if (TokenRefreshThreshold < 60 || TokenRefreshThreshold > 3600)
             throw new InvalidOperationException("TokenRefreshThreshold必须在60-3600秒之间");
 
-        if (!string.IsNullOrEmpty(BaseUrl) && !Uri.TryCreate(BaseUrl, UriKind.Absolute, out var uriResult))
+        if (!string.IsNullOrEmpty(BaseUrl) && !Uri.TryCreate(BaseUrl, UriKind.Absolute, out _))
             throw new InvalidOperationException("BaseUrl必须是有效的URI格式");
 
         if (!string.IsNullOrEmpty(BaseUrl))
@@ -137,5 +161,20 @@ public class FeishuOptions
             if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
                 throw new InvalidOperationException("BaseUrl必须是HTTP或HTTPS协议");
         }
+    }
+
+    /// <summary>
+    /// 返回配置的字符串表示（敏感信息已掩码）
+    /// </summary>
+    public override string ToString()
+    {
+        return $"FeishuOptions {{ AppId: {AppId}, AppSecret: {MaskSensitiveData(AppSecret)}, BaseUrl: {BaseUrl ?? "默认"}, TimeOut: {TimeOut}s, RetryCount: {RetryCount}, TokenRefreshThreshold: {TokenRefreshThreshold}s, EnableLogging: {EnableLogging} }}";
+    }
+
+    private static string MaskSensitiveData(string? data)
+    {
+        if (string.IsNullOrEmpty(data) || data.Length <= 4)
+            return "****";
+        return $"{data.Substring(0, 2)}****{data.Substring(data.Length - 2)}";
     }
 }

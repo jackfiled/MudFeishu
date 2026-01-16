@@ -5,6 +5,8 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using System.ComponentModel.DataAnnotations;
+
 namespace Mud.Feishu.Redis.Configuration;
 
 /// <summary>
@@ -16,6 +18,8 @@ public class RedisOptions
     /// Redis 连接字符串
     /// <para>示例: "localhost:6379", "127.0.0.1:6379", "rediss://secure.redis.com:6380"</para>
     /// </summary>
+    [Required(ErrorMessage = "ServerAddress 不能为空")]
+    [RegularExpression(@"^(.+:\d+|redis://.+:\d+|rediss://.+:\d+)$", ErrorMessage = "ServerAddress 格式无效，应为 'host:port' 或 'redis://host:port'")]
     public string ServerAddress { get; set; } = "localhost:6379";
 
     /// <summary>
@@ -92,4 +96,45 @@ public class RedisOptions
     /// 客户端名称
     /// </summary>
     public string? ClientName { get; set; }
+
+    /// <summary>
+    /// 验证配置的有效性
+    /// </summary>
+    public void Validate()
+    {
+        if (string.IsNullOrWhiteSpace(ServerAddress))
+            throw new InvalidOperationException("ServerAddress 不能为空");
+
+        // 验证格式: host:port 或 redis://host:port 或 rediss://host:port
+        bool isValidFormat = ServerAddress.Contains(':') ||
+                            ServerAddress.StartsWith("redis://", StringComparison.OrdinalIgnoreCase) ||
+                            ServerAddress.StartsWith("rediss://", StringComparison.OrdinalIgnoreCase);
+
+        if (!isValidFormat)
+            throw new InvalidOperationException("ServerAddress 格式无效，应为 'host:port' 或 'redis://host:port' 或 'rediss://host:port'");
+
+        if (ConnectTimeout < 1000)
+            throw new InvalidOperationException("ConnectTimeout 必须至少为 1000 毫秒");
+
+        if (SyncTimeout < 1000)
+            throw new InvalidOperationException("SyncTimeout 必须至少为 1000 毫秒");
+
+        if (ConnectRetry < 0)
+            throw new InvalidOperationException("ConnectRetry 不能为负数");
+    }
+
+    /// <summary>
+    /// 返回配置的字符串表示（敏感信息已掩码）
+    /// </summary>
+    public override string ToString()
+    {
+        return $"RedisOptions {{ ServerAddress: {ServerAddress}, Password: {MaskSensitiveData(Password)}, DefaultDatabase: {DefaultDatabase?.ToString() ?? "默认"}, ConnectTimeout: {ConnectTimeout}ms, SyncTimeout: {SyncTimeout}ms, Ssl: {Ssl} }}";
+    }
+
+    private static string MaskSensitiveData(string? data)
+    {
+        if (string.IsNullOrEmpty(data) || data.Length <= 4)
+            return "****";
+        return $"{data.Substring(0, 2)}****{data.Substring(data.Length - 2)}";
+    }
 }

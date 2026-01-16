@@ -206,5 +206,13 @@ public class FeishuWebSocketOptions
                 "请设置 EnableEventDeduplication=true 或 EnableDistributedDeduplication=true");
         }
     }
+
+    /// <summary>
+    /// 返回配置的字符串表示
+    /// </summary>
+    public override string ToString()
+    {
+        return $"FeishuWebSocketOptions {{ AutoReconnect: {AutoReconnect}, MaxReconnectAttempts: {MaxReconnectAttempts}, ReconnectDelayMs: {ReconnectDelayMs}, HeartbeatIntervalMs: {HeartbeatIntervalMs}, EnableLogging: {EnableLogging}, EnableEventDeduplication: {EnableEventDeduplication} }}";
+    }
 }
 

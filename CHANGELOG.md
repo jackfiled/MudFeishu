@@ -1,6 +1,103 @@
 ﻿# Mud.Feishu 更新日志
 
-## 1.4.0 (规划中)
+## 1.4.0 (2026-01-16)
+
+**类型**: 配置增强、安全加固、代码质量提升
+
+### 🔒 安全增强
+
+#### 必填字段验证强化
+
+- **FeishuOptions 配置验证**
+
+  - 文件: `Mud.Feishu.Abstractions/Configuration/FeishuOptions.cs`
+  - 新增: AppId 格式验证（必须以 `cli_` 或 `app_` 开头）
+  - 新增: AppId 长度验证（至少 20 字符）
+  - 新增: AppSecret 长度验证（至少 16 字符）
+  - 新增: Data Annotations 属性（`[Required]`, `[RegularExpression]`, `[MinLength]`）
+  - 影响: 启动时即可发现配置错误，避免运行时异常
+
+- **FeishuWebhookOptions 配置验证**
+
+  - 文件: `Mud.Feishu.Webhook/Configuration/FeishuWebhookOptions.cs`
+  - 新增: EncryptKey 长度验证（必须为 32 字符）
+  - 新增: Data Annotations 属性到必填字段
+  - 影响: 确保飞书事件加密密钥配置正确
+
+#### 敏感信息保护
+
+- **配置类敏感信息掩码**
+
+  - 文件:
+    - `Mud.Feishu.Abstractions/Configuration/FeishuOptions.cs`
+    - `Mud.Feishu.Webhook/Configuration/FeishuWebhookOptions.cs`
+    - `Mud.Feishu.Redis/Configuration/RedisOptions.cs`
+  - 新增: `ToString()` 方法重写，自动掩码敏感信息
+  - 实现: 显示首尾 2 个字符，中间用 `****` 替换
+  - 影响: 防止日志泄露密钥等敏感信息
+
+- **Redis 配置验证**
+
+  - 文件: `Mud.Feishu.Redis/Configuration/RedisOptions.cs`
+  - 新增: ServerAddress 格式验证
+  - 新增: 连接超时参数范围验证
+  - 新增: Data Annotations 属性
+  - 影响: 确保 Redis 连接配置正确
+
+### 🔧 配置优化
+
+#### 配置示例文件
+
+- **appsettings.example.json**
+
+  - 文件: `appsettings.example.json` (新增)
+  - 新增: 完整的配置示例文件
+  - 包含: Feishu、FeishuWebhook、FeishuWebSocket、Redis 配置
+  - 影响: 新用户可快速了解配置结构
+
+### 🧪 测试覆盖
+
+#### 配置单元测试
+
+- **FeishuOptions 测试**
+
+  - 文件: `Tests/Mud.Feishu.Abstractions.Tests/Configuration/FeishuOptionsTests.cs` (新增)
+  - 覆盖: AppId/AppSecret 验证、范围限制、敏感信息掩码
+  - 测试用例:
+    - 有效配置验证
+    - AppId 格式验证（cli_/app_ 前缀）
+    - AppId/AppSecret 空值验证
+    - AppId/AppSecret 长度验证
+    - TimeOut/RetryCount 范围限制
+    - BaseUrl 格式验证
+    - ToString 敏感信息掩码
+  - 影响: 核心配置逻辑测试覆盖
+
+### 📝 文档改进
+
+#### XML 文档注释完善
+
+- **配置类文档更新**
+
+  - 文件: 所有 Options 配置类
+  - 更新: 添加完整的参数说明和示例值
+  - 新增: Data Annotations 错误信息说明
+  - 影响: 提升代码可读性和 IDE 智能提示
+
+### 🔨 Breaking Changes
+
+- 修改了 `FeishuOptions.Validate()` 方法，现在会验证 AppId/AppSecret 格式
+- 添加了 `FeishuWebhookOptions.EncryptKey` 长度验证（32 字符）
+- 添加了 `RedisOptions.Validate()` 方法，验证连接参数
+
+### 📦 依赖更新
+
+- 新增依赖:
+  - `System.ComponentModel.DataAnnotations` (用于 Data Annotations)
+
+---
+
+## 1.5.0 (规划中)
 
 **类型**: 代码质量提升、功能完善
 
