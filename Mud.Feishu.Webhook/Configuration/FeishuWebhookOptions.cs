@@ -34,6 +34,12 @@ public class FeishuWebhookOptions
     public Dictionary<string, string> MultiAppEncryptKeys { get; set; } = new();
 
     /// <summary>
+    /// 多机器人验证令牌配置（AppId -> VerificationToken 映射）
+    /// 支持多个飞书机器人共享同一个 Webhook 端点
+    /// </summary>
+    public Dictionary<string, string> MultiAppVerificationTokens { get; set; } = new();
+
+    /// <summary>
     /// 默认应用 ID（用于多机器人场景下的回退）
     /// </summary>
     public string DefaultAppId { get; set; } = string.Empty;

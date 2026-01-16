@@ -40,7 +40,7 @@ public interface IFeishuEventValidator
     /// <param name="nonce">随机数</param>
     /// <param name="body">请求体内容</param>
     /// <param name="headerSignature">请求头中的签名</param>
-    /// <param name="encryptKey">加密密钥</param>
+    /// <param name="encryptKey">加密密钥（Encrypt Key）</param>
     /// <returns>是否验证通过</returns>
     Task<bool> ValidateHeaderSignatureAsync(long timestamp, string nonce, string body, string? headerSignature, string encryptKey);
 

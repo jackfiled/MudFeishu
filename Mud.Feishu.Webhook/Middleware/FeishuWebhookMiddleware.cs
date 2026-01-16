@@ -10,6 +10,7 @@ using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Exceptions;
 using Mud.Feishu.Webhook.Models;
 using Mud.Feishu.Webhook.Serialization;
+using Mud.Feishu.Webhook.Utils;
 using System.Diagnostics;
 
 namespace Mud.Feishu.Webhook;
@@ -64,16 +65,24 @@ public class FeishuWebhookMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         _logger.LogDebug("进入 FeishuWebhookMiddleware.InvokeAsync 方法");
+
+        // 仅在开发环境打印详细请求信息
+        if (_isDevelopment)
+        {
+            _logger.LogDebug(HttpContextDebugHelper.PrintRequestInfo(context.Request));
+        }
+
         var stopwatch = Stopwatch.StartNew();
         using var scrope = _scopeFactory.CreateScope();
         _securityAuditService = scrope.ServiceProvider.GetService<ISecurityAuditService>();
         _threatDetectionService = scrope.ServiceProvider.GetService<IThreatDetectionService>();
         _failedEventStore = scrope.ServiceProvider.GetService<IFailedEventStore>();
-        // 生成请求追踪 ID
-        var requestId = Guid.NewGuid().ToString();
-        context.Items["RequestId"] = requestId;
 
-        _logger.LogDebug("开始处理飞书 Webhook 请求, RequestId: {RequestId}", requestId);
+        // 使用 RequestIdHelper 获取或生成 RequestId（支持多种追踪头）
+        var requestId = RequestIdHelper.GetOrGenerateRequestId(context);
+        var requestIdSource = RequestIdHelper.GetRequestIdSource(context);
+
+        _logger.LogDebug("开始处理飞书 Webhook 请求, RequestId: {RequestId}, 来源: {RequestIdSource}", requestId, requestIdSource);
 
         // 开始分布式追踪 Activity
         using var activity = FeishuWebhookActivitySource.Source.StartActivity("FeishuWebhook.Invoke");
@@ -84,6 +93,7 @@ public class FeishuWebhookMiddleware
         // 记录请求信息（放在try块外，以便catch块中使用）
         var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         activity?.SetTag("request.client_ip", clientIp);
+        RequestIdHelper.SetActivityRequestId(activity, context);
 
         try
         {
@@ -137,15 +147,18 @@ public class FeishuWebhookMiddleware
                     requestId: requestId);
             }
 
-            // 读取请求体
-            var requestBody = await ReadRequestBodyAsync(context.Request);
-            if (string.IsNullOrEmpty(requestBody))
-            {
-                throw new FeishuWebhookValidationException(
-                    "请求体为空",
-                    fieldName: "Body",
-                    requestId: requestId);
-            }
+        // 读取请求体
+        var requestBody = await ReadRequestBodyAsync(context.Request);
+        if (string.IsNullOrEmpty(requestBody))
+        {
+            throw new FeishuWebhookValidationException(
+                "请求体为空",
+                fieldName: "Body",
+                requestId: requestId);
+        }
+
+        // 调试日志：显示请求体
+        _logger.LogDebug("收到请求体（前200字符）: {RequestBodyPrefix}", requestBody.Length > 200 ? requestBody.Substring(0, 200) + "..." : requestBody);
 
             // 进行威胁检测
             if (_threatDetectionService != null)
@@ -383,7 +396,7 @@ public class FeishuWebhookMiddleware
             }
 
             // 步骤 2：解析加密请求
-            var eventRequest = JsonSerializer.Deserialize<FeishuWebhookRequest>(
+            var eventRequest = JsonSerializer.Deserialize(
                 requestBody,
                 FeishuJsonContext.Default.FeishuWebhookRequest);
 
@@ -431,8 +444,8 @@ public class FeishuWebhookMiddleware
                 return;
             }
 
-            // 步骤 5：验证签名
-            await ValidateRequestSignatureAsync(context, eventRequest, requestBody, encryptKey, clientIp, requestId, validator);
+            // 步骤 5：验证签名（使用 EncryptKey）
+            await ValidateRequestSignatureAsync(context, requestBody, encryptKey, clientIp, requestId, validator);
 
             // 步骤 6：处理事件请求
             await HandleEventRequestAsync(context, decryptedData, webhookService, requestId);
@@ -547,7 +560,7 @@ public class FeishuWebhookMiddleware
     /// </summary>
     private async Task<bool> TryHandlePlaintextVerificationAsync(HttpContext context, string requestBody, IFeishuWebhookService webhookService)
     {
-        var verificationRequest = JsonSerializer.Deserialize<EventVerificationRequest>(
+        var verificationRequest = JsonSerializer.Deserialize(
             requestBody,
             FeishuJsonContext.Default.EventVerificationRequest);
 
@@ -599,12 +612,23 @@ public class FeishuWebhookMiddleware
     /// <summary>
     /// 验证请求签名
     /// </summary>
-    private async Task ValidateRequestSignatureAsync(HttpContext context, FeishuWebhookRequest eventRequest, string requestBody, string encryptKey, string clientIp, string requestId, IFeishuEventValidator validator)
+    private async Task ValidateRequestSignatureAsync(HttpContext context, string requestBody, string encryptKey, string clientIp, string requestId, IFeishuEventValidator validator)
     {
         var headerSignature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault();
+        var headerTimestamp = context.Request.Headers["X-Lark-Request-Timestamp"].FirstOrDefault();
+        var headerNonce = context.Request.Headers["X-Lark-Request-Nonce"].FirstOrDefault();
+
+        // 解析时间戳
+        long timestamp = 0;
+        if (!string.IsNullOrEmpty(headerTimestamp) && long.TryParse(headerTimestamp, out var parsedTimestamp))
+        {
+            timestamp = parsedTimestamp;
+        }
+
+        // 使用请求头中的 Nonce 和 Timestamp，而不是请求体中的
         if (!await validator.ValidateHeaderSignatureAsync(
-            eventRequest.Timestamp,
-            eventRequest.Nonce,
+            timestamp,
+            headerNonce ?? string.Empty,
             requestBody,
             headerSignature,
             encryptKey))
@@ -783,12 +807,44 @@ public class FeishuWebhookMiddleware
     }
 
     /// <summary>
+    /// 获取正确的验证令牌（用于签名验证，支持多应用场景）
+    /// </summary>
+    private string GetVerificationToken(FeishuWebhookRequest request)
+    {
+        // 如果已配置了多应用且请求中有 AppId，使用对应的 VerificationToken
+        if (_options.MultiAppVerificationTokens.Any() && !string.IsNullOrEmpty(request.AppId))
+        {
+            if (_options.MultiAppVerificationTokens.TryGetValue(request.AppId, out var token))
+            {
+                _logger.LogDebug("使用多应用验证令牌配置，AppId: {AppId}", request.AppId);
+                return token;
+            }
+
+            // 如果找不到对应令牌，使用默认令牌
+            if (!string.IsNullOrEmpty(_options.DefaultAppId) &&
+                _options.MultiAppVerificationTokens.TryGetValue(_options.DefaultAppId, out var defaultToken))
+            {
+                _logger.LogWarning("未找到 AppId {AppId} 对应的验证令牌，使用默认令牌", request.AppId);
+                return defaultToken;
+            }
+
+            // 回退到主令牌
+            _logger.LogWarning("未找到 AppId {AppId} 对应的验证令牌，使用主令牌", request.AppId);
+        }
+
+        return _options.VerificationToken;
+    }
+
+    /// <summary>
     /// 写入 JSON 响应
     /// </summary>
     private async Task WriteJsonResponse<T>(HttpContext context, int statusCode, T data)
     {
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
+
+        // 添加 RequestId 到响应头
+        RequestIdHelper.AddRequestIdToResponse(context);
 
         var json = JsonSerializer.Serialize(data, FeishuJsonOptions.Serialize);
         await context.Response.WriteAsync(json);
@@ -801,6 +857,15 @@ public class FeishuWebhookMiddleware
     {
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
+
+        // 优先使用 HttpContext 中的 RequestId
+        if (string.IsNullOrEmpty(requestId))
+        {
+            requestId = context.Items[RequestIdHelper.RequestIdItemKey] as string;
+        }
+
+        // 添加 RequestId 到响应头
+        RequestIdHelper.AddRequestIdToResponse(context);
 
         var errorResponse = new
         {
@@ -816,4 +881,66 @@ public class FeishuWebhookMiddleware
         var json = JsonSerializer.Serialize(errorResponse, Configuration.FeishuJsonOptions.Serialize);
         await context.Response.WriteAsync(json);
     }
+}
+
+
+public static class HttpContextDebugHelper
+{
+    /// <summary>
+    /// 打印HttpContext基础信息
+    /// </summary>
+    public static string PrintBasicInfo(HttpContext context)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("=== HTTP CONTEXT BASIC INFO ===");
+        sb.AppendLine($"Request ID: {context.TraceIdentifier}");
+        sb.AppendLine($"Timestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+        sb.AppendLine($"Session ID: {context.Session?.Id ?? "No Session"}");
+        sb.AppendLine($"User Authenticated: {context.User?.Identity?.IsAuthenticated ?? false}");
+        sb.AppendLine($"User Name: {context.User?.Identity?.Name ?? "Anonymous"}");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 打印请求信息
+    /// </summary>
+    public static string PrintRequestInfo(HttpRequest request)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("=== REQUEST INFO ===");
+        sb.AppendLine($"Method: {request.Method}");
+        sb.AppendLine($"Scheme: {request.Scheme}");
+        sb.AppendLine($"Host: {request.Host}");
+        sb.AppendLine($"Path: {request.Path}");
+        sb.AppendLine($"QueryString: {request.QueryString}");
+        sb.AppendLine($"ContentType: {request.ContentType}");
+        sb.AppendLine($"ContentLength: {request.ContentLength?.ToString() ?? "N/A"}");
+        sb.AppendLine($"Protocol: {request.Protocol}");
+        sb.AppendLine($"IsHttps: {request.IsHttps}");
+
+        // Headers
+        sb.AppendLine("\n--- Request Headers ---");
+        foreach (var header in request.Headers)
+        {
+            sb.AppendLine($"  {header.Key}: {string.Join(", ", header.Value.ToString())}");
+        }
+
+        // Query Parameters
+        sb.AppendLine("\n--- Query Parameters ---");
+        foreach (var query in request.Query)
+        {
+            sb.AppendLine($"  {query.Key}: {string.Join(", ", query.Value.ToString())}");
+        }
+
+        // Cookies
+        sb.AppendLine("\n--- Request Cookies ---");
+        foreach (var cookie in request.Cookies)
+        {
+            sb.AppendLine($"  {cookie.Key}: {cookie.Value}");
+        }
+
+        return sb.ToString();
+    }
+
 }

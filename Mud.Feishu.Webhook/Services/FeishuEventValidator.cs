@@ -78,7 +78,7 @@ public class FeishuEventValidator : IFeishuEventValidator
     {
         try
         {
-            // 为空，跳过签名验证（飞书某些请求类型可能不包含这些字段）
+            // 如果时间戳或 nonce 为空，跳过签名验证（飞书某些请求类型可能不包含这些字段）
             if (timestamp == 0 || string.IsNullOrEmpty(nonce))
             {
                 var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
@@ -98,7 +98,7 @@ public class FeishuEventValidator : IFeishuEventValidator
                         $"时间戳或 nonce 为空（Timestamp: {timestamp}, Nonce: {nonce}），拒绝请求",
                         "");
 
-                    return true;
+                    return false; // 生产环境拒绝请求
                 }
 
                 _logger.LogWarning(
@@ -239,7 +239,7 @@ public class FeishuEventValidator : IFeishuEventValidator
                         $"时间戳或 nonce 为空（Timestamp: {timestamp}, Nonce: {nonce}），拒绝请求",
                         "");
 
-                    return true;
+                    return false; // 生产环境拒绝请求
                 }
 
                 _logger.LogWarning(
@@ -269,13 +269,21 @@ public class FeishuEventValidator : IFeishuEventValidator
                 return false;
             }
 
-            // 构建签名字符串：timestamp\nnonce\nbody
-            var signString = $"{timestamp}\n{nonce}\n{body}";
+            // 根据飞书官方文档，签名字符串格式为：
+            // timestamp + nonce + encryptKey + body
+            // 注意：这里不使用换行符连接！
+            var signString = $"{timestamp}{nonce}{encryptKey}{body}";
 
-            // 使用 HMAC-SHA256 计算签名
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(encryptKey));
-            var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(signString));
-            var computedSignature = Convert.ToBase64String(hashBytes);
+            // 调试日志：显示签名计算信息
+            _logger.LogDebug("请求头签名计算 - Timestamp: {Timestamp}, Nonce: {Nonce}, EncryptKey前8位: {KeyPrefix}, Body长度: {BodyLength}",
+                timestamp, nonce, encryptKey.Substring(0, Math.Min(8, encryptKey.Length)), body.Length);
+            _logger.LogDebug("签名字符串前150字符: {SignStringPrefix}",
+                signString.Length > 150 ? signString.Substring(0, 150) + "..." : signString);
+
+            // 使用 SHA-256 计算签名（不是 HMAC-SHA256！）
+            using var sha256 = SHA256.Create();
+            var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(signString));
+            var computedSignature = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
 
             // 使用固定时间比较防止计时攻击
             var isValid = !string.IsNullOrEmpty(headerSignature) &&
@@ -334,7 +342,19 @@ public class FeishuEventValidator : IFeishuEventValidator
                 return true;
             }
 
-            var requestTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp);
+            // 判断时间戳是秒级还是毫秒级
+            // 飞书 X-Lark-Request-Timestamp 请求头使用秒级时间戳（10位）
+            // 飞书事件数据中的 create_time 使用毫秒级时间戳（13位）
+            DateTimeOffset requestTime;
+            if (timestamp < 10000000000) // 小于 100 亿，认为是秒级时间戳
+            {
+                requestTime = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+            }
+            else // 大于等于 100 亿，认为是毫秒级时间戳
+            {
+                requestTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp);
+            }
+
             var now = DateTimeOffset.UtcNow;
             var diff = Math.Abs((now - requestTime).TotalSeconds);
 

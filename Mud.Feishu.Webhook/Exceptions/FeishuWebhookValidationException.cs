@@ -34,4 +34,14 @@ public class FeishuWebhookValidationException : FeishuWebhookException
     {
         FieldName = fieldName;
     }
+
+    /// <summary>
+    /// 返回包含完整追踪信息的字符串表示
+    /// </summary>
+    public override string ToString()
+    {
+        var baseInfo = base.ToString();
+        var fieldNameInfo = !string.IsNullOrEmpty(FieldName) ? $", FieldName: {FieldName}" : "";
+        return baseInfo.Replace("}", $"}}{fieldNameInfo}");
+    }
 }

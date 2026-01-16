@@ -72,4 +72,13 @@ public class FeishuWebhookException : FeishuException
         RequestId = requestId;
         IsRetryable = isRetryable;
     }
+
+    /// <summary>
+    /// 返回包含完整追踪信息的字符串表示
+    /// </summary>
+    public override string ToString()
+    {
+        var requestIdInfo = !string.IsNullOrEmpty(RequestId) ? $", RequestId: {RequestId}" : "";
+        return $"{GetType().Name}: {Message}{requestIdInfo}, ErrorType: {ErrorType}, IsRetryable: {IsRetryable}{(InnerException != null ? $" -> {InnerException}" : "")}";
+    }
 }

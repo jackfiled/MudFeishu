@@ -41,6 +41,8 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                 return null;
             }
 
+            _logger.LogDebug("解密后的JSON数据: {DecryptedJson}", decryptedJson);
+
             // 解析事件数据（支持 v1.0 和 v2.0 版本）
             EventData eventData;
             string? schemaVersion = null;
@@ -77,8 +79,8 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
             }
             else
             {
-                _logger.LogError("事件数据解密后EventType为空！解密数据长度: {Length}", decryptedJson!.Length);
-                // 不记录完整的解密JSON数据，避免泄露敏感信息
+                // EventType 为空可能是 URL 验证请求或其他非事件请求，这是正常行为
+                _logger.LogDebug("事件数据解密后EventType为空（可能是URL验证请求），解密数据长度: {Length}", decryptedJson!.Length);
             }
 
             return eventData;

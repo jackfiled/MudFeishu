@@ -194,4 +194,106 @@ public class FeishuEventValidatorTests
         // Assert
         Assert.False(result);
     }
+
+    [Fact]
+    public void ValidateTimestamp_WhenSecondLevelTimestamp_ShouldPass()
+    {
+        // Arrange
+        var options = new FeishuWebhookOptions { TimestampToleranceSeconds = 60 };
+        var validator = new FeishuEventValidator(
+            _loggerMock.Object,
+            _nonceDeduplicatorMock.Object,
+            Options.Create(options),
+            null);
+
+        // 当前时间的秒级时间戳（10位）
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // Act
+        var result = validator.ValidateTimestamp(timestamp, 60);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateTimestamp_WhenMillisecondLevelTimestamp_ShouldPass()
+    {
+        // Arrange
+        var options = new FeishuWebhookOptions { TimestampToleranceSeconds = 60 };
+        var validator = new FeishuEventValidator(
+            _loggerMock.Object,
+            _nonceDeduplicatorMock.Object,
+            Options.Create(options),
+            null);
+
+        // 当前时间的毫秒级时间戳（13位）
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        // Act
+        var result = validator.ValidateTimestamp(timestamp, 60);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateTimestamp_WhenOldSecondLevelTimestamp_ShouldFail()
+    {
+        // Arrange
+        var options = new FeishuWebhookOptions { TimestampToleranceSeconds = 60 };
+        var validator = new FeishuEventValidator(
+            _loggerMock.Object,
+            _nonceDeduplicatorMock.Object,
+            Options.Create(options),
+            null);
+
+        // 2小时前的秒级时间戳
+        var timestamp = DateTimeOffset.UtcNow.AddHours(-2).ToUnixTimeSeconds();
+
+        // Act
+        var result = validator.ValidateTimestamp(timestamp, 60);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ValidateTimestamp_WhenOldMillisecondLevelTimestamp_ShouldFail()
+    {
+        // Arrange
+        var options = new FeishuWebhookOptions { TimestampToleranceSeconds = 60 };
+        var validator = new FeishuEventValidator(
+            _loggerMock.Object,
+            _nonceDeduplicatorMock.Object,
+            Options.Create(options),
+            null);
+
+        // 2小时前的毫秒级时间戳
+        var timestamp = DateTimeOffset.UtcNow.AddHours(-2).ToUnixTimeMilliseconds();
+
+        // Act
+        var result = validator.ValidateTimestamp(timestamp, 60);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ValidateTimestamp_WhenTimestampIsZero_ShouldPass()
+    {
+        // Arrange
+        var options = new FeishuWebhookOptions { TimestampToleranceSeconds = 60 };
+        var validator = new FeishuEventValidator(
+            _loggerMock.Object,
+            _nonceDeduplicatorMock.Object,
+            Options.Create(options),
+            null);
+
+        // Act
+        var result = validator.ValidateTimestamp(0, 60);
+
+        // Assert
+        Assert.True(result);
+    }
 }

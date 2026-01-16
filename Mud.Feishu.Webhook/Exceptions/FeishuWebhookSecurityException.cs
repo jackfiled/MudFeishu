@@ -51,4 +51,15 @@ public class FeishuWebhookSecurityException : FeishuWebhookException
         ClientIp = clientIp;
         SecurityEventType = securityEventType;
     }
+
+    /// <summary>
+    /// 返回包含完整追踪信息的字符串表示
+    /// </summary>
+    public override string ToString()
+    {
+        var baseInfo = base.ToString();
+        var clientIpInfo = !string.IsNullOrEmpty(ClientIp) ? $", ClientIp: {ClientIp}" : "";
+        var securityTypeInfo = SecurityEventType.HasValue ? $", SecurityEventType: {SecurityEventType}" : "";
+        return baseInfo.Replace("}", $"}}{clientIpInfo}{securityTypeInfo}");
+    }
 }

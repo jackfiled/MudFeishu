@@ -41,4 +41,15 @@ public class FeishuWebhookProcessingException : FeishuWebhookException
         EventType = eventType;
         EventId = eventId;
     }
+
+    /// <summary>
+    /// 返回包含完整追踪信息的字符串表示
+    /// </summary>
+    public override string ToString()
+    {
+        var baseInfo = base.ToString();
+        var eventTypeInfo = !string.IsNullOrEmpty(EventType) ? $", EventType: {EventType}" : "";
+        var eventIdInfo = !string.IsNullOrEmpty(EventId) ? $", EventId: {EventId}" : "";
+        return baseInfo.Replace("}", $"}}{eventTypeInfo}{eventIdInfo}");
+    }
 }
