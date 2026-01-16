@@ -1,0 +1,221 @@
+// -----------------------------------------------------------------------
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025
+//  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
+// -----------------------------------------------------------------------
+
+using Mud.Feishu.Abstractions.Services;
+using Mud.Feishu.Webhook.Configuration;
+using Mud.Feishu.Webhook.Models;
+
+namespace Mud.Feishu.Webhook.Tests.Services;
+
+/// <summary>
+/// FeishuWebhookService 单元测试
+/// </summary>
+public class FeishuWebhookServiceTests
+{
+    private readonly Mock<IOptionsMonitor<FeishuWebhookOptions>> _optionsMonitorMock;
+    private readonly Mock<IFeishuEventValidator> _validatorMock;
+    private readonly Mock<IFeishuEventDecryptor> _decryptorMock;
+    private readonly Mock<IFeishuEventHandlerFactory> _handlerFactoryMock;
+    private readonly Mock<ILogger<FeishuWebhookService>> _loggerMock;
+    private readonly FeishuWebhookConcurrencyService _concurrencyService;
+    private readonly Mock<IFeishuEventDeduplicator> _deduplicatorMock;
+    private readonly FeishuWebhookOptions _options;
+
+    public FeishuWebhookServiceTests()
+    {
+        _optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
+        _validatorMock = new Mock<IFeishuEventValidator>();
+        _decryptorMock = new Mock<IFeishuEventDecryptor>();
+        _handlerFactoryMock = new Mock<IFeishuEventHandlerFactory>();
+        _loggerMock = new Mock<ILogger<FeishuWebhookService>>();
+        _deduplicatorMock = new Mock<IFeishuEventDeduplicator>();
+
+        _options = new FeishuWebhookOptions
+        {
+            VerificationToken = "test_token",
+            EncryptKey = "test_key",
+            EnableBodySignatureValidation = false,
+            EventHandlingTimeoutMs = 5000,
+            MaxConcurrentEvents = 10
+        };
+
+        _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(_options);
+        
+        var concurrencyLoggerMock = new Mock<ILogger<FeishuWebhookConcurrencyService>>();
+        _concurrencyService = new FeishuWebhookConcurrencyService(_optionsMonitorMock.Object, concurrencyLoggerMock.Object);
+    }
+
+    [Fact]
+    public async Task VerifyEventSubscriptionAsync_WithValidRequest_ShouldReturnChallenge()
+    {
+        // Arrange
+        var request = new EventVerificationRequest
+        {
+            Type = "url_verification",
+            Token = "test_token",
+            Challenge = "test_challenge"
+        };
+
+        _validatorMock
+            .Setup(x => x.ValidateSubscriptionRequest(request, "test_token"))
+            .Returns(true);
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.VerifyEventSubscriptionAsync(request);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("test_challenge", result.Challenge);
+    }
+
+    [Fact]
+    public async Task VerifyEventSubscriptionAsync_WithInvalidRequest_ShouldReturnNull()
+    {
+        // Arrange
+        var request = new EventVerificationRequest
+        {
+            Type = "url_verification",
+            Token = "wrong_token",
+            Challenge = "test_challenge"
+        };
+
+        _validatorMock
+            .Setup(x => x.ValidateSubscriptionRequest(request, "test_token"))
+            .Returns(false);
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.VerifyEventSubscriptionAsync(request);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task HandleEventAsync_WithEventData_ShouldProcessSuccessfully()
+    {
+        // Arrange
+        var eventData = new EventData
+        {
+            EventId = "test_event_123",
+            EventType = "test.event",
+            CreateTime = 1234567890
+        };
+
+        _deduplicatorMock
+            .Setup(x => x.TryMarkAsProcessing(eventData.EventId))
+            .Returns(false);
+
+        _handlerFactoryMock
+            .Setup(x => x.HandleEventParallelAsync(eventData.EventType, eventData, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.HandleEventAsync(eventData);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Null(result.ErrorReason);
+        _handlerFactoryMock.Verify(x => x.HandleEventParallelAsync(
+            eventData.EventType, 
+            eventData, 
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleEventAsync_WithDuplicateEvent_ShouldSkipProcessing()
+    {
+        // Arrange
+        var eventData = new EventData
+        {
+            EventId = "duplicate_event",
+            EventType = "test.event"
+        };
+
+        _deduplicatorMock
+            .Setup(x => x.TryMarkAsProcessing(eventData.EventId))
+            .Returns(true); // 已处理过
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.HandleEventAsync(eventData);
+
+        // Assert
+        Assert.True(result.Success); // 幂等性：返回成功
+        _handlerFactoryMock.Verify(x => x.HandleEventParallelAsync(
+            It.IsAny<string>(), 
+            It.IsAny<EventData>(), 
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DecryptEventAsync_WithValidData_ShouldReturnEventData()
+    {
+        // Arrange
+        var encryptedData = "encrypted_data";
+        var expectedEventData = new EventData
+        {
+            EventId = "test_123",
+            EventType = "test.event"
+        };
+
+        _decryptorMock
+            .Setup(x => x.DecryptAsync(encryptedData, _options.EncryptKey, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedEventData);
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.DecryptEventAsync(encryptedData);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("test_123", result.EventId);
+        Assert.Equal("test.event", result.EventType);
+    }
+
+    [Fact]
+    public async Task DecryptEventAsync_WithInvalidData_ShouldReturnNull()
+    {
+        // Arrange
+        var encryptedData = "invalid_data";
+
+        _decryptorMock
+            .Setup(x => x.DecryptAsync(encryptedData, _options.EncryptKey, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EventData?)null);
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.DecryptEventAsync(encryptedData);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    private FeishuWebhookService CreateService()
+    {
+        return new FeishuWebhookService(
+            _optionsMonitorMock.Object,
+            _validatorMock.Object,
+            _decryptorMock.Object,
+            _handlerFactoryMock.Object,
+            _loggerMock.Object,
+            Array.Empty<IFeishuEventInterceptor>(),
+            _concurrencyService,
+            _deduplicatorMock.Object,
+            null,
+            null,
+            null);
+    }
+}
