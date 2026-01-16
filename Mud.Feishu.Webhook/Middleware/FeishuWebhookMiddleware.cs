@@ -147,18 +147,18 @@ public class FeishuWebhookMiddleware
                     requestId: requestId);
             }
 
-        // 读取请求体
-        var requestBody = await ReadRequestBodyAsync(context.Request);
-        if (string.IsNullOrEmpty(requestBody))
-        {
-            throw new FeishuWebhookValidationException(
-                "请求体为空",
-                fieldName: "Body",
-                requestId: requestId);
-        }
+            // 读取请求体
+            var requestBody = await ReadRequestBodyAsync(context.Request);
+            if (string.IsNullOrEmpty(requestBody))
+            {
+                throw new FeishuWebhookValidationException(
+                    "请求体为空",
+                    fieldName: "Body",
+                    requestId: requestId);
+            }
 
-        // 调试日志：显示请求体
-        _logger.LogDebug("收到请求体（前200字符）: {RequestBodyPrefix}", requestBody.Length > 200 ? requestBody.Substring(0, 200) + "..." : requestBody);
+            // 调试日志：显示请求体
+            _logger.LogDebug("收到请求体（前200字符）: {RequestBodyPrefix}", requestBody.Length > 200 ? requestBody.Substring(0, 200) + "..." : requestBody);
 
             // 进行威胁检测
             if (_threatDetectionService != null)

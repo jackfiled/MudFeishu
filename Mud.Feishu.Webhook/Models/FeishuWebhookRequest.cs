@@ -38,12 +38,6 @@ public class FeishuWebhookRequest
     public string Signature { get; set; } = string.Empty;
 
     /// <summary>
-    /// 是否为验证请求
-    /// </summary>
-    [JsonIgnore]
-    public bool IsVerificationRequest => Type == "url_verification";
-
-    /// <summary>
     /// 请求类型
     /// </summary>
     [JsonPropertyName("type")]

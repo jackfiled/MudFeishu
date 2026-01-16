@@ -12,7 +12,7 @@
 		<PackageIcon>Icon.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Description>适用于 .NET 全平台的飞书 Webhook 事件订阅组件，提供开箱即用的客户端实现，基于策略模式构建可扩展的事件处理机制，帮助开发者在 .NET 应用中便捷、可靠地接收和处理飞书实时事件。</Description>
-		<PackageTags>飞书;飞书.net sdk;Feishu;Feishu.net;Feishu SDK;Webhook;事件订阅;实时事件;.NET;.NET Core;ASP.NET Core;MudFeishu;</PackageTags>
+		<PackageTags>Feishu;Lark;飞书;ByteDance;字节跳动;Feishu-SDK;Lark-SDK;Feishu-Webhook;Lark-Webhook;Webhook;HTTP-Callback;回调;Open-Platform;开放平台;Event-Subscription;事件订阅;Real-Time-Events;实时事件;Signature-Verification;签名验证;Encryption;加密;Decryption;解密;Middleware;中间件;Strategy-Pattern;策略模式;Circuit-Breaker;断路器;Rate-Limit;限流;Security;安全;dotnet;csharp;netstandard;net6;net8;aspnetcore;MudFeishu</PackageTags>
 		<BaseOutputPath>..\bin</BaseOutputPath>
 	</PropertyGroup>
 

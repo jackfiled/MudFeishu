@@ -12,7 +12,7 @@
 		<PackageIcon>Icon.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Description>飞书事件订阅组件 Redis 分布式去重扩展，提供基于 Redis 的事件去重、Nonce 去重和 SeqID 去重功能，适用于多实例分布式部署场景。</Description>
-		<PackageTags>飞书;Feishu;Redis;分布式去重;SeqID;Nonce;Distributed Deduplication;StackExchange.Redis</PackageTags>
+		<PackageTags>Feishu;Lark;飞书;ByteDance;字节跳动;Feishu-Redis;Lark-Redis;Redis;StackExchange-Redis;Distributed;分布式;Deduplication;去重;Event-Deduplication;事件去重;Nonce;SeqID;Cache;缓存;Multi-Instance;多实例;Cluster;集群;High-Availability;高可用;Scalability;可扩展性;Health-Check;健康检查;dotnet;csharp;netstandard;net6;net8;aspnetcore;MudFeishu</PackageTags>
 		<BaseOutputPath>..\bin</BaseOutputPath>
 	</PropertyGroup>
 
