@@ -4,6 +4,10 @@
 		<Version>1.2.0</Version>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
 		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 		<CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
 		<GenerateDocumentationFile>false</GenerateDocumentationFile>
