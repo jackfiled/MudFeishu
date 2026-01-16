@@ -81,17 +81,17 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
         }
         catch (RedisConnectionException ex)
         {
-            _logger.LogError(ex, "Redis 连接异常，Nonce {Nonce} 去重失败", nonce);
+            _logger?.LogError(ex, "Redis 连接异常，Nonce {Nonce} 去重失败", nonce);
             throw new InvalidOperationException("Redis 连接失败，无法完成 Nonce 去重", ex);
         }
         catch (RedisTimeoutException ex)
         {
-            _logger.LogWarning(ex, "Redis 超时，Nonce {Nonce} 去重失败", nonce);
+            _logger?.LogWarning(ex, "Redis 超时，Nonce {Nonce} 去重失败", nonce);
             throw new InvalidOperationException("Redis 操作超时", ex);
         }
         catch (RedisException ex)
         {
-            _logger.LogError(ex, "Redis 操作异常，Nonce {Nonce} 去重失败", nonce);
+            _logger?.LogError(ex, "Redis 操作异常，Nonce {Nonce} 去重失败", nonce);
             throw new InvalidOperationException("Redis 操作失败", ex);
         }
     }
@@ -114,17 +114,17 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
         }
         catch (RedisConnectionException ex)
         {
-            _logger.LogError(ex, "Redis 连接异常，检查 Nonce {Nonce} 使用状态失败", nonce);
+            _logger?.LogError(ex, "Redis 连接异常，检查 Nonce {Nonce} 使用状态失败", nonce);
             throw new InvalidOperationException("Redis 连接失败，无法检查 Nonce 状态", ex);
         }
         catch (RedisTimeoutException ex)
         {
-            _logger.LogWarning(ex, "Redis 超时，检查 Nonce {Nonce} 使用状态失败", nonce);
+            _logger?.LogWarning(ex, "Redis 超时，检查 Nonce {Nonce} 使用状态失败", nonce);
             throw new InvalidOperationException("Redis 操作超时", ex);
         }
         catch (RedisException ex)
         {
-            _logger.LogError(ex, "Redis 操作异常，检查 Nonce {Nonce} 使用状态失败", nonce);
+            _logger?.LogError(ex, "Redis 操作异常，检查 Nonce {Nonce} 使用状态失败", nonce);
             throw new InvalidOperationException("Redis 操作失败", ex);
         }
     }
