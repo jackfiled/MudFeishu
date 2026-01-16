@@ -90,9 +90,9 @@ public static class RedisFeishuServiceBuilderExtensions
         });
 
         // 注册健康检查
-        services.AddSingleton<HealthChecks.RedisHealthCheck>();
+        services.AddSingleton<RedisHealthCheck>();
         services.AddHealthChecks()
-            .AddCheck<HealthChecks.RedisHealthCheck>("feishu-redis", tags: new[] { "redis", "feishu" });
+            .AddCheck<RedisHealthCheck>("feishu-redis", tags: new[] { "redis", "feishu" });
 
         return services;
     }
