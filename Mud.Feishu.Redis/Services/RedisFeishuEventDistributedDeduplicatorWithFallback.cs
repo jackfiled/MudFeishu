@@ -34,7 +34,6 @@ public class RedisFeishuEventDistributedDeduplicatorWithFallback : IFeishuEventD
 
     private bool _redisAvailable = true;
     private int _consecutiveFailures = 0;
-    private DateTime _lastFailureTime = DateTime.MinValue;
     private readonly SemaphoreSlim _retrySemaphore = new(1, 1);
     private bool _disposed;
 

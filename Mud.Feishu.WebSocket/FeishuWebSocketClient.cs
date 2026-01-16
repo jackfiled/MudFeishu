@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
-using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.DataModels.WsEndpoint;
 using Mud.Feishu.WebSocket.DataModels;
