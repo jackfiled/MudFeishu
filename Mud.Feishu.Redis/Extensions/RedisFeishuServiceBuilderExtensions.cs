@@ -8,7 +8,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Mud.Feishu.Redis.Configuration;
-using Mud.Feishu.Redis.Health;
+using Mud.Feishu.Redis.HealthChecks;
 using Mud.Feishu.Redis.Services;
 using StackExchange.Redis;
 
@@ -90,9 +90,9 @@ public static class RedisFeishuServiceBuilderExtensions
         });
 
         // 注册健康检查
-        services.AddSingleton<RedisHealthCheck>();
+        services.AddSingleton<HealthChecks.RedisHealthCheck>();
         services.AddHealthChecks()
-            .AddCheck<RedisHealthCheck>("feishu-redis", tags: new[] { "redis", "feishu" });
+            .AddCheck<HealthChecks.RedisHealthCheck>("feishu-redis", tags: new[] { "redis", "feishu" });
 
         return services;
     }
