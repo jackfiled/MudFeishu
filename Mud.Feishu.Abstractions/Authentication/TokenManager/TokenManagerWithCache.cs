@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -257,7 +257,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
         var retryCount = 0;
         const int maxRetries = 2;
 
-        while (retryCount <= maxRetries)
+        while (true)
         {
             try
             {
@@ -274,17 +274,22 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
 
                 return newToken;
             }
-            catch (Exception ex) when (retryCount < maxRetries && !(ex is FeishuException))
+            catch (Exception ex) when (!(ex is FeishuException) && !(ex is NotSupportedException) && !(ex is NotImplementedException))
             {
-                retryCount++;
-                _logger.LogWarning(ex, "Failed to acquire token for {TokenType}, retry {RetryCount}/{MaxRetries}",
-                    _tokeType, retryCount, maxRetries);
+                if (retryCount < maxRetries)
+                {
+                    retryCount++;
+                    _logger.LogWarning(ex, "Failed to acquire token for {TokenType}, retry {RetryCount}/{MaxRetries}",
+                        _tokeType, retryCount, maxRetries);
 
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)), cancellationToken);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)), cancellationToken);
+                }
+                else
+                {
+                    throw new FeishuException(500, $"Failed to acquire {_tokeType} after {maxRetries} retries");
+                }
             }
         }
-
-        throw new FeishuException(500, $"Failed to acquire {_tokeType} after {maxRetries} retries");
     }
 
     /// <summary>

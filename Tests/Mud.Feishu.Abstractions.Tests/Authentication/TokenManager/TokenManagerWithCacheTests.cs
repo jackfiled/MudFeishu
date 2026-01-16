@@ -1,0 +1,121 @@
+// -----------------------------------------------------------------------
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
+// -----------------------------------------------------------------------
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using Mud.CodeGenerator;
+using Mud.Feishu.Abstractions;
+using Mud.Feishu.Exceptions;
+using Mud.Feishu.TokenManager;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Xunit;
+
+namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
+
+public class TokenManagerWithCacheTests
+{
+    private readonly Mock<IFeishuV3AuthenticationApi> _authenticationApiMock;
+    private readonly Mock<IOptions<FeishuOptions>> _optionsMock;
+    private readonly Mock<ILogger<TokenManagerWithCache>> _loggerMock;
+    private readonly FeishuOptions _feishuOptions;
+    private readonly TestTokenManager _testTokenManager;
+
+    public TokenManagerWithCacheTests()
+    {
+        _authenticationApiMock = new Mock<IFeishuV3AuthenticationApi>();
+        _optionsMock = new Mock<IOptions<FeishuOptions>>();
+        _loggerMock = new Mock<ILogger<TokenManagerWithCache>>();
+
+        _feishuOptions = new FeishuOptions
+        {
+            AppId = "test-app-id",
+            AppSecret = "test-app-secret",
+            TokenRefreshThreshold = 300
+        };
+
+        _optionsMock.Setup(x => x.Value).Returns(_feishuOptions);
+
+        _testTokenManager = new TestTokenManager(
+            _authenticationApiMock.Object,
+            _optionsMock.Object,
+            _loggerMock.Object);
+    }
+
+    // 测试用的具体实现类
+    private class TestTokenManager : TokenManagerWithCache
+    {
+        public TestTokenManager(
+            IFeishuV3AuthenticationApi authenticationApi,
+            IOptions<FeishuOptions> options,
+            ILogger<TokenManagerWithCache> logger)
+            : base(authenticationApi, options, logger, TokenType.AppAccessToken)
+        { }
+
+        protected override async Task<TokenManagerWithCache.CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)
+        {
+            await Task.Delay(10); // 模拟异步延迟
+            return new TokenManagerWithCache.CredentialToken
+            {
+                AccessToken = "test-access-token",
+                Expire = 7200,
+                Code = 0,
+                Msg = "ok"
+            };
+        }
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldHandleRetries_WhenAcquireNewTokenFails()
+    {
+        // Arrange
+        var testTokenManager = new FailingTestTokenManager(
+            _authenticationApiMock.Object,
+            _optionsMock.Object,
+            _loggerMock.Object);
+
+        // Act & Assert
+        // TokenManagerWithCache should wrap the exception in FeishuException after retries
+        var exception = await Assert.ThrowsAsync<FeishuException>(() => testTokenManager.GetTokenAsync(CancellationToken.None));
+        Assert.Equal(500, exception.ErrorCode);
+        Assert.Contains("Failed to acquire AppAccessToken", exception.Message);
+    }
+
+    [Fact]
+    public void GetCacheStatistics_ShouldReturnCorrectCounts()
+    {
+        // Act
+        var stats = _testTokenManager.GetCacheStatistics();
+
+        // Assert
+        Assert.Equal(0, stats.Total);
+        Assert.Equal(0, stats.Expired);
+    }
+
+    // 用于测试重试机制的失败令牌管理器
+    private class FailingTestTokenManager : TokenManagerWithCache
+    {
+        private int _retryCount = 0;
+
+        public FailingTestTokenManager(
+            IFeishuV3AuthenticationApi authenticationApi,
+            IOptions<FeishuOptions> options,
+            ILogger<TokenManagerWithCache> logger)
+            : base(authenticationApi, options, logger, TokenType.AppAccessToken)
+        { }
+
+        protected override async Task<TokenManagerWithCache.CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)
+        {
+            await Task.Delay(10);
+            _retryCount++;
+            Console.WriteLine($"Retry count: {_retryCount}");
+            throw new Exception("Simulated token acquisition failure");
+        }
+    }
+}
