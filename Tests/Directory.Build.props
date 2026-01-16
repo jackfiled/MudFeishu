@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 		<CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
 		<NoDefaultExcludes>true</NoDefaultExcludes>
 		<Copyright>© 2019-2025 Mud Studio Co.,Ltd.</Copyright>
 		<Authors>Mud Studio</Authors>
