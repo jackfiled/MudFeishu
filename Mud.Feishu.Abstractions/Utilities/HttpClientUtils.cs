@@ -7,9 +7,8 @@
 
 using System.Text;
 using System.Text.Json;
-using Mud.Feishu.Abstractions.Utilities;
 
-namespace Mud.Feishu.Abstractions;
+namespace Mud.Feishu.Abstractions.Utilities;
 
 /// <summary>
 /// 为HttpClient提供扩展方法的工具类
