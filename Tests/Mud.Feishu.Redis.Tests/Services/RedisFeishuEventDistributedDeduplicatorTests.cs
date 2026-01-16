@@ -5,11 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Moq;
-using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Redis.Services;
-using StackExchange.Redis;
-using Xunit;
 
 namespace Mud.Feishu.Redis.Tests.Services;
 
@@ -50,6 +46,12 @@ public class RedisFeishuEventDistributedDeduplicatorTests
 
         // Assert
         Assert.False(result); // false 表示未处理过（新事件）
+        _databaseMock.Verify(x => x.StringSetAsync(
+            It.IsAny<RedisKey>(), 
+            It.IsAny<RedisValue>(), 
+            It.IsAny<TimeSpan?>(), 
+            When.NotExists, 
+            It.IsAny<CommandFlags>()), Times.Once);
     }
 
     [Fact]
@@ -83,11 +85,9 @@ public class RedisFeishuEventDistributedDeduplicatorTests
             _connectionMultiplexerMock.Object,
             _loggerMock.Object);
 
-        // Act
-        var result = await deduplicator.TryMarkAsProcessedAsync("test_event_123");
-
-        // Assert
-        Assert.False(result); // 异常时返回 false（允许处理）
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await deduplicator.TryMarkAsProcessedAsync("test_event_123"));
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public class RedisFeishuEventDistributedDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync("1");
+            .Setup(x => x.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicator(
             _connectionMultiplexerMock.Object,
@@ -114,8 +114,8 @@ public class RedisFeishuEventDistributedDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(RedisValue.Null);
+            .Setup(x => x.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(false);
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicator(
             _connectionMultiplexerMock.Object,
@@ -140,6 +140,81 @@ public class RedisFeishuEventDistributedDeduplicatorTests
         var result = await deduplicator.CleanupExpiredAsync();
 
         // Assert
-        Assert.True(result >= 0); // Redis 实现依赖自动过期，返回值表示状态
+        Assert.Equal(0, result); // Redis 自动清理，返回 0
+    }
+
+    [Fact]
+    public async Task TryMarkAsProcessedAsync_WithEmptyEventId_ShouldReturnFalse()
+    {
+        // Arrange
+        var deduplicator = new RedisFeishuEventDistributedDeduplicator(
+            _connectionMultiplexerMock.Object,
+            _loggerMock.Object);
+
+        // Act
+        var result = await deduplicator.TryMarkAsProcessedAsync("");
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task TryMarkAsProcessedAsync_WithCustomTtl_ShouldUseCustomTtl()
+    {
+        // Arrange
+        var customTtl = TimeSpan.FromMinutes(10);
+        _databaseMock
+            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), customTtl, It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        var deduplicator = new RedisFeishuEventDistributedDeduplicator(
+            _connectionMultiplexerMock.Object,
+            _loggerMock.Object);
+
+        // Act
+        var result = await deduplicator.TryMarkAsProcessedAsync("test_event_123", customTtl);
+
+        // Assert
+        Assert.False(result);
+        _databaseMock.Verify(x => x.StringSetAsync(
+            It.IsAny<RedisKey>(), 
+            It.IsAny<RedisValue>(), 
+            customTtl, 
+            When.NotExists, 
+            It.IsAny<CommandFlags>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WhenEventExists_ShouldReturnTrue()
+    {
+        // Arrange
+        _databaseMock
+            .Setup(x => x.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        var deduplicator = new RedisFeishuEventDistributedDeduplicator(
+            _connectionMultiplexerMock.Object,
+            _loggerMock.Object);
+
+        // Act
+        var result = await deduplicator.RemoveAsync("test_event_123");
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WithEmptyEventId_ShouldReturnFalse()
+    {
+        // Arrange
+        var deduplicator = new RedisFeishuEventDistributedDeduplicator(
+            _connectionMultiplexerMock.Object,
+            _loggerMock.Object);
+
+        // Act
+        var result = await deduplicator.RemoveAsync("");
+
+        // Assert
+        Assert.False(result);
     }
 }
