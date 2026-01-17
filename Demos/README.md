@@ -173,7 +173,7 @@ docker ps
 ### 1. 克隆项目
 
 ```bash
-git clone https://gitee.com/mudtools/MudFeishu/MudFeishu.git
+git clone https://gitee.com/mudtools/MudFeishu.git
 cd MudFeishu/Demos
 ```
 
