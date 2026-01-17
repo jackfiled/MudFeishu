@@ -94,6 +94,15 @@ public interface IFeishuV3AuthenticationApi
        CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 通过 user_access_token 获取相关用户信息。
+    /// </summary>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <param name="token">Bearer 格式的 user_access_token。</param>
+    /// <returns></returns>
+    [Get("/open-apis/authen/v1/user_info")]
+    Task<FeishuApiResult<GetUserDataResult>?> GetUserInfoAsync([Header(Consts.Authorization)] string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 获取长连接地址及配置信息。
     /// </summary>
     /// <param name="appCredentials">应用唯一标识及应用秘钥信息</param>

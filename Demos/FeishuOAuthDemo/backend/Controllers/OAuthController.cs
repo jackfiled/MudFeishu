@@ -9,7 +9,7 @@ using FeishuOAuthDemo.Models;
 using FeishuOAuthDemo.Services;
 using Microsoft.AspNetCore.Mvc;
 using Mud.Feishu;
-using Mud.Feishu.TokenManager;
+using IUserTokenManager = Mud.Feishu.Abstractions.IUserTokenManager;
 
 namespace FeishuOAuthDemo.Controllers;
 

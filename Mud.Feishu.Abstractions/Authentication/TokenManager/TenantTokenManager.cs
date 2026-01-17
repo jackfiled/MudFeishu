@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
@@ -12,14 +12,19 @@ using Mud.Feishu.DataModels;
 namespace Mud.Feishu.TokenManager;
 
 /// <summary>
-/// 租户令牌管理。
+/// 租户令牌管理器
 /// </summary>
-internal class TenantTokenManager : TokenManagerWithCache, ITenantTokenManager
+/// <remarks>
+/// 负责租户访问令牌（Tenant Access Token）的获取、缓存和管理。
+/// 租户令牌用于租户级别的权限验证，通过AppId和AppSecret获取。
+/// </remarks>
+internal class TenantTokenManager : TokenManagerWithCache, Abstractions.ITenantTokenManager
 {
     public TenantTokenManager(
        IFeishuV3AuthenticationApi authenticationApi,
        IOptions<FeishuOptions> options,
-       ILogger<TokenManagerWithCache> logger) : base(authenticationApi, options, logger, TokenType.TenantAccessToken)
+       ILogger<TokenManagerWithCache> logger,
+       ITokenCache tokenCache) : base(authenticationApi, options, logger, tokenCache, TokenType.TenantAccessToken)
     {
 
     }

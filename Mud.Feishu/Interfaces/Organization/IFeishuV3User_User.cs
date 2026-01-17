@@ -40,6 +40,5 @@ public interface IFeishuUserV3User : IFeishuV3User
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Get("/open-apis/authen/v1/user_info")]
-    Task<FeishuApiResult<GetUserDataResult>?> GetUserInfoAsync(
-        CancellationToken cancellationToken = default);
+    Task<FeishuApiResult<GetUserDataResult>?> GetUserInfoAsync(CancellationToken cancellationToken = default);
 }

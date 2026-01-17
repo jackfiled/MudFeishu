@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
@@ -18,60 +18,10 @@ namespace Mud.Feishu.TokenManager;
 /// <remarks>
 /// 提供令牌获取、缓存、自动刷新等核心功能，采用线程安全的缓存机制防止并发请求。
 /// 支持令牌过期检测、自动重试、缓存清理等特性。
+/// 通过抽象缓存层支持多种缓存实现（内存、Redis等）。
 /// </remarks>
-public abstract class TokenManagerWithCache : ITokenManager, IDisposable
+public abstract class TokenManagerWithCache : Abstractions.ITokenManager, IDisposable
 {
-    /// <summary>
-    /// 凭证令牌数据模型
-    /// </summary>
-    /// <remarks>
-    /// 表示从飞书API获取的访问令牌信息，包含令牌内容、过期时间和响应状态。
-    /// </remarks>
-    public class CredentialToken
-    {
-        /// <summary>
-        /// 响应消息
-        /// </summary>
-        /// <remarks>
-        /// API返回的错误消息或成功消息，null表示无消息。
-        /// </remarks>
-        public string? Msg { get; set; }
-
-        /// <summary>
-        /// 响应状态码
-        /// </summary>
-        /// <remarks>
-        /// 0表示成功，非0表示错误状态码。
-        /// </remarks>
-        public int Code { get; set; }
-
-        /// <summary>
-        /// 令牌过期时间戳（毫秒）
-        /// </summary>
-        /// <remarks>
-        /// Unix时间戳格式的过期时间，使用UTC时间。
-        /// </remarks>
-        public
-#if NET7_0_OR_GREATER
-        required
-#endif
-  long Expire
-        { get; set; }
-
-        /// <summary>
-        /// 访问令牌
-        /// </summary>
-        /// <remarks>
-        /// 用于API认证的访问令牌字符串，null表示未获取到令牌。
-        /// </remarks>
-        public
-#if NET7_0_OR_GREATER
-        required
-#endif
-  string? AccessToken
-        { get; set; }
-    }
-
     /// <summary>
     /// 飞书配置选项
     /// </summary>
@@ -97,13 +47,12 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     protected readonly ILogger<TokenManagerWithCache> _logger;
 
     /// <summary>
-    /// 令牌刷新阈值时间
+    /// 令牌缓存提供者
     /// </summary>
     /// <remarks>
-    /// 令牌过期前提前刷新的时间间隔，默认为5分钟。
-    /// 可通过 FeishuOptions.TokenRefreshThreshold 配置项自定义。
+    /// 抽象缓存接口，支持内存、Redis等多种实现。
     /// </remarks>
-    private readonly TimeSpan _tokenRefreshThreshold;
+    protected readonly ITokenCache _tokenCache;
 
     /// <summary>
     /// 令牌类型
@@ -111,7 +60,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// <remarks>
     /// 标识当前管理器处理的令牌类型（如App Token、User Token等）。
     /// </remarks>
-    private readonly TokenType _tokeType;
+    protected readonly TokenType _tokenType;
 
     // 使用 Lazy 和 AsyncLock 解决缓存击穿和竞态条件问题
     /// <summary>
@@ -121,22 +70,6 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// 使用Lazy包装确保同一时刻只有一个请求在获取特定缓存键的令牌，防止缓存击穿。
     /// </remarks>
     private readonly ConcurrentDictionary<string, Lazy<Task<CredentialToken>>> _tokenLoadingTasks = new();
-
-    /// <summary>
-    /// 令牌缓存字典
-    /// </summary>
-    /// <remarks>
-    /// 存储已获取的有效令牌，使用线程安全的ConcurrentDictionary实现。
-    /// </remarks>
-    private readonly ConcurrentDictionary<string, CredentialToken> _appTokenCache = new();
-
-    /// <summary>
-    /// 缓存操作锁
-    /// </summary>
-    /// <remarks>
-    /// 用于保护缓存操作的线程安全，避免并发写入冲突。
-    /// </remarks>
-    private readonly SemaphoreSlim _cacheLock = new(1, 1);
 
     // 常量定义
     /// <summary>
@@ -148,35 +81,26 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     private const int DefaultTokenExpirationSeconds = 7200;
 
     /// <summary>
-    /// 默认刷新阈值时间（秒）
-    /// </summary>
-    /// <remarks>
-    /// 在令牌过期前5分钟（300秒）开始刷新，避免因网络延迟等原因导致令牌失效。
-    /// </remarks>
-    private const int DefaultRefreshThresholdSeconds = 300; // 提前5分钟刷新
-
-    /// <summary>
     /// 初始化TokenManagerWithCache实例
     /// </summary>
     /// <param name="authenticationApi">飞书V3认证API接口</param>
     /// <param name="options">飞书配置选项</param>
     /// <param name="logger">日志记录器</param>
-    /// <param name="tokeType">令牌类型</param>
+    /// <param name="tokenCache">令牌缓存提供者</param>
+    /// <param name="tokenType">令牌类型</param>
     /// <exception cref="ArgumentNullException">当任何必需参数为null时抛出</exception>
     public TokenManagerWithCache(
         IFeishuV3AuthenticationApi authenticationApi,
         IOptions<FeishuOptions> options,
         ILogger<TokenManagerWithCache> logger,
-        TokenType tokeType)
+        ITokenCache tokenCache,
+        TokenType tokenType)
     {
         _authenticationApi = authenticationApi ?? throw new ArgumentNullException(nameof(authenticationApi));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        // 支持从配置读取刷新阈值，默认为5分钟
-        _tokenRefreshThreshold = TimeSpan.FromSeconds(_options.TokenRefreshThreshold > 0
-            ? _options.TokenRefreshThreshold
-            : DefaultRefreshThresholdSeconds);
-        _tokeType = tokeType;
+        _tokenCache = tokenCache ?? throw new ArgumentNullException(nameof(tokenCache));
+        _tokenType = tokenType;
     }
 
     /// <summary>
@@ -188,7 +112,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// 此方法会自动处理令牌缓存和刷新逻辑，优先使用缓存中的有效令牌。
     /// 如果缓存中没有有效令牌，则会获取新令牌并更新缓存。
     /// </remarks>
-    public async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
+    public virtual async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
     {
         return await GetTokenInternalAsync(cancellationToken);
     }
@@ -207,9 +131,10 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
         var cacheKey = GenerateCacheKey();
 
         // 尝试从缓存获取有效令牌
-        if (TryGetValidTokenFromCache(cacheKey, out var cachedToken))
+        var cachedToken = await _tokenCache.GetAsync(cacheKey, cancellationToken);
+        if (!string.IsNullOrEmpty(cachedToken))
         {
-            _logger.LogDebug("Using cached token for {TokenType}", _tokeType);
+            _logger.LogDebug("Using cached token for {TokenType}", _tokenType);
             return FormatBearerToken(cachedToken);
         }
 
@@ -251,7 +176,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// </remarks>
     private async Task<CredentialToken> AcquireTokenAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Acquiring new token for {TokenType}", _tokeType);
+        _logger.LogInformation("Acquiring new token for {TokenType}", _tokenType);
 
         // 实现重试机制
         var retryCount = 0;
@@ -267,10 +192,10 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
                 var newToken = CreateAppCredentialToken(result);
 
                 // 原子性地更新缓存
-                UpdateTokenCache(newToken);
+                await UpdateTokenCacheAsync(newToken, cancellationToken);
 
                 _logger.LogInformation("Successfully acquired new token for {TokenType}, expires at {ExpireTime}",
-                    _tokeType, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));
+                    _tokenType, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));
 
                 return newToken;
             }
@@ -280,56 +205,16 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
                 {
                     retryCount++;
                     _logger.LogWarning(ex, "Failed to acquire token for {TokenType}, retry {RetryCount}/{MaxRetries}",
-                        _tokeType, retryCount, maxRetries);
+                        _tokenType, retryCount, maxRetries);
 
                     await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)), cancellationToken);
                 }
                 else
                 {
-                    throw new FeishuException(500, $"Failed to acquire {_tokeType} after {maxRetries} retries");
+                    throw new FeishuException(500, $"Failed to acquire {_tokenType} after {maxRetries} retries");
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// 尝试从缓存获取有效令牌（考虑刷新阈值）
-    /// </summary>
-    /// <param name="cacheKey">缓存键</param>
-    /// <param name="token">输出的令牌字符串</param>
-    /// <returns>如果获取到有效令牌返回true，否则返回false</returns>
-    /// <remarks>
-    /// 检查缓存中是否存在指定键的令牌，并且令牌未过期或接近过期时间。
-    /// 考虑了刷新阈值，提前在过期前一段时间就认为令牌无效。
-    /// </remarks>
-    private bool TryGetValidTokenFromCache(string cacheKey, out string? token)
-    {
-        token = null;
-
-        if (_appTokenCache.TryGetValue(cacheKey, out var cachedToken) &&
-            !IsTokenExpiredOrNearExpiry(cachedToken.Expire))
-        {
-            token = cachedToken.AccessToken;
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// 判断令牌是否过期或即将过期
-    /// </summary>
-    /// <param name="expireTime">令牌过期时间戳（毫秒）</param>
-    /// <returns>如果令牌已过期或即将过期返回true，否则返回false</returns>
-    /// <remarks>
-    /// 比较当前时间与令牌过期时间，考虑刷新阈值。
-    /// 当距离过期时间小于刷新阈值时，认为令牌即将过期。
-    /// </remarks>
-    private bool IsTokenExpiredOrNearExpiry(long expireTime)
-    {
-        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var thresholdTime = currentTime + (long)_tokenRefreshThreshold.TotalMilliseconds;
-        return expireTime <= thresholdTime;
     }
 
     /// <summary>
@@ -339,9 +224,9 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// <remarks>
     /// 使用应用ID和令牌类型组合生成唯一缓存键，确保不同应用或不同类型的令牌使用不同的缓存。
     /// </remarks>
-    private string GenerateCacheKey()
+    protected virtual string GenerateCacheKey()
     {
-        return $"{_options.AppId}:{_tokeType}";
+        return $"{_options.AppId}:{_tokenType}";
     }
 
     /// <summary>
@@ -413,14 +298,16 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// 更新令牌缓存
     /// </summary>
     /// <param name="newToken">新的凭证令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     /// <remarks>
-    /// 将新获取的令牌更新到缓存中，使用原子操作确保线程安全。
+    /// 将新获取的令牌更新到缓存中，使用异步操作确保线程安全。
     /// 如果缓存中已存在相同键的令牌，则替换为新令牌。
     /// </remarks>
-    protected void UpdateTokenCache(CredentialToken newToken)
+    protected async Task UpdateTokenCacheAsync(CredentialToken newToken, CancellationToken cancellationToken)
     {
         var cacheKey = GenerateCacheKey();
-        _appTokenCache.AddOrUpdate(cacheKey, newToken, (key, existing) => newToken);
+        var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
+        await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
     }
 
     /// <summary>
@@ -446,6 +333,21 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     }
 
     /// <summary>
+    /// 从时间戳计算过期时间间隔
+    /// </summary>
+    /// <param name="expirationTime">过期时间戳（毫秒）</param>
+    /// <returns>从当前时间到过期时间的时间间隔</returns>
+    /// <remarks>
+    /// 根据令牌的过期时间戳计算剩余有效时间。
+    /// </remarks>
+    protected TimeSpan CalculateExpirationFromTimestamp(long expirationTime)
+    {
+        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var remainingMs = expirationTime - currentTime;
+        return TimeSpan.FromMilliseconds(Math.Max(0, remainingMs));
+    }
+
+    /// <summary>
     /// 记录日志并抛出异常
     /// </summary>
     /// <param name="code">错误码</param>
@@ -462,32 +364,6 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     }
 
     /// <summary>
-    /// 清理过期令牌
-    /// </summary>
-    /// <remarks>
-    /// 遍历缓存中的所有令牌，移除已过期或即将过期的令牌。
-    /// 建议定期调用此方法以释放内存空间。
-    /// 清理完成后会记录清理的令牌数量。
-    /// </remarks>
-    public void CleanExpiredTokens()
-    {
-        var expiredKeys = _appTokenCache
-                        .Where(kvp => IsTokenExpiredOrNearExpiry(kvp.Value.Expire))
-                        .Select(kvp => kvp.Key)
-                        .ToList();
-
-        foreach (var cacheKey in expiredKeys)
-        {
-            _appTokenCache.TryRemove(cacheKey, out _);
-        }
-
-        if (expiredKeys.Count > 0)
-        {
-            _logger.LogInformation("Cleaned {Count} expired tokens", expiredKeys.Count);
-        }
-    }
-
-    /// <summary>
     /// 获取缓存统计信息（用于监控）
     /// </summary>
     /// <returns>包含总令牌数和过期令牌数的元组</returns>
@@ -497,11 +373,9 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// - Expired: 已过期或即将过期的令牌数量
     /// 可用于定期清理和性能监控。
     /// </remarks>
-    public (int Total, int Expired) GetCacheStatistics()
+    public async Task<(int Total, int Expired)> GetCacheStatisticsAsync()
     {
-        var total = _appTokenCache.Count;
-        var expired = _appTokenCache.Count(kvp => IsTokenExpiredOrNearExpiry(kvp.Value.Expire));
-        return (total, expired);
+        return await _tokenCache.GetStatisticsAsync(default);
     }
 
     /// <summary>
@@ -509,10 +383,13 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// </summary>
     /// <remarks>
     /// 实现IDisposable接口，释放所有托管资源。
-    /// 主要是释放SemaphoreSlim对象，避免资源泄漏。
+    /// 如果缓存提供者实现了IDisposable，则一并释放。
     /// </remarks>
     public void Dispose()
     {
-        _cacheLock?.Dispose();
+        if (_tokenCache is IDisposable disposableCache)
+        {
+            disposableCache.Dispose();
+        }
     }
 }

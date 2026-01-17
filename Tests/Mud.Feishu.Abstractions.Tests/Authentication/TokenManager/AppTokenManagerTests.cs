@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
@@ -25,6 +25,7 @@ public class AppTokenManagerTests
     private readonly Mock<IFeishuV3AuthenticationApi> _authenticationApiMock;
     private readonly Mock<IOptions<FeishuOptions>> _optionsMock;
     private readonly Mock<ILogger<TokenManagerWithCache>> _loggerMock;
+    private readonly Mock<ITokenCache> _tokenCacheMock;
     private readonly FeishuOptions _feishuOptions;
     private readonly AppTokenManager _appTokenManager;
 
@@ -33,6 +34,7 @@ public class AppTokenManagerTests
         _authenticationApiMock = new Mock<IFeishuV3AuthenticationApi>();
         _optionsMock = new Mock<IOptions<FeishuOptions>>();
         _loggerMock = new Mock<ILogger<TokenManagerWithCache>>();
+        _tokenCacheMock = new Mock<ITokenCache>();
 
         _feishuOptions = new FeishuOptions
         {
@@ -42,11 +44,18 @@ public class AppTokenManagerTests
         };
 
         _optionsMock.Setup(x => x.Value).Returns(_feishuOptions);
+        _tokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+        _tokenCacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _tokenCacheMock.Setup(x => x.GetStatisticsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((0, 0));
 
         _appTokenManager = new AppTokenManager(
             _authenticationApiMock.Object,
             _optionsMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _tokenCacheMock.Object);
     }
 
     [Fact]
@@ -74,6 +83,23 @@ public class AppTokenManagerTests
         Assert.NotNull(result);
         Assert.Equal($"Bearer {expectedToken}", result);
         _authenticationApiMock.Verify(x => x.GetAppAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()), Times.Once);
+        _tokenCacheMock.Verify(x => x.SetAsync(It.IsAny<string>(), expectedToken, It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldReturnCachedToken_WhenCacheHasValidToken()
+    {
+        // Arrange
+        var cachedToken = "Bearer cached-token";
+        _tokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cachedToken);
+
+        // Act
+        var result = await _appTokenManager.GetTokenAsync(CancellationToken.None);
+
+        // Assert
+        Assert.Equal(cachedToken, result);
+        _authenticationApiMock.Verify(x => x.GetAppAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -124,9 +150,20 @@ public class AppTokenManagerTests
             Msg = "ok"
         };
 
+        var callCount = 0;
         _authenticationApiMock
             .Setup(x => x.GetAppAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(apiResult);
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                return callCount == 1 ? apiResult : null;
+            });
+
+        _tokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                return callCount == 0 ? (string?)null : $"Bearer {expectedToken}";
+            });
 
         // Act - First call should get new token
         var result1 = await _appTokenManager.GetTokenAsync(CancellationToken.None);
@@ -145,41 +182,28 @@ public class AppTokenManagerTests
     }
 
     [Fact]
-    public void CleanExpiredTokens_ShouldRemoveExpiredTokens()
+    public async Task CleanExpiredTokens_ShouldCallCacheCleanExpiredAsync()
     {
-        // Arrange
-        var expiredToken = new TokenManagerWithCache.CredentialToken
-        {
-            AccessToken = "expired-token",
-            Expire = DateTimeOffset.UtcNow.AddSeconds(-10).ToUnixTimeMilliseconds(),
-            Code = 0,
-            Msg = "ok"
-        };
-
-        var validToken = new TokenManagerWithCache.CredentialToken
-        {
-            AccessToken = "valid-token",
-            Expire = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeMilliseconds(),
-            Code = 0,
-            Msg = "ok"
-        };
-
-        // Use reflection to access private cache
-        var cacheField = typeof(TokenManagerWithCache).GetField("_appTokenCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var cache = cacheField?.GetValue(_appTokenManager) as System.Collections.Concurrent.ConcurrentDictionary<string, TokenManagerWithCache.CredentialToken>;
-
-        if (cache != null)
-        {
-            var cacheKey = $"{_feishuOptions.AppId}:{TokenType.AppAccessToken}";
-            cache.TryAdd(cacheKey + ":expired", expiredToken);
-            cache.TryAdd(cacheKey + ":valid", validToken);
-        }
-
         // Act
         _appTokenManager.CleanExpiredTokens();
 
-        // Assert - Using statistics to verify
-        var stats = _appTokenManager.GetCacheStatistics();
-        Assert.Equal(1, stats.Total); // Only valid token should remain
+        // Assert
+        _tokenCacheMock.Verify(x => x.CleanExpiredAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetCacheStatistics_ShouldCallCacheGetStatisticsAsync()
+    {
+        // Arrange
+        _tokenCacheMock.Setup(x => x.GetStatisticsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((5, 2));
+
+        // Act
+        var stats = await _appTokenManager.GetCacheStatistics();
+
+        // Assert
+        Assert.Equal(5, stats.Total);
+        Assert.Equal(2, stats.Expired);
+        _tokenCacheMock.Verify(x => x.GetStatisticsAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }
