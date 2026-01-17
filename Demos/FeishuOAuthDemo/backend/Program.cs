@@ -1,0 +1,131 @@
+// -----------------------------------------------------------------------
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
+// -----------------------------------------------------------------------
+
+using FeishuOAuthDemo.Models;
+using FeishuOAuthDemo.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
+using System.Text;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 添加控制器
+builder.Services.AddControllers();
+
+// 添加OpenAPI支持
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
+
+// 添加CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowVueDev", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+// 绑定配置
+builder.Services.Configure<OAuthOptions>(builder.Configuration.GetSection("OAuth"));
+
+// 添加State存储服务
+var oauthOptions = builder.Configuration.GetSection("OAuth").Get<OAuthOptions>() ?? new OAuthOptions();
+builder.Services.AddSingleton<IStateStorageService>(_ =>
+    new StateStorageService(TimeSpan.FromMinutes(oauthOptions.StateExpirationMinutes)));
+
+// 添加JWT令牌服务
+builder.Services.AddSingleton<IJwtTokenService>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OAuthOptions>>().Value;
+    return new JwtTokenService(options.Jwt);
+});
+
+// 添加用户服务
+builder.Services.AddSingleton<IUserService, UserService>();
+
+// 添加JWT认证
+var jwtSecret = oauthOptions.Jwt.Secret;
+if (string.IsNullOrEmpty(jwtSecret))
+{
+    throw new InvalidOperationException("JWT密钥未配置");
+}
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = oauthOptions.Jwt.Issuer,
+            ValidAudience = oauthOptions.Jwt.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// 添加飞书服务
+builder.Services.CreateFeishuServicesBuilder(builder.Configuration, "Feishu")
+    .AddModules(FeishuModule.Organization)
+    .Build()
+    .AddLogging(options => options.AddConsole());
+
+// 添加后台服务清理过期的state
+builder.Services.AddHostedService<StateCleanupService>();
+
+var app = builder.Build();
+
+// 配置HTTP请求管道
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+    app.MapGet("/", () => Results.Redirect("/scalar"));
+}
+
+app.UseHttpsRedirection();
+app.UseCors("AllowVueDev");
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+
+/// <summary>
+/// State清理后台服务
+/// </summary>
+public class StateCleanupService : BackgroundService
+{
+    private readonly IServiceProvider _serviceProvider;
+
+    public StateCleanupService(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+
+            using var scope = _serviceProvider.CreateScope();
+            var stateStorage = scope.ServiceProvider.GetRequiredService<IStateStorageService>();
+            stateStorage.CleanExpiredStates();
+        }
+    }
+}

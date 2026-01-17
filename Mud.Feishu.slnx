@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/Samples/">
+    <File Path="Demos/Directory.Build.props" />
+    <Project Path="Demos/FeishuOAuthDemo/backend/FeishuOAuthDemo.csproj" />
     <Project Path="Demos/Mud.Feishu.Demo/Mud.Feishu.Demo.csproj" />
     <Project Path="Demos/Mud.Feishu.Webhook.Demo/Mud.Feishu.Webhook.Demo.csproj" Id="33cbe001-6cfc-489d-8f5b-12dea3b659ed" />
     <Project Path="Demos/Mud.Feishu.WebSocket.Demo/Mud.Feishu.WebSocket.Demo.csproj" />
@@ -13,9 +15,9 @@
   <Folder Name="/Tests/">
     <File Path="Tests/Directory.Build.props" />
     <Project Path="Tests/Mud.Feishu.Abstractions.Tests/Mud.Feishu.Abstractions.Tests.csproj" />
+    <Project Path="Tests/Mud.Feishu.Redis.Tests/Mud.Feishu.Redis.Tests.csproj" />
     <Project Path="Tests/Mud.Feishu.Webhook.Tests/Mud.Feishu.Webhook.Tests.csproj" />
     <Project Path="Tests/Mud.Feishu.WebSocket.Tests/Mud.Feishu.WebSocket.Tests.csproj" />
-    <Project Path="Tests/Mud.Feishu.Redis.Tests/Mud.Feishu.Redis.Tests.csproj" />
   </Folder>
   <Project Path="Mud.CodeGenerator/Mud.CodeGenerator.shproj" />
   <Project Path="Mud.Feishu.Abstractions/Mud.Feishu.Abstractions.csproj" Id="b04973d2-c477-49a7-a00f-04288a8cabac" />

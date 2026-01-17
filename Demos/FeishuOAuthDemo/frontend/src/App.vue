@@ -1,0 +1,92 @@
+<template>
+  <el-container class="app-container">
+    <el-header class="app-header">
+      <div class="header-content">
+        <h1 class="logo">飞书OAuth登录演示</h1>
+        <div class="user-info" v-if="userStore.isLoggedIn">
+          <el-dropdown>
+            <span class="user-name">
+              <el-icon><User /></el-icon>
+              {{ userStore.user?.name }}
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </div>
+    </el-header>
+    <el-main class="app-main">
+      <router-view />
+    </el-main>
+  </el-container>
+</template>
+
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from './stores/user'
+
+const router = useRouter()
+const userStore = useUserStore()
+
+onMounted(async () => {
+  // 初始化时验证token
+  await userStore.validateToken()
+})
+
+const handleLogout = () => {
+  userStore.logout()
+  router.push('/login')
+}
+</script>
+
+<style scoped>
+.app-container {
+  min-height: 100vh;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.user-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.app-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+</style>

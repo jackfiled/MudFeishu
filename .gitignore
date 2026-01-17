@@ -22,7 +22,6 @@
 /Mud.Feishu.WebSocket.Demo/obj
 /Mud.Feishu.WebSocket.Demo/bin/Debug/net8.0
 /bin
-/bin/Release
 /Mud.Feishu.Abstractions/bin/Debug
 /Mud.Feishu.Abstractions/obj
 /Mud.Feishu.Webbook/obj
@@ -48,3 +47,4 @@
 /Tests/Mud.Feishu.Webhook.Tests/obj
 /Tests/Mud.Feishu.WebSocket.Tests/bin/Debug
 /Tests/Mud.Feishu.WebSocket.Tests/obj
+node_modules
