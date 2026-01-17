@@ -224,8 +224,10 @@ public abstract class TokenManagerWithCache : Abstractions.ITokenManager, IDispo
     /// <remarks>
     /// 使用应用ID和令牌类型组合生成唯一缓存键，确保不同应用或不同类型的令牌使用不同的缓存。
     /// </remarks>
-    protected virtual string GenerateCacheKey()
+    protected string GenerateCacheKey(string? userId = null)
     {
+        if (!string.IsNullOrEmpty(userId))
+            return $"{_options.AppId}:{_tokenType}:{userId}";
         return $"{_options.AppId}:{_tokenType}";
     }
 

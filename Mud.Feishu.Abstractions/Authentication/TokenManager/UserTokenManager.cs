@@ -72,7 +72,7 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
             throw new ArgumentException("UserId cannot be null or empty for user token operations.", nameof(userId));
         }
 
-        var cacheKey = GenerateCacheKeyWithUserId(userId!);
+        var cacheKey = GenerateCacheKey(userId!);
 
         // 尝试从缓存获取有效令牌
         var cachedToken = await _tokenCache.GetAsync(cacheKey, cancellationToken);
@@ -96,24 +96,13 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
             "参考文档：https://open.feishu.cn/document/server-docs/authentication-management/access-token/obtain-user_token");
     }
 
-    /// <summary>
-    /// 生成带用户ID的缓存键
-    /// </summary>
-    private string GenerateCacheKeyWithUserId(string? userId)
-    {
-        if (string.IsNullOrEmpty(userId))
-        {
-            throw new ArgumentException("UserId cannot be null or empty for user token operations.", nameof(userId));
-        }
-        return $"{_options.AppId}:{_tokenType}:{userId}";
-    }
 
     protected override async Task UpdateTokenCacheAsync(CredentialToken newToken, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(_currentUserId))
             throw new InvalidOperationException("Cannot update user token cache without a valid userId.");
 
-        var cacheKey = GenerateCacheKeyWithUserId(_currentUserId);
+        var cacheKey = GenerateCacheKey(_currentUserId);
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
         await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
     }
@@ -160,7 +149,7 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
 
         _currentUserId = userId;
         // 使用带用户ID的缓存键
-        var cacheKey = GenerateCacheKeyWithUserId(userId);
+        var cacheKey = GenerateCacheKey(userId);
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
         await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
 
@@ -205,7 +194,7 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
         var newToken = CreateAppCredentialToken(token);
 
         // 使用带用户ID的缓存键
-        var cacheKey = GenerateCacheKeyWithUserId(userId);
+        var cacheKey = GenerateCacheKey(userId);
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
         await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
 
