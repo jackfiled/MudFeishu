@@ -1180,7 +1180,7 @@ public class DemoEventService
 ## 支持
 
 如有问题，请：
-- 提交 [Issue](https://github.com/your-repo/issues)
+- 提交 [Issue](https://gitee.com/mudtools/MudFeishu/issues)
 - 查看 [文档](../../docs)
 - 联系技术支持
 

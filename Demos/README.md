@@ -173,7 +173,7 @@ docker ps
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-repo/MudFeishu.git
+git clone https://gitee.com/mudtools/MudFeishu/MudFeishu.git
 cd MudFeishu/Demos
 ```
 
@@ -644,7 +644,7 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "Feish
 dotnet add package Mud.Feishu
 
 # 更新到指定版本
-dotnet add package Mud.Feishu --version 1.3.0
+dotnet add package Mud.Feishu --version 1.2.1
 
 # 更新所有 Mud.Feishu 包
 dotnet add package Mud.Feishu.Abstractions
@@ -686,8 +686,8 @@ dotnet add package Mud.Feishu.Redis
 
 ### 社区支持
 
-- [GitHub Issues](https://github.com/your-repo/issues) - 问题反馈
-- [GitHub Discussions](https://github.com/your-repo/discussions) - 技术讨论
+- [GitHub Issues](https://gitee.com/mudtools/MudFeishu/issues) - 问题反馈
+- [GitHub Discussions](https://gitee.com/mudtools/MudFeishu/discussions) - 技术讨论
 - [官方论坛](https://open.feishu.cn/community) - 飞书开发者社区
 
 ---
@@ -702,7 +702,7 @@ dotnet add package Mud.Feishu.Redis
 
 如有问题或建议，请：
 
-- 提交 [Issue](https://github.com/your-repo/issues)
+- 提交 [Issue](https://gitee.com/mudtools/MudFeishu/issues)
 - 查看 [文档](../docs)
 - 联系技术支持
 
