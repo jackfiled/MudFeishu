@@ -87,13 +87,6 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
         return null;
     }
 
-    /// <summary>
-    /// 格式化 Bearer Token
-    /// </summary>
-    private string FormatBearerToken(string? token)
-    {
-        return $"Bearer {token}";
-    }
 
     protected override async Task<CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)
     {
@@ -114,6 +107,17 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
         }
         return $"{_options.AppId}:{_tokenType}:{userId}";
     }
+
+    protected override async Task UpdateTokenCacheAsync(CredentialToken newToken, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_currentUserId))
+            throw new InvalidOperationException("Cannot update user token cache without a valid userId.");
+
+        var cacheKey = GenerateCacheKeyWithUserId(_currentUserId);
+        var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
+        await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
+    }
+
 
     /// <summary>
     /// 使用授权码获取用户令牌

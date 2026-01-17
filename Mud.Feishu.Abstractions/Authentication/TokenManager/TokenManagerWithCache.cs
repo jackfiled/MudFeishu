@@ -237,7 +237,7 @@ public abstract class TokenManagerWithCache : Abstractions.ITokenManager, IDispo
     /// <remarks>
     /// 在令牌前添加"Bearer "前缀，符合HTTP认证标准格式。
     /// </remarks>
-    private static string FormatBearerToken(string? token)
+    protected string FormatBearerToken(string? token)
     {
         return $"Bearer {token}";
     }
@@ -261,7 +261,7 @@ public abstract class TokenManagerWithCache : Abstractions.ITokenManager, IDispo
             LogAndThrowException(443, "获取飞书访问令牌失败: 返回结果为null");
         }
 
-        if (result.Code != 0)
+        if (result?.Code != 0)
         {
             LogAndThrowException(result.Code, $"获取飞书访问令牌失败，错误码: {result.Code}, 消息: {result.Msg}");
         }
@@ -303,7 +303,7 @@ public abstract class TokenManagerWithCache : Abstractions.ITokenManager, IDispo
     /// 将新获取的令牌更新到缓存中，使用异步操作确保线程安全。
     /// 如果缓存中已存在相同键的令牌，则替换为新令牌。
     /// </remarks>
-    protected async Task UpdateTokenCacheAsync(CredentialToken newToken, CancellationToken cancellationToken)
+    protected virtual async Task UpdateTokenCacheAsync(CredentialToken newToken, CancellationToken cancellationToken)
     {
         var cacheKey = GenerateCacheKey();
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
