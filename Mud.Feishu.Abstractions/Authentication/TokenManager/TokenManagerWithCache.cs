@@ -396,7 +396,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// 根据API返回的过期时间计算实际的过期时间戳，并创建新的凭证令牌对象。
     /// 如果API未返回过期时间，则使用默认过期时间。
     /// </remarks>
-    private CredentialToken CreateAppCredentialToken(CredentialToken result)
+    protected CredentialToken CreateAppCredentialToken(CredentialToken result)
     {
         var expireTime = CalculateExpireTime(result.Expire);
 
@@ -417,7 +417,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// 将新获取的令牌更新到缓存中，使用原子操作确保线程安全。
     /// 如果缓存中已存在相同键的令牌，则替换为新令牌。
     /// </remarks>
-    private void UpdateTokenCache(CredentialToken newToken)
+    protected void UpdateTokenCache(CredentialToken newToken)
     {
         var cacheKey = GenerateCacheKey();
         _appTokenCache.AddOrUpdate(cacheKey, newToken, (key, existing) => newToken);

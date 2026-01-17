@@ -63,13 +63,16 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
         var res = await _authenticationApi.GetOAuthenAccessTokenAsync(credentials, cancellationToken);
         if (res == null) return null;
 
-        return new CredentialToken
+        var token = new CredentialToken
         {
             AccessToken = res.AccessToken ?? string.Empty,
             Expire = res.ExpiresIn,
             Code = res.Code,
             Msg = res.ErrorDescription ?? "Success"
         };
+        var newToken = CreateAppCredentialToken(token);
+        UpdateTokenCache(newToken);
+        return token;
     }
 
     /// <summary>
@@ -91,13 +94,16 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
         var res = await _authenticationApi.GetOAuthenRefreshAccessTokenAsync(credentials, cancellationToken);
         if (res == null) return null;
 
-        return new CredentialToken
+        var token = new CredentialToken
         {
             AccessToken = res.AccessToken ?? string.Empty,
             Expire = res.ExpiresIn,
             Code = res.Code,
             Msg = res.ErrorDescription ?? "Success"
         };
+        var newToken = CreateAppCredentialToken(token);
+        UpdateTokenCache(newToken);
+        return token;
     }
 }
 

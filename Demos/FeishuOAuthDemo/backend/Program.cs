@@ -121,11 +121,30 @@ public class StateCleanupService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+            try
+            {
+                // 等待5分钟后清理过期的state
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
 
-            using var scope = _serviceProvider.CreateScope();
-            var stateStorage = scope.ServiceProvider.GetRequiredService<IStateStorageService>();
-            stateStorage.CleanExpiredStates();
+                using var scope = _serviceProvider.CreateScope();
+                var stateStorage = scope.ServiceProvider.GetRequiredService<IStateStorageService>();
+                stateStorage.CleanExpiredStates();
+            }
+            catch (TaskCanceledException)
+            {
+                // 正常关闭，无需处理
+                break;
+            }
+            catch (OperationCanceledException)
+            {
+                // 正常关闭，无需处理
+                break;
+            }
+            catch (Exception ex)
+            {
+                // 记录其他异常，但继续运行
+                Console.WriteLine($"清理过期state时发生错误: {ex.Message}");
+            }
         }
     }
 }

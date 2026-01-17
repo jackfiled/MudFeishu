@@ -175,7 +175,7 @@ public class OAuthController : ControllerBase
                 feishuUser.OpenId ?? string.Empty,
                 feishuUser.UnionId ?? string.Empty,
                 feishuUser.Name ?? "未知用户",
-                null,
+                feishuUser.AvatarUrl ?? string.Empty,
                 feishuUser.Email
             );
 
@@ -201,6 +201,7 @@ public class OAuthController : ControllerBase
                     OpenId = feishuUser.OpenId ?? string.Empty,
                     UnionId = feishuUser.UnionId ?? string.Empty,
                     Name = feishuUser.Name ?? "未知用户",
+                    Avatar = feishuUser.AvatarUrl,
                     Email = feishuUser.Email
                 }
             });
