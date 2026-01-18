@@ -79,7 +79,7 @@ public static class FeishuServiceCollectionExtensions
                 retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
         });
 
-        services.AddSingleton<IFeishuV3Authentication, FeishuV3AuthenticationApi>();
+        services.AddSingleton<IFeishuV3Authentication, FeishuV3Authentication>();
         services.Configure<JsonSerializerOptions>(options => HttpClientExtensions.GetDefaultJsonSerializerOptions());
         return services;
     }
