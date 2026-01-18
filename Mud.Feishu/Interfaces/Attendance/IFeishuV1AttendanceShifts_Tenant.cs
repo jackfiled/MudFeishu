@@ -50,6 +50,17 @@ public interface IFeishuTenantV1AttendanceShifts
     /// <returns></returns>
     [Get("/open-apis/attendance/v1/shifts/{shift_id}")]
     Task<FeishuApiResult<GetAttendanceShiftsResult>?> GetShiftsByIdAsync(
-      [Path] string shift_id,
-      CancellationToken cancellationToken = default);
+       [Path] string shift_id,
+       CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <para>按名称查询班次。对应功能为飞书人事管理后台中假勤设置-班次配置中的搜索班次名称功能，展示班次名称、打卡规则、弹性班次规则、休息规则等</para>
+    /// </summary>
+    /// <param name="shift_name">班次名称 示例值："早班"</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/attendance/v1/shifts/query")]
+    Task<FeishuApiResult<GetAttendanceShiftsResult>?> GetShiftsByNameAsync(
+       [Query("shift_name")] string shift_name,
+       CancellationToken cancellationToken = default);
 }
