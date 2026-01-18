@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -8,23 +8,14 @@
 namespace Mud.Feishu.DataModels.AttendanceShifts;
 
 /// <summary>
-/// <para>班次</para>
+/// 查询所有班次响应体
 /// </summary>
-public class AttendanceShiftInfo : AttendanceShiftItem
+public class GetAttendanceShiftsPageListResult : ApiPageListResult
 {
-
     /// <summary>
-    /// <para>应出勤配置（灰度中，暂未开放）</para>
+    /// <para>班次列表</para>
     /// <para>必填：否</para>
     /// </summary>
-    [JsonPropertyName("shift_attendance_time_config")]
-    public ShiftAttendanceTimeConfig? ShiftAttendanceTimeConfig { get; set; }
-
-    /// <summary>
-    /// <para>班次id(更新班次时需要传递)</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：6919358778597097404</para>
-    /// </summary>
-    [JsonPropertyName("id")]
-    public string? Id { get; set; }
+    [JsonPropertyName("shift_list")]
+    public AttendanceShiftItem[]? ShiftLists { get; set; }
 }

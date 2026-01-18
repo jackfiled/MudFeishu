@@ -63,4 +63,19 @@ public interface IFeishuTenantV1AttendanceShifts
     Task<FeishuApiResult<GetAttendanceShiftsResult>?> GetShiftsByNameAsync(
        [Query("shift_name")] string shift_name,
        CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// 分布查询所有班次。
+    /// <para>对应功能为飞书人事管理后台中假勤设置-班次配置中的翻页查询所有班次功能，展示班次名称、打卡规则、弹性班次规则、休息规则等</para>
+    /// </summary>
+    /// <param name="page_size">分页大小，即本次请求所返回的用户信息列表内的最大条目数。默认值：10</param>
+    /// <param name="page_token">分页标记，第一次请求不填，表示从头开始遍历；分页查询结果还有更多项时会同时返回新的 page_token，下次遍历可采用该 page_token 获取查询结果</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Get("/open-apis/attendance/v1/shifts")]
+    Task<FeishuApiResult<GetAttendanceShiftsPageListResult>?> GetShiftsPageListAsync(
+       [Query("page_size")] int page_size = Consts.PageSize,
+       [Query("page_token")] string? page_token = null,
+       CancellationToken cancellationToken = default);
 }
