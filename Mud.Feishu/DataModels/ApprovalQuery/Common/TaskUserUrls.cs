@@ -1,4 +1,4 @@
-// -----------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -7,35 +7,27 @@
 
 namespace Mud.Feishu.DataModels.ApprovalQuery;
 
-/// <summary>
-/// <para>审批任务列表</para>
-/// </summary>
-public class TaskSearchItem
+/// <summary>任务相关 URL</summary>
+public class TaskUserUrls
 {
     /// <summary>
-    /// <para>审批定义信息</para>
-    /// </summary>
-    [JsonPropertyName("approval")]
-    public InstanceSearchApproval? Approval { get; set; }
-
-    /// <summary>
-    /// <para>审批定义分组</para>
-    /// </summary>
-    [JsonPropertyName("group")]
-    public InstanceSearchGroup? Group { get; set; }
-
-    /// <summary>
-    /// <para>审批实例信息</para>
-    /// </summary>
-    [JsonPropertyName("instance")]
-    public InstanceSearchNode? Instance { get; set; }
-
-    /// <summary>
-    /// <para>审批任务信息</para>
+    /// <para>帮助服务台 URL</para>
     /// <para>必填：否</para>
     /// </summary>
-    [JsonPropertyName("task")]
-    public TaskSearchNode? Task { get; set; }
+    [JsonPropertyName("helpdesk")]
+    public string? Helpdesk { get; set; }
 
+    /// <summary>
+    /// <para>移动端 URL</para>
+    /// <para>必填：否</para>
+    /// </summary>
+    [JsonPropertyName("mobile")]
+    public string? Mobile { get; set; }
 
+    /// <summary>
+    /// <para>PC 端 URL</para>
+    /// <para>必填：否</para>
+    /// </summary>
+    [JsonPropertyName("pc")]
+    public string? Pc { get; set; }
 }

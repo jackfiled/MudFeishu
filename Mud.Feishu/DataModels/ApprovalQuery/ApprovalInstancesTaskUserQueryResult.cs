@@ -8,34 +8,20 @@
 namespace Mud.Feishu.DataModels.ApprovalQuery;
 
 /// <summary>
-/// <para>审批任务列表</para>
+/// 查询任务列表响应体
 /// </summary>
-public class TaskSearchItem
+public class ApprovalInstancesTaskUserQueryResult : ApiPageListResult
 {
     /// <summary>
-    /// <para>审批定义信息</para>
+    /// <para>查询结果中包含的审批任务总数</para>
+    /// <para>示例值：10</para>
     /// </summary>
-    [JsonPropertyName("approval")]
-    public InstanceSearchApproval? Approval { get; set; }
+    [JsonPropertyName("count")]
+    public int? Count { get; set; }
 
     /// <summary>
-    /// <para>审批定义分组</para>
+    /// <para>审批任务列表</para>
     /// </summary>
-    [JsonPropertyName("group")]
-    public InstanceSearchGroup? Group { get; set; }
-
-    /// <summary>
-    /// <para>审批实例信息</para>
-    /// </summary>
-    [JsonPropertyName("instance")]
-    public InstanceSearchNode? Instance { get; set; }
-
-    /// <summary>
-    /// <para>审批任务信息</para>
-    /// <para>必填：否</para>
-    /// </summary>
-    [JsonPropertyName("task")]
-    public TaskSearchNode? Task { get; set; }
-
-
+    [JsonPropertyName("tasks")]
+    public TaskUserSearchItem[]? Tasks { get; set; }
 }
