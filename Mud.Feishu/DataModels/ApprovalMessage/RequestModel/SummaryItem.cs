@@ -7,8 +7,14 @@
 
 namespace Mud.Feishu.DataModels.ApprovalMessage;
 
+/// <summary>
+/// 审批事由。
+/// </summary>
 public class SummaryItem
 {
+    /// <summary>
+    /// 审批事由。这里传入的是国际化文案 Key（即 i18n_resources.texts 参数中的 Key），还需要在 i18n_resources.texts 参数中以 Key:Value 格式进行赋值。
+    /// </summary>
     [JsonPropertyName("summary")]
-    public string Summary { get; set; }
+    public string? Summary { get; set; }
 }

@@ -7,17 +7,45 @@
 
 namespace Mud.Feishu.DataModels.ApprovalMessage;
 
+/// <summary>
+/// 审批 Bot 消息的内容。当模板的内容存在 {user_id}、{department_id} 或 {summaries} 等参数时，可以通过当前参数配置对应的参数值。
+/// </summary>
 public class ContentData
 {
+    /// <summary>
+    /// 审批申请人 ID。
+    /// </summary>
     [JsonPropertyName("user_id")]
-    public string UserId { get; set; }
+    public string? UserId { get; set; }
 
+    /// <summary>
+    /// 审批申请人 ID 的类型。
+    /// </summary>
     [JsonPropertyName("user_id_type")]
-    public string UserIdType { get; set; }
+    public string? UserIdType { get; set; }
 
+    /// <summary>
+    /// 审批申请人的名称。
+    /// </summary>
+    [JsonPropertyName("user_name")]
+    public string? UserName { get; set; }
+
+
+    /// <summary>
+    /// 审批申请人所属部门的 ID。
+    /// </summary>
     [JsonPropertyName("department_id")]
-    public string DepartmentId { get; set; }
+    public string? DepartmentId { get; set; }
 
+    /// <summary>
+    /// 审批申请人所属的部门名称。
+    /// </summary>
+    [JsonPropertyName("department_name")]
+    public string? DepartmenName { get; set; }
+
+    /// <summary>
+    /// 审批事由。最多可传入 5 个。
+    /// </summary>
     [JsonPropertyName("summaries")]
-    public List<SummaryItem> Summaries { get; set; }
+    public List<SummaryItem> Summaries { get; set; } = [];
 }
