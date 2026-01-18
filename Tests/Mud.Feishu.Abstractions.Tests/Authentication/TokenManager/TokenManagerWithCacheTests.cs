@@ -21,7 +21,7 @@ namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
 
 public class TokenManagerWithCacheTests
 {
-    private readonly Mock<IFeishuV3AuthenticationApi> _authenticationApiMock;
+    private readonly Mock<IFeishuV3Authentication> _authenticationApiMock;
     private readonly Mock<IOptions<FeishuOptions>> _optionsMock;
     private readonly Mock<ILogger<TokenManagerWithCache>> _loggerMock;
     private readonly Mock<ITokenCache> _tokenCacheMock;
@@ -30,7 +30,7 @@ public class TokenManagerWithCacheTests
 
     public TokenManagerWithCacheTests()
     {
-        _authenticationApiMock = new Mock<IFeishuV3AuthenticationApi>();
+        _authenticationApiMock = new Mock<IFeishuV3Authentication>();
         _optionsMock = new Mock<IOptions<FeishuOptions>>();
         _loggerMock = new Mock<ILogger<TokenManagerWithCache>>();
         _tokenCacheMock = new Mock<ITokenCache>();
@@ -61,7 +61,7 @@ public class TokenManagerWithCacheTests
     private class TestTokenManager : TokenManagerWithCache
     {
         public TestTokenManager(
-            IFeishuV3AuthenticationApi authenticationApi,
+            IFeishuV3Authentication authenticationApi,
             IOptions<FeishuOptions> options,
             ILogger<TokenManagerWithCache> logger,
             ITokenCache tokenCache)
@@ -151,7 +151,7 @@ public class TokenManagerWithCacheTests
         private int _retryCount = 0;
 
         public FailingTestTokenManager(
-            IFeishuV3AuthenticationApi authenticationApi,
+            IFeishuV3Authentication authenticationApi,
             IOptions<FeishuOptions> options,
             ILogger<TokenManagerWithCache> logger,
             ITokenCache tokenCache)

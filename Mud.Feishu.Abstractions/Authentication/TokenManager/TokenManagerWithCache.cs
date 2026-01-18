@@ -36,7 +36,7 @@ public abstract class TokenManagerWithCache : Abstractions.ITokenManager, IDispo
     /// <remarks>
     /// 用于调用飞书认证相关API的服务接口。
     /// </remarks>
-    protected readonly IFeishuV3AuthenticationApi _authenticationApi;
+    protected readonly IFeishuV3Authentication _authenticationApi;
 
     /// <summary>
     /// 日志记录器
@@ -90,7 +90,7 @@ public abstract class TokenManagerWithCache : Abstractions.ITokenManager, IDispo
     /// <param name="tokenType">令牌类型</param>
     /// <exception cref="ArgumentNullException">当任何必需参数为null时抛出</exception>
     public TokenManagerWithCache(
-        IFeishuV3AuthenticationApi authenticationApi,
+        IFeishuV3Authentication authenticationApi,
         IOptions<FeishuOptions> options,
         ILogger<TokenManagerWithCache> logger,
         ITokenCache tokenCache,

@@ -18,7 +18,7 @@ namespace Mud.Feishu.TokenManager;
 /// </para>
 /// <para>
 /// 使用流程：
-/// 1. 引导用户到飞书授权页面（通过 <see cref="IFeishuV3AuthenticationApi.GetUserAccessTokenAsync"/>）
+/// 1. 引导用户到飞书授权页面（通过 <see cref="IFeishuV3Authentication.GetUserAccessTokenAsync"/>）
 /// 2. 用户授权后获取授权码 code
 /// 3. 使用授权码调用 <see cref="GetUserTokenWithCodeAsync"/> 获取用户令牌
 /// 4. 令牌有效期2小时，可使用 refresh_token 刷新
@@ -32,7 +32,7 @@ internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
     private string? _currentUserId;
 
     public UserTokenManager(
-       IFeishuV3AuthenticationApi authenticationApi,
+       IFeishuV3Authentication authenticationApi,
        IOptions<FeishuOptions> options,
        ILogger<TokenManagerWithCache> logger,
        ITokenCache tokenCache) : base(authenticationApi, options, logger, tokenCache, TokenType.UserAccessToken)

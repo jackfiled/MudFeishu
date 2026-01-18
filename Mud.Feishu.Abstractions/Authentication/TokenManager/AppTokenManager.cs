@@ -20,7 +20,7 @@ namespace Mud.Feishu.TokenManager;
 internal class AppTokenManager : TokenManagerWithCache, IAppTokenManager
 {
     public AppTokenManager(
-       IFeishuV3AuthenticationApi authenticationApi,
+       IFeishuV3Authentication authenticationApi,
        IOptions<FeishuOptions> options,
        ILogger<TokenManagerWithCache> logger,
        ITokenCache tokenCache) : base(authenticationApi, options, logger, tokenCache, TokenType.AppAccessToken)

@@ -21,7 +21,7 @@ namespace Mud.Feishu.TokenManager;
 internal class TenantTokenManager : TokenManagerWithCache, Abstractions.ITenantTokenManager
 {
     public TenantTokenManager(
-       IFeishuV3AuthenticationApi authenticationApi,
+       IFeishuV3Authentication authenticationApi,
        IOptions<FeishuOptions> options,
        ILogger<TokenManagerWithCache> logger,
        ITokenCache tokenCache) : base(authenticationApi, options, logger, tokenCache, TokenType.TenantAccessToken)

@@ -19,7 +19,7 @@ namespace Mud.Feishu.WebSocket;
 public class FeishuWebSocketManager : IFeishuWebSocketManager
 {
     private readonly ILogger<FeishuWebSocketManager> _logger;
-    private readonly IFeishuV3AuthenticationApi _authenticationApi;
+    private readonly IFeishuV3Authentication _authenticationApi;
     private readonly ITenantTokenManager _appTokenManager;
     private readonly FeishuOptions _feishuOptions;
     private readonly FeishuWebSocketOptions _webSocketOptions;
@@ -44,7 +44,7 @@ public class FeishuWebSocketManager : IFeishuWebSocketManager
     /// <param name="webSocketClient">WebSocket客户端</param>
     public FeishuWebSocketManager(
         ILogger<FeishuWebSocketManager> logger,
-        IFeishuV3AuthenticationApi authenticationApi,
+        IFeishuV3Authentication authenticationApi,
         ITenantTokenManager appTokenManager,
         IOptions<FeishuOptions> feishuOptions,
         IOptions<FeishuWebSocketOptions> webSocketOptions,
