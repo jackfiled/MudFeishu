@@ -123,6 +123,20 @@ public class FeishuServiceBuilder
     }
 
     /// <summary>
+    /// 添加考勤管理 API 服务
+    /// </summary>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuServiceBuilder AddAttendanceApi()
+    {
+        if (!_configuration.AttendanceAdded)
+        {
+            _services.AddAttendanceWebApiHttpClient();
+            _configuration.AttendanceAdded = true;
+        }
+        return this;
+    }
+
+    /// <summary>
     /// 添加所有 API 服务
     /// </summary>
     /// <returns>建造者实例，支持链式调用</returns>
@@ -133,7 +147,8 @@ public class FeishuServiceBuilder
                .AddChatGroupApi()
                .AddApprovalApi()
                .AddTaskApi()
-               .AddCardApi();
+               .AddCardApi()
+               .AddAttendanceApi();
     }
 
     /// <summary>
@@ -158,6 +173,9 @@ public class FeishuServiceBuilder
                     break;
                 case FeishuModule.Approval:
                     AddApprovalApi();
+                    break;
+                case FeishuModule.Attendance:
+                    AddAttendanceApi();
                     break;
                 case FeishuModule.All:
                     AddAllApis();
@@ -229,6 +247,11 @@ public enum FeishuModule
     Approval,
 
     /// <summary>
+    /// 考勤管理
+    /// </summary>
+    Attendance,
+
+    /// <summary>
     /// 所有功能
     /// </summary>
     All
@@ -246,6 +269,7 @@ internal class FeishuServiceConfiguration
     public bool CardApiAdded { get; set; }
     public bool TaskApiAdded { get; set; }
     public bool AuthenticationApiAdded { get; set; }
+    public bool AttendanceAdded { get; set; }
 
     /// <summary>
     /// 检查是否添加了任何服务
@@ -257,6 +281,10 @@ internal class FeishuServiceConfiguration
                OrganizationApiAdded ||
                MessageApiAdded ||
                ChatGroupApiAdded ||
-               AuthenticationApiAdded;
+               AuthenticationApiAdded ||
+               AttendanceAdded ||
+               TaskApiAdded ||
+               CardApiAdded ||
+               ApprovalApiAdded;
     }
 }
