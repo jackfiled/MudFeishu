@@ -24,9 +24,20 @@ public interface IFeishuTenantV1AttendanceShifts
     /// <param name="employee_type">请求体中的 user_ids 和响应体中的 user_id 的员工ID类型。</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
-    [Post("/open-apis/approval/v1/message/send")]
-    Task<FeishuApiResult<CreateAttendanceShiftsResult>?> CreateAttendanceShiftAsync(
+    [Post("/open-apis/attendance/v1/shifts")]
+    Task<FeishuApiResult<CreateAttendanceShiftsResult>?> CreateShiftsAsync(
           [Body] CreateAttendanceShiftsRequest createAttendanceShiftsRequest,
           [Query("employee_type")] string employee_type = Consts.User_Id_Type,
           CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <para>通过班次 ID 删除班次。对应功能为假勤设置-班次设置班次列表中操作栏的删除按钮。</para>
+    /// </summary>
+    /// <param name="shift_id">班次 ID，获取方式：1）按名称查询班次 2）创建班次 示例值："6919358778597097404"</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Delete("/open-apis/attendance/v1/shifts/{shift_id}")]
+    Task<FeishuNullDataApiResult?> DeleteShiftsByIdAsync(
+       [Path] string shift_id,
+       CancellationToken cancellationToken = default);
 }
