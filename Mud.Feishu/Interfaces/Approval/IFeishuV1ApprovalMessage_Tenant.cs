@@ -15,7 +15,7 @@ namespace Mud.Feishu;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Approval")]
 [Header(Consts.Authorization)]
-public interface IFeishuV1ApprovalMessage_Tenant
+public interface IFeishuTenantV1ApprovalMessage
 {
     /// <summary>
     /// 用来通过飞书审批的 Bot 推送消息给用户，当有新的审批待办，或者审批待办的状态有更新时，可以通过飞书审批的 Bot 告知用户。
@@ -39,5 +39,18 @@ public interface IFeishuV1ApprovalMessage_Tenant
     [Post("/open-apis/approval/v1/message/send")]
     Task<FeishuApiResult<ApprovalBotMessageResult>?> SendBotMessageAsync(
        [Body] CustomApprovalBotMessageRequest customApprovalBotMessageRequest,
+       CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// 调用发送审批 Bot 消息接口后，可根据审批 Bot 消息 ID 及审批相应的状态，更新审批 Bot 消息。
+    /// <para>例如，给审批人推送了审批待办消息，当审批人通过审批后，可以将之前推送的 Bot 消息更新为已审批。</para>
+    /// </summary>
+    /// <param name="approvalBotMessageUpdateRequest">更新审批 Bot 消息 请求体</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/approval/v1/message/update")]
+    Task<FeishuApiResult<ApprovalBotMessageResult>?> UpdateBotMessageAsync(
+       [Body] ApprovalBotMessageUpdateRequest approvalBotMessageUpdateRequest,
        CancellationToken cancellationToken = default);
 }
