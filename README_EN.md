@@ -44,34 +44,34 @@ MudFeishu is a modern enterprise-grade .NET SDK for Feishu (Lark) API integratio
 graph TB
     subgraph "MudFeishu SDK Architecture"
         direction TB
-        
+
         subgraph HTTP["HTTP API Client"]
             H1["User Management"]
             H2["Department"]
             H3["Message"]
             H4["Approval"]
         end
-        
+
         subgraph Event["Event Processing Layer"]
             E1["WebSocket Client"]
             E2["Webhook Handler"]
             E3["Event Routing"]
             E4["Strategy Pattern"]
         end
-        
+
         subgraph Ext["Extensions"]
             X1["Redis Dedup"]
             X2["Performance"]
             X3["Health Check"]
         end
-        
+
         subgraph Core["Shared Core Layer"]
             C1["Token Management"]
             C2["HTTP Client Factory"]
             C3["Exception Handling"]
             C4["Configuration"]
         end
-        
+
         HTTP --> Core
         Event --> Core
         Ext --> Core
@@ -79,75 +79,26 @@ graph TB
     end
 ```
 
-### Module Relationship Diagram
-
-```mermaid
-graph TD
-    Platform["Feishu Platform"]
-    
-    subgraph CoreAPI["Mud.Feishu<br/>(HTTP API Core)"]
-        API1["User Management"]
-        API2["Department"]
-        API3["Messages"]
-        API4["Approvals"]
-    end
-    
-    subgraph WS["Mud.Feishu.WebSocket"]
-        WS1["WebSocket"]
-        WS2["Real-time Push"]
-        WS3["Auto Reconnect"]
-        WS4["Heartbeat"]
-    end
-    
-    subgraph Redis["Mud.Feishu.Redis<br/>(Distributed Extension)"]
-        R1["Event Dedup"]
-        R2["Nonce Anti-replay"]
-        R3["SeqID Dedup"]
-    end
-    
-    subgraph Abs["Mud.Feishu.Abstractions<br/>(Event Processing Abstraction Layer)"]
-        Abs1["IFeishuEventHandler Interface"]
-        Abs2["Event Handler Factory"]
-        Abs3["Strategy Pattern Architecture"]
-        Abs4["Base Handlers"]
-    end
-    
-    subgraph WH["Mud.Feishu.Webhook<br/>(HTTP Callback Event Processing)"]
-        WH1["Middleware Mode"]
-        WH2["Event Subscription Verification"]
-        WH3["AES-256-CBC Decryption"]
-        WH4["Signature Validation"]
-        WH5["Rate Limiting"]
-    end
-    
-    Platform --> CoreAPI
-    Platform --> WS
-    Platform --> Redis
-    CoreAPI --> Abs
-    WS --> Abs
-    Abs --> WH
-```
-
 ### Module Comparison
 
-| Module | Core Features | Communication | Real-time | Use Cases |
-|--------|--------------|----------------|------------|-----------|
-| **Mud.Feishu** | HTTP API calls | HTTP Request | Low (active query) | Data query, management operations |
-| **Mud.Feishu.WebSocket** | Real-time event subscription | WebSocket Long Connection | High (real-time push) | Real-time notifications, instant response |
-| **Mud.Feishu.Webhook** | HTTP callback processing | HTTP Callback | Medium (passive receive) | Event trigger, async processing |
-| **Mud.Feishu.Redis** | Distributed deduplication | Redis | - | Multi-instance deployment, duplicate prevention |
+| Module                   | Core Features                | Communication             | Real-time                | Use Cases                                       |
+| ------------------------ | ---------------------------- | ------------------------- | ------------------------ | ----------------------------------------------- |
+| **Mud.Feishu**           | HTTP API calls               | HTTP Request              | Low (active query)       | Data query, management operations               |
+| **Mud.Feishu.WebSocket** | Real-time event subscription | WebSocket Long Connection | High (real-time push)    | Real-time notifications, instant response       |
+| **Mud.Feishu.Webhook**   | HTTP callback processing     | HTTP Callback             | Medium (passive receive) | Event trigger, async processing                 |
+| **Mud.Feishu.Redis**     | Distributed deduplication    | Redis                     | -                        | Multi-instance deployment, duplicate prevention |
 
 ---
 
 ## 📦 Project Overview
 
-| Component | Description | NuGet |
-|-----------|-------------|-------|
-| **Mud.Feishu.Abstractions** | Event subscription abstraction layer with Strategy and Factory pattern event handling architecture | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Abstractions.svg)](https://www.nuget.org/packages/Mud.Feishu.Abstractions/) |
-| **Mud.Feishu** | Core HTTP API client library with full Feishu capabilities including organization, messaging, and group chat features | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.svg)](https://www.nuget.org/packages/Mud.Feishu/) |
-| **Mud.Feishu.WebSocket** | Feishu WebSocket client supporting real-time event subscription and automatic reconnection | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.WebSocket.svg)](https://www.nuget.org/packages/Mud.Feishu.WebSocket/) |
-| **Mud.Feishu.Webhook** | Feishu Webhook event handling component for HTTP callback event reception and processing | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/) |
-| **Mud.Feishu.Redis** | Redis distributed deduplication extension supporting event deduplication in multi-instance deployment scenarios | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/) |
+| Component                   | Description                                                                                                           | NuGet                                                                                                                           | Downloads                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **Mud.Feishu.Abstractions** | Event subscription abstraction layer with Strategy and Factory pattern event handling architecture                    | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Abstractions.svg)](https://www.nuget.org/packages/Mud.Feishu.Abstractions/) | ![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Abstractions.svg) |
+| **Mud.Feishu**              | Core HTTP API client library with full Feishu capabilities including organization, messaging, and group chat features | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.svg)](https://www.nuget.org/packages/Mud.Feishu/)                           | ![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.svg)              |
+| **Mud.Feishu.WebSocket**    | Feishu WebSocket client supporting real-time event subscription and automatic reconnection                            | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.WebSocket.svg)](https://www.nuget.org/packages/Mud.Feishu.WebSocket/)       | ![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.WebSocket.svg)    |
+| **Mud.Feishu.Webhook**      | Feishu Webhook event handling component for HTTP callback event reception and processing                              | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/)           | ![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Webhook.svg)      |
+| **Mud.Feishu.Redis**        | Redis distributed deduplication extension supporting event deduplication in multi-instance deployment scenarios       | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/)               | ![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Redis.svg)        |
 
 ---
 
@@ -286,15 +237,16 @@ graph LR
     B -->|Unknown Event| F[DefaultEventHandler]
 ```
 
-| Feature | Description |
-|---------|-------------|
-| **Strategy Pattern** | Extensible event handler architecture |
-| **Factory Pattern** | Dynamic registration and discovery of handlers |
-| **Type Safety** | Strongly-typed data models with compile-time checking |
-| **Auto Deduplication** | Built-in event ID deduplication mechanism |
-| **Base Handlers** | Specialized base classes to simplify development |
+| Feature                | Description                                           |
+| ---------------------- | ----------------------------------------------------- |
+| **Strategy Pattern**   | Extensible event handler architecture                 |
+| **Factory Pattern**    | Dynamic registration and discovery of handlers        |
+| **Type Safety**        | Strongly-typed data models with compile-time checking |
+| **Auto Deduplication** | Built-in event ID deduplication mechanism             |
+| **Base Handlers**      | Specialized base classes to simplify development      |
 
 **Supported Base Handlers**:
+
 - `DepartmentCreatedEventHandler` - Department creation
 - `DepartmentDeleteEventHandler` - Department deletion
 - `DefaultFeishuEventHandler<T>` - Generic handler
@@ -303,16 +255,17 @@ graph LR
 
 **Complete Feishu API coverage with automatic token management**
 
-| Module Category | API Version | Main Features |
-|----------------|-------------|---------------|
-| **🔐 Authentication** | V3 | App token, tenant token, user token, OAuth 2.0 |
-| **👥 Organization** | V1/V3 | Users, departments, employees, user groups, job levels, positions, roles |
-| **💬 Messaging** | V1 | Text/image/card messages, batch sending, group chat management |
-| **📋 Approvals** | V4 | Approval definitions, instances, operations |
-| **📝 Tasks** | V2 | Task creation, updates, groups, attachments, comments |
-| **📅 Calendar** | V4 | Calendar events, meeting management |
+| Module Category       | API Version | Main Features                                                            |
+| --------------------- | ----------- | ------------------------------------------------------------------------ |
+| **🔐 Authentication** | V3          | App token, tenant token, user token, OAuth 2.0                           |
+| **👥 Organization**   | V1/V3       | Users, departments, employees, user groups, job levels, positions, roles |
+| **💬 Messaging**      | V1          | Text/image/card messages, batch sending, group chat management           |
+| **📋 Approvals**      | V4          | Approval definitions, instances, operations                              |
+| **📝 Tasks**          | V2          | Task creation, updates, groups, attachments, comments                    |
+| **📅 Calendar**       | V4          | Calendar events, meeting management                                      |
 
 **Enterprise Features**:
+
 - ✅ Automatic token caching and refresh
 - ✅ Intelligent retry mechanism (configurable retry count)
 - ✅ High-performance caching (resolves cache stampede)
@@ -342,14 +295,15 @@ sequenceDiagram
     end
 ```
 
-| Category | Features |
-|----------|----------|
-| **Connection Management** | Auto reconnect, heartbeat detection, connection monitoring |
-| **Event Processing** | Strategy pattern, multi-handler parallel, event replay |
-| **Message Types** | ping/pong, heartbeat, event, auth |
-| **Monitoring** | Connection status, processing statistics, health checks, audit logs |
+| Category                  | Features                                                            |
+| ------------------------- | ------------------------------------------------------------------- |
+| **Connection Management** | Auto reconnect, heartbeat detection, connection monitoring          |
+| **Event Processing**      | Strategy pattern, multi-handler parallel, event replay              |
+| **Message Types**         | ping/pong, heartbeat, event, auth                                   |
+| **Monitoring**            | Connection status, processing statistics, health checks, audit logs |
 
 **Supported Event Types**:
+
 - Message events: `im.message.receive_v1`
 - User events: `contact.user.*_v3`
 - Department events: `contact.department.*_v3`
@@ -375,38 +329,38 @@ sequenceDiagram
     Middleware-->>Feishu: 7. Return response
 ```
 
-| Category | Features |
-|----------|----------|
-| **Security** | Signature verification, timestamp verification, AES-256-CBC decryption, IP whitelist |
-| **Event Processing** | Middleware mode, auto routing, strategy pattern, async processing |
-| **Advanced** | Multi-bot support, background processing, concurrency control, hot reload config |
-| **Monitoring** | Performance monitoring, health checks, request logs, exception handling |
-| **Security Hardening** | Sliding window rate limiting, threat detection, security audit, key validation |
+| Category               | Features                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| **Security**           | Signature verification, timestamp verification, AES-256-CBC decryption, IP whitelist |
+| **Event Processing**   | Middleware mode, auto routing, strategy pattern, async processing                    |
+| **Advanced**           | Multi-bot support, background processing, concurrency control, hot reload config     |
+| **Monitoring**         | Performance monitoring, health checks, request logs, exception handling              |
+| **Security Hardening** | Sliding window rate limiting, threat detection, security audit, key validation       |
 
 ### 💾 Mud.Feishu.Redis - Distributed Deduplication Extension
 
 **Distributed event deduplication based on Redis, suitable for multi-instance deployment**
 
-| Category | Features |
-|----------|----------|
+| Category                    | Features                                             |
+| --------------------------- | ---------------------------------------------------- |
 | **Deduplication Mechanism** | EventId, Nonce, SeqID three deduplication dimensions |
-| **Atomic Operations** | SETNX + EXPIRE ensures atomicity |
-| **Auto Expiration** | Auto cleanup of expired data |
-| **Distributed Support** | Cluster mode, sentinel mode, TLS/SSL |
-| **Flexible Config** | Configurable expiration time, key prefix, timeout |
-| **Monitoring** | Logging, cache statistics, health checks |
+| **Atomic Operations**       | SETNX + EXPIRE ensures atomicity                     |
+| **Auto Expiration**         | Auto cleanup of expired data                         |
+| **Distributed Support**     | Cluster mode, sentinel mode, TLS/SSL                 |
+| **Flexible Config**         | Configurable expiration time, key prefix, timeout    |
+| **Monitoring**              | Logging, cache statistics, health checks             |
 
 ---
 
 ## 📚 Usage Scenarios
 
-| Scenario | Recommended Solution | Latency | Code Example |
-|----------|---------------------|----------|---------------|
-| User Info Query | Mud.Feishu | Low | HTTP API |
-| System Notification | Mud.Feishu | Low | HTTP API |
-| Real-time Chatbot | Mud.Feishu.WebSocket | High | WebSocket |
-| Organization Sync | Mud.Feishu.Webhook | Medium | Webhook |
-| Multi-instance Deployment | Mud.Feishu.Redis | - | Redis |
+| Scenario                  | Recommended Solution | Latency | Code Example |
+| ------------------------- | -------------------- | ------- | ------------ |
+| User Info Query           | Mud.Feishu           | Low     | HTTP API     |
+| System Notification       | Mud.Feishu           | Low     | HTTP API     |
+| Real-time Chatbot         | Mud.Feishu.WebSocket | High    | WebSocket    |
+| Organization Sync         | Mud.Feishu.Webhook   | Medium  | Webhook      |
+| Multi-instance Deployment | Mud.Feishu.Redis     | -       | Redis        |
 
 ---
 
@@ -494,6 +448,7 @@ app.UseFeishuWebhook();
 ## 🛠️ Technology Stack
 
 ### Framework Support
+
 - **.NET Standard 2.0** - Compatible with .NET Framework 4.6.1+
 - **.NET 6.0** - LTS long-term support version
 - **.NET 8.0** - LTS long-term support version (recommended)
@@ -501,15 +456,15 @@ app.UseFeishuWebhook();
 
 ### Core Dependencies
 
-| Package | Version | Description |
-|---------|---------|-------------|
-| **Mud.ServiceCodeGenerator** | v1.4.6 | HTTP client code generator |
-| **System.Text.Json** | v10.0.1 | High-performance JSON serialization |
-| **Microsoft.Extensions.Http** | v8.0.1 / v10.0.1 | HTTP client factory |
-| **Microsoft.Extensions.Http.Polly** | v8.0.2 / v10.0.1 | Resilience and transient fault handling |
-| **Microsoft.Extensions.DependencyInjection** | v8.0.2 / v10.0.1 | Dependency injection |
-| **Microsoft.Extensions.Logging** | v8.0.3 / v10.0.1 | Logging |
-| **Microsoft.Extensions.Configuration.Binder** | v8.0.2 / v10.0.1 | Configuration binding |
+| Package                                       | Version          | Description                             |
+| --------------------------------------------- | ---------------- | --------------------------------------- |
+| **Mud.ServiceCodeGenerator**                  | v1.4.6           | HTTP client code generator              |
+| **System.Text.Json**                          | v10.0.1          | High-performance JSON serialization     |
+| **Microsoft.Extensions.Http**                 | v8.0.1 / v10.0.1 | HTTP client factory                     |
+| **Microsoft.Extensions.Http.Polly**           | v8.0.2 / v10.0.1 | Resilience and transient fault handling |
+| **Microsoft.Extensions.DependencyInjection**  | v8.0.2 / v10.0.1 | Dependency injection                    |
+| **Microsoft.Extensions.Logging**              | v8.0.3 / v10.0.1 | Logging                                 |
+| **Microsoft.Extensions.Configuration.Binder** | v8.0.2 / v10.0.1 | Configuration binding                   |
 
 ---
 
@@ -522,10 +477,12 @@ This project is licensed under the [MIT License](./LICENSE), allowing both comme
 ## 🔗 Related Links
 
 ### 📖 Official Documentation
+
 - [Feishu Open Platform Documentation](https://open.feishu.cn/document/) - Official Feishu API documentation and best practices
 - [NuGet Package Manager](https://www.nuget.org/) - Official .NET package management platform
 
 ### 📦 NuGet Packages
+
 - [Mud.Feishu.Abstractions](https://www.nuget.org/packages/Mud.Feishu.Abstractions/) - Event processing abstraction layer
 - [Mud.Feishu](https://www.nuget.org/packages/Mud.Feishu/) - Core HTTP API client library
 - [Mud.Feishu.WebSocket](https://www.nuget.org/packages/Mud.Feishu.WebSocket/) - WebSocket real-time event subscription library
@@ -533,11 +490,13 @@ This project is licensed under the [MIT License](./LICENSE), allowing both comme
 - [Mud.Feishu.Redis](https://www.nuget.org/packages/Mud.Feishu.Redis/) - Redis distributed deduplication extension library
 
 ### 🛠️ Development Resources
+
 - [Project Repository](https://gitee.com/mudtools/MudFeishu) - Source code and development documentation
 - [Mud.ServiceCodeGenerator](https://gitee.com/mudtools/mud-code-generator) - HTTP client code generator
 - [Example Projects](./Mud.Feishu.Test) - Complete usage examples and demo code
 
 ### 🤝 Community Support
+
 - [Issue Tracker](https://gitee.com/mudtools/MudFeishu/issues) - Bug reports and feature requests
 - [Contributing Guide](./CONTRIBUTING.md) - How to contribute to the project
 - [Changelog](./CHANGELOG.md) - Version updates and change notes

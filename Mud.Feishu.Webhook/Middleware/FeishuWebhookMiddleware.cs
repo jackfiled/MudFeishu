@@ -418,7 +418,7 @@ public class FeishuWebhookMiddleware
                 _logger.LogError("解密失败，返回null，尝试将加密内容作为验证请求处理");
                 // 解密失败可能是验证请求格式与 EventData 不匹配
                 // 尝试直接解密为字符串并解析为验证请求
-                await TryHandleEncryptedVerificationAsync(context, eventRequest.Encrypt, encryptKey, requestId);
+                await TryHandleEncryptedVerificationAsync(context, eventRequest.Encrypt!, encryptKey, requestId);
                 return;
             }
 
