@@ -1,5 +1,224 @@
 # Mud.Feishu Change Log
 
+## 1.2.2 (2026-01-19)
+
+**Type**: Feature enhancement, code refactoring, documentation improvement, bug fixes
+
+### 🚀 Feature Enhancements
+
+#### Attendance Management API
+
+- **New Attendance Management API Service Support**
+  - Files: Attendance-related modules
+  - Impact: Provides complete attendance shift management capabilities
+
+- **Shift Management Interfaces**
+  - Added: Shift query by name interface
+  - Added: Shift details interface and related data models
+  - Added: Shift deletion interface and corrected shift creation interface path
+  - Added: Attendance shift related data models and interfaces
+  - Impact: Supports complete shift operations including creation, query, deletion, etc.
+
+#### Approval Function Extension
+
+- **Approval Message API**
+  - Added: Approval Bot message update interface and request models
+  - Added: Approval Bot message related data models and interfaces
+  - Impact: Supports real-time update and management of approval messages
+
+- **Approval Task Query**
+  - Added: Approval task query interface and related data models
+  - Impact: Provides more comprehensive approval task management capabilities
+
+#### Demo Project Enhancement
+
+- **Feishu OAuth Login Demo**
+  - Added: Feishu OAuth login demo project
+  - Impact: Provides complete OAuth login integration example
+
+### 🐛 Bug Fixes
+
+- **Decryption Failure Handling**
+  - Fixed: Null reference issue when handling verification requests during decryption failure
+  - Impact: Improved stability of decryption exception handling
+
+- **Token Management Fix**
+  - Fixed: User token management and status cleanup issues
+  - Impact: Ensures proper token management and release
+
+- **Project File Fix**
+  - Fixed: Duplicate closing issue with PackageTags tag in project files
+  - Impact: Resolves project file format issues
+
+- **Webhook Middleware Fix**
+  - Fixed: Removed verification request attributes and fixed middleware indentation
+  - Impact: Optimizes Webhook middleware code structure
+
+### 🔧 Code Refactoring
+
+#### Model and Interface Refactoring
+
+- **Shift Model Refactoring**
+  - Refactored: Shift-related models, extracted common base class
+  - Impact: Improves code reusability and maintainability
+
+- **Authentication Service Refactoring**
+  - Refactored: Authentication service and approval query interfaces
+  - Impact: Optimizes service architecture
+
+- **Namespace and Interface Renaming**
+  - Refactored: Renamed IFeishuV3AuthenticationApi to IFeishuV3Authentication
+  - Impact: Unifies interface naming conventions
+
+#### Project Structure Optimization
+
+- **File Organization Improvement**
+  - Refactored: Moved project files to Sources folder to improve organization structure
+  - Impact: Optimizes project directory structure
+
+- **Tool Class Refactoring**
+  - Refactored: Moved ExceptionUtils and HttpClientUtils to Utilities namespace
+  - Refactored: Restructured log desensitization functionality and centralized into common utility class
+  - Impact: Unifies tool class management
+
+#### Performance and Security Optimization
+
+- **Redis Command Optimization**
+  - Refactored: Uses SCAN instead of KEYS command to avoid blocking Redis service
+  - Impact: Improves performance and security of Redis operations
+
+- **Cache Management Optimization**
+  - Refactored: Merged methods for generating cache keys and added support for user ID parameters
+  - Refactored: Restructured token manager's caching and formatting logic
+  - Refactored: Restructured token management module, introduced cache abstraction layer
+  - Impact: Optimizes cache management logic
+
+- **Code Cleanup**
+  - Refactored: Removed unused variables and redundant using declarations
+  - Refactored: Removed standalone health check extension class and simplified registration logic
+  - Refactored: Renamed health check namespace and updated references
+  - Impact: Improves code quality and maintainability
+
+### 📝 Documentation Improvements
+
+- **API Documentation Updates**
+  - Improved: Comments for approval message data models
+  - Impact: Enhances API documentation completeness
+
+- **Project Documentation Updates**
+  - Updated: Project clone links in README
+  - Updated: Repository links and version numbers in documentation
+  - Added: README documentation for Mud.Feishu demo project collection
+  - Impact: Provides more accurate project information
+
+- **Demo Documentation Optimization**
+  - Removed: WebSocket interceptor documentation and updated Webhook documentation
+  - Updated: README documentation for Feishu WebSocket demo project
+  - Moved: Feishu OAuth demo README file location
+  - Impact: Optimizes demo documentation structure
+
+### 📦 Build and Configuration
+
+- **Version Update**
+  - Updated: Project version to 1.2.2 and synchronized dependencies
+  - Impact: Releases new version
+
+- **Dependency Management Optimization**
+  - Updated: Moved HTTP-related dependencies from global to specific projects
+  - Impact: Optimizes dependency management
+
+- **Git Configuration Update**
+  - Updated: .gitignore file to exclude sensitive configurations and publish directories
+  - Impact: Improves version control security
+
+## 1.2.1 (2026-01-16)
+
+**Type**: Configuration enhancement, security hardening, code quality improvement
+
+### 🔒 Security Enhancements
+
+#### Required Field Validation Strengthening
+
+- **FeishuOptions Configuration Validation**
+  - File: `Mud.Feishu.Abstractions/Configuration/FeishuOptions.cs`
+  - Added: AppId format validation (must start with `cli_` or `app_`)
+  - Added: AppId length validation (minimum 20 characters)
+  - Added: AppSecret length validation (minimum 16 characters)
+  - Added: Data Annotations attributes (`[Required]`, `[RegularExpression]`, `[MinLength]`)
+  - Impact: Configuration errors can be detected at startup, avoiding runtime exceptions
+
+- **FeishuWebhookOptions Configuration Validation**
+  - File: `Mud.Feishu.Webhook/Configuration/FeishuWebhookOptions.cs`
+  - Added: EncryptKey length validation (must be 32 characters)
+  - Added: Data Annotations attributes to required fields
+  - Impact: Ensures correct Feishu event encryption key configuration
+
+#### Sensitive Information Protection
+
+- **Configuration Class Sensitive Information Masking**
+  - Files:
+    - `Mud.Feishu.Abstractions/Configuration/FeishuOptions.cs`
+    - `Mud.Feishu.Webhook/Configuration/FeishuWebhookOptions.cs`
+    - `Mud.Feishu.Redis/Configuration/RedisOptions.cs`
+  - Added: `ToString()` method override, automatically masks sensitive information
+  - Implementation: Shows first and last 2 characters, replaces middle with `****`
+  - Impact: Prevents accidental leakage of sensitive information in logs
+
+- **Redis Configuration Validation**
+  - File: `Mud.Feishu.Redis/Configuration/RedisOptions.cs`
+  - Added: ServerAddress format validation
+  - Added: Connection timeout parameter range validation
+  - Added: Data Annotations attributes
+  - Impact: Ensures correct Redis connection configuration
+
+### 🔧 Configuration Optimization
+
+#### Configuration Example File
+
+- **appsettings.example.json**
+  - File: `appsettings.example.json` (new)
+  - Added: Complete configuration example file
+  - Contains: Feishu, FeishuWebhook, FeishuWebSocket, Redis configurations
+  - Impact: New users can quickly understand configuration structure
+
+### 🧪 Test Coverage
+
+#### Configuration Unit Tests
+
+- **FeishuOptions Tests**
+  - File: `Tests/Mud.Feishu.Abstractions.Tests/Configuration/FeishuOptionsTests.cs` (new)
+  - Coverage: AppId/AppSecret validation, range restrictions, sensitive information masking
+  - Test cases:
+    - Valid configuration validation
+    - AppId format validation (cli_/app_ prefix)
+    - AppId/AppSecret null value validation
+    - AppId/AppSecret length validation
+    - TimeOut/RetryCount range restrictions
+    - BaseUrl format validation
+    - ToString sensitive information masking
+  - Impact: Core configuration logic test coverage
+
+### 📝 Documentation Improvements
+
+#### XML Documentation Comment Improvements
+
+- **Configuration Class Documentation Updates**
+  - Files: All Options configuration classes
+  - Updated: Added complete parameter descriptions and example values
+  - Added: Data Annotations error message descriptions
+  - Impact: Improves code readability and IDE intellisense
+
+### 🔨 Breaking Changes
+
+- Modified `FeishuOptions.Validate()` method, now validates AppId/AppSecret format
+- Added `FeishuWebhookOptions.EncryptKey` length validation (32 characters)
+- Added `RedisOptions.Validate()` method, validates connection parameters
+
+### 📦 Dependency Updates
+
+- New dependencies:
+  - `System.ComponentModel.DataAnnotations` (for Data Annotations)
+
 ## 1.2.0 (2026-02-15)
 
 **Type**: Feature enhancement, security hardening, performance optimization
