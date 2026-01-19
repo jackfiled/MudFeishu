@@ -82,50 +82,60 @@ graph TB
 ### Module Relationship Diagram
 
 ```mermaid
-graph TD
+graph TB
+    %% Platform Layer
     Platform["Feishu Platform"]
-    
-    subgraph CoreAPI["Mud.Feishu<br/>(HTTP API Core)"]
-        API1["User Management"]
-        API2["Department"]
-        API3["Messages"]
-        API4["Approvals"]
-    end
-    
-    subgraph WS["Mud.Feishu.WebSocket"]
-        WS1["WebSocket"]
-        WS2["Real-time Push"]
-        WS3["Auto Reconnect"]
-        WS4["Heartbeat"]
-    end
-    
-    subgraph Redis["Mud.Feishu.Redis<br/>(Distributed Extension)"]
-        R1["Event Dedup"]
-        R2["Nonce Anti-replay"]
-        R3["SeqID Dedup"]
-    end
-    
-    subgraph Abs["Mud.Feishu.Abstractions<br/>(Event Processing Abstraction Layer)"]
-        Abs1["IFeishuEventHandler Interface"]
-        Abs2["Event Handler Factory"]
-        Abs3["Strategy Pattern Architecture"]
-        Abs4["Base Handlers"]
-    end
-    
-    subgraph WH["Mud.Feishu.Webhook<br/>(HTTP Callback Event Processing)"]
-        WH1["Middleware Mode"]
-        WH2["Event Subscription Verification"]
-        WH3["AES-256-CBC Decryption"]
-        WH4["Signature Validation"]
-        WH5["Rate Limiting"]
-    end
-    
+
+    %% Core API Layer
+    CoreAPI["Mud.Feishu<br/>(HTTP API Core)"]
+    CoreAPI -->|User Management| API1["User Management"]
+    CoreAPI -->|Department| API2["Department"]
+    CoreAPI -->|Messages| API3["Messages"]
+    CoreAPI -->|Approvals| API4["Approvals"]
+
+    %% WebSocket Layer
+    WS["Mud.Feishu.WebSocket<br/>(Real-time Events)"]
+    WS -->|Connection Mgmt| WS1["WebSocket"]
+    WS -->|Real-time Push| WS2["Real-time Push"]
+    WS -->|Connection保障| WS3["Auto Reconnect/Heartbeat"]
+
+    %% Webhook Layer
+    WH["Mud.Feishu.Webhook<br/>(HTTP Callback)"]
+    WH -->|Security Validation| WH1["Signature/Decryption"]
+    WH -->|Event Processing| WH2["Middleware/Interceptor"]
+    WH -->|Protection| WH3["Rate Limiting/Circuit Breaker"]
+
+    %% Redis Extension Layer
+    Redis["Mud.Feishu.Redis<br/>(Distributed Extension)"]
+    Redis -->|Deduplication| R1["Event/Nonce/SeqID Dedup"]
+
+    %% Abstraction Layer
+    Abs["Mud.Feishu.Abstractions<br/>(Event Abstraction)"]
+    Abs -->|Core Interface| Abs1["IFeishuEventHandler"]
+    Abs -->|Architecture| Abs2["Factory/Strategy Pattern"]
+
+    %% Module Dependencies
     Platform --> CoreAPI
     Platform --> WS
-    Platform --> Redis
+    Platform --> WH
+    
     CoreAPI --> Abs
     WS --> Abs
-    Abs --> WH
+    WH --> Abs
+    WH --> Redis
+
+    %% Style Settings
+    classDef platform fill:#4CAF50,stroke:#333,stroke-width:2px,color:white;
+    classDef core fill:#2196F3,stroke:#333,stroke-width:2px,color:white;
+    classDef component fill:#FF9800,stroke:#333,stroke-width:2px,color:white;
+    classDef extension fill:#9C27B0,stroke:#333,stroke-width:2px,color:white;
+    classDef abstraction fill:#607D8B,stroke:#333,stroke-width:2px,color:white;
+    
+    class Platform platform;
+    class CoreAPI core;
+    class WS,WH component;
+    class Redis extension;
+    class Abs abstraction;
 ```
 
 ### Module Comparison
