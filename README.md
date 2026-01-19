@@ -91,65 +91,6 @@ graph TB
     class Feishu,Config,Logging infra;
 ```
 
-### 模块关系图
-
-```mermaid
-graph TB
-    %% 平台层
-    Platform["飞书开放平台"]
-
-    %% 核心API层
-    CoreAPI["Mud.Feishu<br/>(HTTP API 核心)"]
-    CoreAPI -->|用户管理| API1["用户管理"]
-    CoreAPI -->|部门管理| API2["部门管理"]
-    CoreAPI -->|消息服务| API3["消息服务"]
-    CoreAPI -->|审批流程| API4["审批流程"]
-
-    %% WebSocket层
-    WS["Mud.Feishu.WebSocket<br/>(实时事件)"]
-    WS -->|连接管理| WS1["WebSocket"]
-    WS -->|实时推送| WS2["实时推送"]
-    WS -->|连接保障| WS3["自动重连/心跳"]
-
-    %% Webhook层
-    WH["Mud.Feishu.Webhook<br/>(HTTP 回调)"]
-    WH -->|安全验证| WH1["签名/解密"]
-    WH -->|事件处理| WH2["中间件/拦截器"]
-    WH -->|防护机制| WH3["限流/断路器"]
-
-    %% Redis扩展层
-    Redis["Mud.Feishu.Redis<br/>(分布式扩展)"]
-    Redis -->|去重机制| R1["事件/Nonce/SeqID去重"]
-
-    %% 抽象层
-    Abs["Mud.Feishu.Abstractions<br/>(事件抽象层)"]
-    Abs -->|核心接口| Abs1["IFeishuEventHandler"]
-    Abs -->|架构模式| Abs2["工厂/策略模式"]
-
-    %% 模块依赖关系
-    Platform --> CoreAPI
-    Platform --> WS
-    Platform --> WH
-
-    CoreAPI --> Abs
-    WS --> Abs
-    WH --> Abs
-    WH --> Redis
-
-    %% 样式设置
-    classDef platform fill:#4CAF50,stroke:#333,stroke-width:2px,color:white;
-    classDef core fill:#2196F3,stroke:#333,stroke-width:2px,color:white;
-    classDef component fill:#FF9800,stroke:#333,stroke-width:2px,color:white;
-    classDef extension fill:#9C27B0,stroke:#333,stroke-width:2px,color:white;
-    classDef abstraction fill:#607D8B,stroke:#333,stroke-width:2px,color:white;
-
-    class Platform platform;
-    class CoreAPI core;
-    class WS,WH component;
-    class Redis extension;
-    class Abs abstraction;
-```
-
 ### 模块功能对比
 
 | 模块                     | 核心功能      | 通信方式         | 实时性        | 适用场景           |
@@ -163,13 +104,13 @@ graph TB
 
 ## 📦 项目概览
 
-| 组件                        | 描述                                                           | NuGet                                                                                                                           | 下载                                                                 |
-| --------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **Mud.Feishu.Abstractions** | 事件订阅抽象层，提供策略模式和工厂模式的事件处理架构           | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Abstractions.svg)](https://www.nuget.org/packages/Mud.Feishu.Abstractions/) | [Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Abstractions.svg) |
-| **Mud.Feishu**              | 核心 HTTP API 客户端库，支持组织架构、消息、群聊等完整飞书功能 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.svg)](https://www.nuget.org/packages/Mud.Feishu/)                           | [Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.svg)              |
-| **Mud.Feishu.WebSocket**    | 飞书 WebSocket 客户端，支持实时事件订阅和自动重连              | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.WebSocket.svg)](https://www.nuget.org/packages/Mud.Feishu.WebSocket/)       | [Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.WebSocket.svg)    |
-| **Mud.Feishu.Webhook**      | 飞书 Webhook 事件处理组件，支持 HTTP 回调事件接收和处理        | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/)           | [Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Webhook.svg)      |
-| **Mud.Feishu.Redis**        | Redis 分布式去重扩展，支持多实例部署场景的事件去重             | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/)               | [Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Redis.svg)        |
+| 组件                        | 描述                                                           | NuGet                                                                                                                           | 下载                                                                    |
+| --------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Mud.Feishu.Abstractions** | 事件订阅抽象层，提供策略模式和工厂模式的事件处理架构           | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Abstractions.svg)](https://www.nuget.org/packages/Mud.Feishu.Abstractions/) | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Abstractions.svg)] |
+| **Mud.Feishu**              | 核心 HTTP API 客户端库，支持组织架构、消息、群聊等完整飞书功能 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.svg)](https://www.nuget.org/packages/Mud.Feishu/)                           | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.svg)]              |
+| **Mud.Feishu.WebSocket**    | 飞书 WebSocket 客户端，支持实时事件订阅和自动重连              | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.WebSocket.svg)](https://www.nuget.org/packages/Mud.Feishu.WebSocket/)       | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.WebSocket.svg)]    |
+| **Mud.Feishu.Webhook**      | 飞书 Webhook 事件处理组件，支持 HTTP 回调事件接收和处理        | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/)           | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Webhook.svg)]      |
+| **Mud.Feishu.Redis**        | Redis 分布式去重扩展，支持多实例部署场景的事件去重             | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/)               | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Redis.svg)]        |
 
 ---
 
