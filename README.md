@@ -155,13 +155,13 @@ graph TD
 
 ## 📦 项目概览
 
-| 组件 | 描述 | NuGet |
-|-----|------|-------|
-| **Mud.Feishu.Abstractions** | 事件订阅抽象层，提供策略模式和工厂模式的事件处理架构 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Abstractions.svg)](https://www.nuget.org/packages/Mud.Feishu.Abstractions/) |
-| **Mud.Feishu** | 核心 HTTP API 客户端库，支持组织架构、消息、群聊等完整飞书功能 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.svg)](https://www.nuget.org/packages/Mud.Feishu/) |
-| **Mud.Feishu.WebSocket** | 飞书 WebSocket 客户端，支持实时事件订阅和自动重连 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.WebSocket.svg)](https://www.nuget.org/packages/Mud.Feishu.WebSocket/) |
-| **Mud.Feishu.Webhook** | 飞书 Webhook 事件处理组件，支持 HTTP 回调事件接收和处理 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/) |
-| **Mud.Feishu.Redis** | Redis 分布式去重扩展，支持多实例部署场景的事件去重 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/) |
+| 组件 | 描述 | NuGet | 下载 |
+|-----|------|-------|------|
+| **Mud.Feishu.Abstractions** | 事件订阅抽象层，提供策略模式和工厂模式的事件处理架构 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Abstractions.svg)](https://www.nuget.org/packages/Mud.Feishu.Abstractions/) | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Abstractions.svg)] |
+| **Mud.Feishu** | 核心 HTTP API 客户端库，支持组织架构、消息、群聊等完整飞书功能 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.svg)](https://www.nuget.org/packages/Mud.Feishu/) | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.svg)] |
+| **Mud.Feishu.WebSocket** | 飞书 WebSocket 客户端，支持实时事件订阅和自动重连 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.WebSocket.svg)](https://www.nuget.org/packages/Mud.Feishu.WebSocket/) | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.WebSocket.svg)] |
+| **Mud.Feishu.Webhook** | 飞书 Webhook 事件处理组件，支持 HTTP 回调事件接收和处理 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Webhook.svg)](https://www.nuget.org/packages/Mud.Feishu.Webhook/) | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Webhook.svg)] |
+| **Mud.Feishu.Redis** | Redis 分布式去重扩展，支持多实例部署场景的事件去重 | [![Nuget](https://img.shields.io/nuget/v/Mud.Feishu.Redis.svg)](https://www.nuget.org/packages/Mud.Feishu.Redis/) | [![Nuget](https://img.shields.io/nuget/dt/Mud.Feishu.Redis.svg)] |
 
 ---
 
