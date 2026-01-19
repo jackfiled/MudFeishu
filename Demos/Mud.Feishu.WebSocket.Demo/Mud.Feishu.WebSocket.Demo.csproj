@@ -16,9 +16,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Mud.Feishu.Abstractions" Version="1.2.1" />
-    <PackageReference Include="Mud.Feishu.Redis" Version="1.2.1" />
-    <PackageReference Include="Mud.Feishu.WebSocket" Version="1.2.1" />
+    <PackageReference Include="Mud.Feishu.Abstractions" Version="1.2.2" />
+    <PackageReference Include="Mud.Feishu.Redis" Version="1.2.2" />
+    <PackageReference Include="Mud.Feishu.WebSocket" Version="1.2.2" />
   </ItemGroup>
 
   <!--<ItemGroup>
