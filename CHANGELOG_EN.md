@@ -219,6 +219,298 @@
 - New dependencies:
   - `System.ComponentModel.DataAnnotations` (for Data Annotations)
 
+## 1.1.2 (2025-11-17)
+
+**Type**: Feature enhancement, code refactoring, bug fixes, documentation improvement
+
+### 🚀 Feature Enhancements
+
+- **API Service Support**
+  - Added: Attendance management API service support
+  - Added: Shift management related interfaces
+  - Added: Approval message API and approval task query interfaces
+  - Impact: Provides more comprehensive Feishu functionality integration
+
+- **Project Structure Optimization**
+  - Added: Moved project files to Sources folder
+  - Impact: Improves project organization structure
+
+### 🐛 Bug Fixes
+
+- **Decryption Failure Handling**
+  - Fixed: Null reference issue when handling verification requests during decryption failure
+  - Impact: Improves exception handling stability
+
+- **User Token Management**
+  - Fixed: User token management and status cleanup issues
+  - Impact: Ensures proper token management and release
+
+### 🔧 Code Refactoring
+
+- **Authentication Service Refactoring**
+  - Refactored: Authentication service and approval query interfaces
+  - Refactored: Renamed IFeishuV3AuthenticationApi to IFeishuV3Authentication
+  - Impact: Unifies interface naming conventions
+
+- **Redis Command Optimization**
+  - Refactored: Uses SCAN instead of KEYS command to avoid blocking Redis service
+  - Impact: Improves performance and security of Redis operations
+
+- **Cache Management Optimization**
+  - Refactored: Merged methods for generating cache keys and added support for user ID parameters
+  - Refactored: Restructured token manager's caching and formatting logic
+  - Impact: Optimizes cache management logic
+
+### 📝 Documentation Improvements
+
+- **API Documentation Updates**
+  - Improved: Comments for approval message data models
+  - Impact: Enhances API documentation completeness
+
+- **Project Documentation Updates**
+  - Updated: Project clone links in README
+  - Updated: Repository links and version numbers in documentation
+  - Impact: Provides more accurate project information
+
+## 1.1.1 (2026-01-06)
+
+**Type**: Feature enhancement, code refactoring, documentation improvement
+
+### 🚀 Feature Enhancements
+
+- **Approval Function Extension**
+  - Added: Approval event type constants (WorkApproval and WorkApprovalRevert)
+  - Added: Interface to get detailed data by approval definition Code
+  - Added: Third-party approval definition creation functionality
+  - Added: Approval instance comment pagination query interface
+  - Added: RemoveCommentsAsync interface to clear all comments and approval replies under approval instance
+  - Added: Approval comment deletion functionality and optimized comment creation parameters
+  - Added: Approval task signature functionality
+  - Added: Interface to get detailed data by approval definition Code for approval tasks
+  - Added: Approval instance status pagination query interface
+  - Impact: Provides more complete approval process management capabilities
+
+- **Task Management Functionality**
+  - Added: Custom field management interface
+  - Added: Custom field option management
+  - Added: Custom field resource binding
+  - Added: Custom field list pagination query
+  - Impact: Supports custom field management for tasks
+
+### 🔧 Code Refactoring
+
+- **API Response Type Unification**
+  - Refactored: Updated all API response types to FeishuApiResult series
+  - Impact: Unifies API response format
+
+- **Message Sending Interface Refactoring**
+  - Refactored: Unified message sending interface design
+  - Impact: Improves consistency of message sending functionality
+
+- **Service Registration API Unification**
+  - Refactored: Unified service registration API and removed redundant UseMultiHandler method
+  - Impact: Simplifies service registration process
+
+### 📝 Documentation Improvements
+
+- **README Documentation Optimization**
+  - Updated: Removed architecture design and performance characteristics documentation
+  - Updated: Added department event handler documentation and usage examples
+  - Updated: Optimized project description and feature explanations
+  - Impact: Improves documentation practicality and readability
+
+## 1.1.2 (2026-01-10)
+
+**Type**: Feature enhancement, code refactoring, bug fixes, documentation improvement
+
+### 🚀 Feature Enhancements
+
+- **Webhook and WebSocket Functionality**
+  - Added: Webhook verification method changed to async implementation and refactored retry service
+  - Added: WebSocket event retry functionality, supporting both distributed and in-memory modes
+  - Added: Event processing state synchronization and reconnection mechanism
+  - Added: Request body signature verification option
+  - Impact: Improves reliability and stability of event processing
+
+- **Approval Function Extension**
+  - Added: Third-party approval instance verification functionality
+  - Added: Third-party approval instance synchronization functionality
+  - Added: Approval instance status pagination query interface
+  - Impact: Enhances completeness of approval functionality
+
+- **Configuration Verification Functionality**
+  - Added: WebSocket and Feishu configuration options
+  - Added: Webhook configuration verification functionality and optimized option documentation
+  - Impact: Improves configuration correctness and security
+
+### 🐛 Bug Fixes
+
+- **Project Configuration Fix**
+  - Fixed: WebSocket configuration-related issues
+  - Impact: Ensures WebSocket functionality operates normally
+
+### 🔧 Code Refactoring
+
+- **Event Handler Improvement**
+  - Refactored: Adjusted event handler base class design to support async processing
+  - Refactored: Updated event handler base class to async handler
+  - Impact: Improves efficiency of event processing
+
+- **Redis Service Registration**
+  - Refactored: Simplified Redis service registration method and updated documentation
+  - Impact: Simplifies usage of Redis service
+
+- **Service Registration Refactoring**
+  - Refactored: Renamed FeishuWebhook service registration method name
+  - Refactored: Refactored Feishu service registration method naming
+  - Impact: Unifies service registration method naming conventions
+
+### 📝 Documentation Improvements
+
+- **English Documentation Restructuring**
+  - Updated: Reorganized English documentation structure and restored feature characteristic explanations
+  - Impact: Improves readability of English documentation
+
+### 📦 Dependency Updates
+
+- Updated: Project dependency package versions to 1.1.2
+- Updated: Mud.ServiceCodeGenerator version
+- Impact: Ensures compatibility and stability of dependency packages
+
+## 1.1.0 (2025-11-12)
+
+**Type**: Feature enhancement, code refactoring, documentation improvement
+
+### 🚀 Feature Enhancements
+
+- **User Management API**
+  - Added: Complete user management interfaces including create, update, delete users
+  - Added: Batch query user information interfaces
+  - Added: Restore deleted user interfaces
+  - Impact: Provides comprehensive user management capabilities
+
+- **User Group Management API**
+  - Added: User group creation, update, deletion interfaces
+  - Added: Query user's group membership and user group details interfaces
+  - Impact: Supports complete user group management
+
+- **Department Management API**
+  - Added: Department creation, update, deletion interfaces
+  - Added: Query departments by parent ID, query parent departments by department ID interfaces
+  - Impact: Provides complete department management functionality
+
+- **Employee Type Management API**
+  - Added: Employee type related interfaces
+  - Impact: Supports employee type management
+
+### 🔧 Code Refactoring
+
+- **API Result Model Refactoring**
+  - Refactored: ApiListResult list data result collection
+  - Refactored: Renamed ApiResult to FeishuApiResult
+  - Impact: Unifies API result model naming
+
+- **Service Registration Optimization**
+  - Refactored: Service registration code structure
+  - Impact: Improves service registration efficiency
+
+### 📝 Documentation Improvements
+
+- **README Documentation Optimization**
+  - Updated: README file content and structure
+  - Added: Project feature descriptions and usage examples
+  - Impact: Improves documentation readability
+
+## 1.0.9 (2025-11-14)
+
+**Type**: Feature enhancement, code refactoring, bug fixes
+
+### 🚀 Feature Enhancements
+
+- **Cross-platform Support**
+  - Added: Support for .NET Standard 2.0
+  - Impact: Improves framework compatibility
+
+- **HTTP Client Enhancement**
+  - Added: Feishu HTTP client extension methods
+  - Added: Enhanced HTTP client configuration
+  - Impact: Provides more flexible HTTP request configuration
+
+### 🐛 Bug Fixes
+
+- **HttpClient Configuration Fix**
+  - Fixed: HttpClient configuration and API endpoint URL format issues
+  - Impact: Ensures API requests are sent correctly
+
+### 🔧 Code Refactoring
+
+- **Message and Event API Refactoring**
+  - Refactored: Message and event API implementation
+  - Impact: Improves code maintainability
+
+- **File Download Function Refactoring**
+  - Refactored: File download functionality and optimized HTTP request methods
+  - Impact: Improves file download performance
+
+## 1.0.7 (2025-11-12)
+
+**Type**: Feature enhancement, code refactoring, documentation improvement
+
+### 🚀 Feature Enhancements
+
+- **Task Management API**
+  - Added: Task comment related interfaces
+  - Added: Task attachment management interfaces
+  - Added: Task activity subscription interfaces
+  - Added: Task list member management interfaces
+  - Impact: Provides complete task management capabilities
+
+- **JsTicket API**
+  - Added: JsTicket API interfaces
+  - Impact: Supports front-end JavaScript development requirements
+
+### 🔧 Code Refactoring
+
+- **Code Generator Upgrade**
+  - Upgraded: Mud.ServiceCodeGenerator version
+  - Impact: Improves code generation efficiency and quality
+
+- **Project Dependency Updates**
+  - Updated: Project dependency configuration and removed test tools
+  - Impact: Optimizes project dependency management
+
+### 📝 Documentation Improvements
+
+- **Task Related Documentation Updates**
+  - Updated: Task member information comments
+  - Impact: Improves API documentation accuracy
+
+## 1.0.3-dev (2025-11-12)
+
+**Type**: Initial version, feature enhancement
+
+### 🚀 Feature Enhancements
+
+- **Core Function Implementation**
+  - Added: Feishu API basic framework setup
+  - Added: Authentication service and token management
+  - Added: Enterprise address book related interfaces
+  - Added: Message sending and receiving functionality
+  - Added: Webhook and WebSocket support
+  - Impact: Establishes project basic architecture
+
+- **Demo Projects**
+  - Added: Webhook demo service
+  - Added: WebSocket demo project
+  - Impact: Provides usage examples
+
+### 📝 Documentation Improvements
+
+- **Project Documentation Initialization**
+  - Added: README.md file
+  - Added: Project structure description
+  - Impact: Provides project basic documentation
+
 ## 1.2.0 (2026-02-15)
 
 **Type**: Feature enhancement, security hardening, performance optimization
