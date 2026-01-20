@@ -7,7 +7,6 @@
 
 using Microsoft.Extensions.Options;
 using Mud.Feishu.Abstractions;
-using Mud.Feishu.DataModels;
 
 namespace Mud.Feishu.TokenManager;
 
@@ -18,7 +17,7 @@ namespace Mud.Feishu.TokenManager;
 /// 负责租户访问令牌（Tenant Access Token）的获取、缓存和管理。
 /// 租户令牌用于租户级别的权限验证，通过AppId和AppSecret获取。
 /// </remarks>
-internal class TenantTokenManager : TokenManagerWithCache, Abstractions.ITenantTokenManager
+internal class TenantTokenManager : TokenManagerWithCache, ITenantTokenManager
 {
     public TenantTokenManager(
        IFeishuV3Authentication authenticationApi,

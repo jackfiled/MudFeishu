@@ -20,7 +20,7 @@ namespace Mud.Feishu.TokenManager;
 /// 支持令牌过期检测、自动重试、缓存清理等特性。
 /// 通过抽象缓存层支持多种缓存实现（内存、Redis等）。
 /// </remarks>
-public abstract class TokenManagerWithCache : Abstractions.ITokenManager, IDisposable
+public abstract class TokenManagerWithCache : ITokenManager, IDisposable
 {
     /// <summary>
     /// 飞书配置选项
