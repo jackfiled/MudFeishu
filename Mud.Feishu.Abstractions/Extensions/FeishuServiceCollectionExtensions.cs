@@ -242,4 +242,24 @@ public static class FeishuServiceCollectionExtensions
         services.TryAddSingleton<ITokenCache, TCacheImplementation>();
         return services;
     }
+
+    /// <summary>
+    /// 注册多应用所需的基础服务（内部使用）
+    /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <returns>服务集合实例。支持链式调用</returns>
+    /// <remarks>
+    /// 此方法用于多应用系统，注册了基础依赖项但不注册全局TokenManager。
+    /// </remarks>
+    internal static IServiceCollection AddFeishuMultiAppBaseServices(this IServiceCollection services)
+    {
+        // 注册IHttpClientFactory，用于为每个应用创建独立的HttpClient
+        services.AddHttpClient();
+
+        // 注册认证服务和JSON配置
+        services.AddSingleton<IFeishuV3Authentication, FeishuV3Authentication>();
+        services.Configure<JsonSerializerOptions>(options => HttpClientExtensions.GetDefaultJsonSerializerOptions());
+
+        return services;
+    }
 }
