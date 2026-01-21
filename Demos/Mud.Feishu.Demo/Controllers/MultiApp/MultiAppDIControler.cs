@@ -6,19 +6,18 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.AspNetCore.Mvc;
-using Mud.Feishu.Abstractions;
 
 namespace Mud.Feishu.Demo.Controllers.MultiApp;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MultiAppControler : ControllerBase
+public class MultiAppDIControler : ControllerBase
 {
-    private readonly IFeishuAppManager _feishuAppManager;
+    private readonly IFeishuTenantV3JobTitle _feishuTenantV3JobTitle;
 
-    public MultiAppControler(IFeishuAppManager feishuAppManager)
+    public MultiAppDIControler(IFeishuTenantV3JobTitle feishuTenantV3JobTitle)
     {
-        _feishuAppManager = feishuAppManager;
+        _feishuTenantV3JobTitle = feishuTenantV3JobTitle;
     }
 
     /// <summary>
@@ -32,8 +31,9 @@ public class MultiAppControler : ControllerBase
     {
         try
         {
-            var tenantJobTitleApi = _feishuAppManager.GetFeishuApi<IFeishuTenantV3JobTitle>("hr-app");
-            var result = await tenantJobTitleApi.GetJobTitlesListAsync(10, null);
+            _feishuTenantV3JobTitle.UseApp("hr-app");
+            var result = await _feishuTenantV3JobTitle.GetJobTitlesListAsync(10, null);
+            _feishuTenantV3JobTitle.UseDefaultApp();
             return Ok(result.Data);
         }
         catch (Exception ex)
