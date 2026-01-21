@@ -65,22 +65,32 @@ public static class FeishuMultiAppExtensions
         // 检测是否已注册单应用模式的TokenManager,给出警告
         DetectAndWarnSingleAppRegistration(services);
 
-        // 注册基础服务（HttpClient工厂、认证服务等）
-        services.AddFeishuMultiAppBaseServices();
+        // 先加载配置
+        var configs = new List<FeishuAppConfig>();
+        var section = configuration.GetSection(sectionName);
+        section.Bind(configs);
 
-        // 注册并验证配置
+        // 验证并设置默认应用
+        ValidateAndSetDefaultApp(configs);
+
+        // 注册基础服务（HttpClient工厂）
+        services.AddFeishuMultiAppBaseServices(configs);
+
+        // 注册配置到服务容器
+        services.AddSingleton(configs);
         services.Configure<List<FeishuAppConfig>>(options =>
         {
-            var section = configuration.GetSection(sectionName);
-            section.Bind(options);
-
-            // 验证并设置默认应用
-            ValidateAndSetDefaultApp(options);
+            options.Clear();
+            options.AddRange(configs);
         });
 
         // 注册令牌缓存和应用管理器
         services.TryAddSingleton<ITokenCache, MemoryTokenCache>();
-        services.TryAddSingleton<IFeishuAppManager, FeishuAppManager>();
+        services.AddSingleton<IFeishuAppManager, FeishuAppManager>(sp => new FeishuAppManager(
+            sp,
+            configs,
+            sp.GetRequiredService<ILogger<FeishuAppManager>>()
+        ));
 
         return services;
     }
@@ -138,12 +148,12 @@ public static class FeishuMultiAppExtensions
         if (configure == null)
             throw new ArgumentNullException(nameof(configure));
 
-        // 注册基础服务
-        services.AddFeishuMultiAppBaseServices();
-
         var builder = new FeishuAppConfigBuilder();
         configure(builder);
         var configs = builder.Build();
+
+        // 注册基础服务
+        services.AddFeishuMultiAppBaseServices(configs);
 
         // 验证并设置默认应用
         ValidateAndSetDefaultApp(configs);
@@ -188,7 +198,7 @@ public static class FeishuMultiAppExtensions
             throw new ArgumentNullException(nameof(configs));
 
         // 注册基础服务
-        services.AddFeishuMultiAppBaseServices();
+        services.AddFeishuMultiAppBaseServices(configs);
 
         // 验证并设置默认应用
         ValidateAndSetDefaultApp(configs);

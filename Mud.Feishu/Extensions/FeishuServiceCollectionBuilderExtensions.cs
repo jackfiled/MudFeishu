@@ -31,42 +31,12 @@ public static class FeishuServiceCollectionBuilderExtensions
     /// <param name="configuration">配置对象</param>
     /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
     /// <returns>飞书服务建造者实例</returns>
-    public static FeishuServiceBuilder CreateFeishuServicesBuilder(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
+    public static FeishuServiceBuilder CreateFeishuServicesBuilder(this IServiceCollection services, IConfiguration configuration, string sectionName = "FeishuApps")
     {
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
-
-        // 注册API服务需要的基础HTTP服务
-        services.AddFeishuHttpClient();
-
-        return services.CreateFeishuServicesBuilder()
-                       .ConfigureOptions(options =>
-                       {
-                           var section = configuration.GetSection(sectionName);
-                           section.Bind(options);
-                       });
+        return services.CreateFeishuServicesBuilder();
     }
-
-
-    /// <summary>
-    /// 使用代码配置创建飞书服务建造者
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configureOptions">配置选项的委托</param>
-    /// <returns>飞书服务建造者实例</returns>
-    public static FeishuServiceBuilder CreateFeishuServicesBuilder(this IServiceCollection services, Action<FeishuOptions> configureOptions)
-    {
-        if (configureOptions == null)
-            throw new ArgumentNullException(nameof(configureOptions));
-
-        // 注册API服务需要的基础HTTP服务
-        services.AddFeishuHttpClient();
-
-        return services.CreateFeishuServicesBuilder()
-                       .ConfigureOptions(configureOptions);
-    }
-
-
 
 
     /// <summary>

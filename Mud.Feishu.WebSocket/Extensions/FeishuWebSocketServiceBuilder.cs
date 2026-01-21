@@ -46,7 +46,7 @@ public class FeishuWebSocketServiceBuilder
     /// </remarks>
     public FeishuWebSocketServiceBuilder ConfigureFrom(
         IConfiguration configuration,
-        string sectionName = "WebSocket",
+        string sectionName = "FeishuWebSocket",
         string appKey = "default")
     {
         if (configuration == null)
@@ -56,14 +56,14 @@ public class FeishuWebSocketServiceBuilder
 
         var section = sectionName ?? "WebSocket";
         _services.Configure<FeishuWebSocketOptions>(options => configuration.GetSection(section).Bind(options));
-
         // 注册 FeishuAppContext，使用指定的应用键
         _services.AddSingleton<FeishuAppContext>(sp =>
         {
             var appManager = sp.GetRequiredService<IFeishuAppManager>();
+            if (string.IsNullOrEmpty(appKey))
+                return appManager.GetDefaultApp();
             return appManager.GetApp(appKey);
         });
-
         return this;
     }
 
@@ -78,6 +78,7 @@ public class FeishuWebSocketServiceBuilder
             throw new ArgumentNullException(nameof(configureOptions));
 
         _services.Configure(configureOptions);
+
         return this;
     }
 

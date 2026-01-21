@@ -17,8 +17,6 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    private const string DefaultConfigurationSection = ":WebSocket";
-
     /// <summary>
     /// 注册飞书WebSocket服务（使用配置节）
     /// </summary>
@@ -39,7 +37,7 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration,
         string appKey = "default")
     {
-        return services.CreateFeishuWebSocketServiceBuilder(configuration, "WebSocket", appKey);
+        return services.CreateFeishuWebSocketServiceBuilder(configuration, "FeishuWebSocket", appKey);
     }
 
     /// <summary>
@@ -56,6 +54,7 @@ public static class ServiceCollectionExtensions
             throw new ArgumentNullException(nameof(configureOptions));
 
         var builder = new FeishuWebSocketServiceBuilder(services);
+
         return builder.ConfigureOptions(configureOptions);
     }
 
@@ -72,13 +71,13 @@ public static class ServiceCollectionExtensions
     /// 示例：
     /// <code>
     /// builder.Services.AddFeishuMultiApp(builder.Configuration);
-    /// builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "WebSocket", "default");
+    /// builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "FeishuWebSocket", "default");
     /// </code>
     /// </remarks>
     public static FeishuWebSocketServiceBuilder CreateFeishuWebSocketServiceBuilder(
         this IServiceCollection services,
         IConfiguration configuration,
-        string sectionName = "WebSocket",
+        string sectionName = "FeishuWebSocket",
         string appKey = "default")
     {
         if (string.IsNullOrWhiteSpace(appKey))

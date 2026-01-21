@@ -173,7 +173,7 @@ public static class RedisFeishuServiceBuilderExtensions
     public static IServiceCollection AddFeishuRedisDeduplicators(
         this IServiceCollection services,
         IConfiguration configuration,
-        string sectionName = "Feishu:Redis")
+        string sectionName = "FeishuRedis")
     {
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));

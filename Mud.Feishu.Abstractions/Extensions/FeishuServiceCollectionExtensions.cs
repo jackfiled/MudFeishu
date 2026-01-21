@@ -8,9 +8,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.TokenManager;
 using Polly;
 using System.Net;
 using System.Text.Json;
@@ -29,13 +27,13 @@ public static class FeishuServiceCollectionExtensions
     /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
     /// <param name="services">服务集合</param>
     /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection ConfigureFrom(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
+    public static IServiceCollection ConfigureFrom(this IServiceCollection services, IConfiguration configuration, string sectionName = "FeishuApps")
     {
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
 
-        var section = sectionName ?? "Feishu";
-        services.Configure<FeishuOptions>(options => configuration.GetSection(section).Bind(options));
+        var section = sectionName ?? "FeishuApps";
+        services.Configure<List<FeishuAppConfig>>(options => configuration.GetSection(section).Bind(options));
 
         return services;
     }
@@ -46,7 +44,7 @@ public static class FeishuServiceCollectionExtensions
     /// <param name="configureOptions">配置选项的委托</param>
     /// <param name="services">服务集合</param>
     /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection ConfigureOptions(this IServiceCollection services, Action<FeishuOptions> configureOptions)
+    public static IServiceCollection ConfigureOptions(this IServiceCollection services, Action<List<FeishuAppConfig>> configureOptions)
     {
         if (configureOptions == null)
             throw new ArgumentNullException(nameof(configureOptions));
@@ -55,46 +53,6 @@ public static class FeishuServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
-    /// 添加飞书HttpClient注册代码（已过时,请使用多应用模式）
-    /// </summary>
-    /// <returns></returns>
-    /// <remarks>
-    /// 此方法仅为向后兼容保留,推荐使用 AddFeishuMultiApp() 方法
-    /// </remarks>
-    public static IServiceCollection AddFeishuHttpClient<TImplementation>(this IServiceCollection services)
-        where TImplementation : class, IEnhancedHttpClient
-    {
-        services.AddHttpClient<IEnhancedHttpClient, TImplementation>((serviceProvider, client) =>
-        {
-            var options = serviceProvider.GetRequiredService<IOptions<FeishuOptions>>().Value;
-            client.BaseAddress = new Uri(options.BaseUrl ?? "https://open.feishu.cn");
-            client.DefaultRequestHeaders.Add("User-Agent", "MudFeishuClient/1.0");
-            client.Timeout = TimeSpan.FromSeconds(options.TimeOut);
-        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-        {
-            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-        }).AddTransientHttpErrorPolicy(builder =>
-        {
-            return builder.WaitAndRetryAsync(
-                3,
-                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-        });
-
-        services.AddSingleton<IFeishuAuthentication, FeishuV3Authentication>();
-        services.Configure<JsonSerializerOptions>(options => HttpClientExtensions.GetDefaultJsonSerializerOptions());
-        return services;
-    }
-
-    /// <summary>
-    /// 添加飞书HttpClient注册代码（已过时,请使用多应用模式）
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <returns></returns>
-    /// <remarks>
-    /// 此方法仅为向后兼容保留,推荐使用 AddFeishuMultiApp() 方法
-    /// </remarks>
-    public static IServiceCollection AddFeishuHttpClient(this IServiceCollection services) => services.AddFeishuHttpClient<FeishuHttpClient>();
 
     /// <summary>
     /// 添加令牌缓存服务（自定义实现）
@@ -116,15 +74,49 @@ public static class FeishuServiceCollectionExtensions
     /// <remarks>
     /// 此方法用于多应用系统，注册了基础依赖项但不注册全局TokenManager。
     /// </remarks>
-    internal static IServiceCollection AddFeishuMultiAppBaseServices(this IServiceCollection services)
+    internal static IServiceCollection AddFeishuMultiAppBaseServices(this IServiceCollection services, List<FeishuAppConfig> configs)
     {
-        // 注册IHttpClientFactory，用于为每个应用创建独立的HttpClient
-        services.AddHttpClient();
+        foreach (var config in configs)
+        {
+            services.AddHttpClient($"feishu-{config.AppKey}")
+                    .ConfigureFeishuHttpClient(config);
+        }
 
-        // 注册认证服务和JSON配置
-        services.AddSingleton<IFeishuAuthentication, FeishuV3Authentication>();
+        // 注册JSON配置
         services.Configure<JsonSerializerOptions>(options => HttpClientExtensions.GetDefaultJsonSerializerOptions());
 
         return services;
+    }
+
+
+    private static IHttpClientBuilder ConfigureFeishuHttpClient(
+        this IHttpClientBuilder builder,
+        FeishuAppConfig? config,
+        Action<HttpClient, IServiceProvider>? additionalConfig = null)
+    {
+        return builder
+            .ConfigureHttpClient((serviceProvider, client) =>
+            {
+                // 基础配置
+                string baseUrl = config?.BaseUrl ?? "https://open.feishu.cn";
+                int timeOut = config?.TimeOut ?? 60;
+
+                client.BaseAddress = new Uri(baseUrl);
+                client.DefaultRequestHeaders.Add("User-Agent", "MudFeishuClient/1.0");
+                client.Timeout = TimeSpan.FromSeconds(timeOut);
+
+                // 额外的配置
+                additionalConfig?.Invoke(client, serviceProvider);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            })
+            .AddTransientHttpErrorPolicy(builder =>
+            {
+                return builder.WaitAndRetryAsync(
+                    3,
+                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+            });
     }
 }
