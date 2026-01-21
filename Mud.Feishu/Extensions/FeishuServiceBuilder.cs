@@ -196,29 +196,8 @@ public class FeishuServiceBuilder
         {
             throw new InvalidOperationException("至少需要添加一个服务，请使用相应的 Add 方法。");
         }
-
-        // 添加配置验证
-        _services.AddOptions<FeishuOptions>()
-                .Validate(options => ValidateFeishuOptionsInternal(options),
-                    "飞书服务需要在配置文件中正确配置 AppId 和 AppSecret。")
-                .ValidateOnStart();
-
-        // 添加配置后验证
-        _services.PostConfigure<FeishuOptions>(options =>
-        {
-            options.Validate();
-        });
-
         return _services;
     }
-
-    /// <summary>
-    /// 内部验证飞书选项的方法
-    /// </summary>
-    /// <param name="options">飞书选项</param>
-    /// <returns>验证结果</returns>
-    private static bool ValidateFeishuOptionsInternal(FeishuOptions options) =>
-        !string.IsNullOrEmpty(options.AppId) && !string.IsNullOrEmpty(options.AppSecret);
 }
 
 /// <summary>
