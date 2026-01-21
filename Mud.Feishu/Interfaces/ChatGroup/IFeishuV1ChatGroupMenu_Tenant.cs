@@ -18,7 +18,7 @@ namespace Mud.Feishu;
 [HttpClientApi(RegistryGroupName = "ChatGroup", TokenManage = nameof(IFeishuAppManager))]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV1ChatGroupMenu : IMudHttpClientService
+public interface IFeishuTenantV1ChatGroupMenu : IFeishuHttpClientService
 {
     /// <summary>
     /// 在指定群组中添加一个或多个群菜单。成功调用后接口会返回当前群组内所有群菜单信息。

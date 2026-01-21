@@ -16,7 +16,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Approval")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV4ApprovalTask : IMudHttpClientService
+public interface IFeishuTenantV4ApprovalTask : IFeishuHttpClientService
 {
 
     /// <summary>

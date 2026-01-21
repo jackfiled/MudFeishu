@@ -78,7 +78,7 @@ public static class FeishuServiceCollectionExtensions
                 retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
         });
 
-        services.AddSingleton<IFeishuV3Authentication, FeishuV3Authentication>();
+        services.AddSingleton<IFeishuAuthentication, FeishuV3Authentication>();
         services.Configure<JsonSerializerOptions>(options => HttpClientExtensions.GetDefaultJsonSerializerOptions());
         return services;
     }
@@ -256,7 +256,7 @@ public static class FeishuServiceCollectionExtensions
         services.AddHttpClient();
 
         // 注册认证服务和JSON配置
-        services.AddSingleton<IFeishuV3Authentication, FeishuV3Authentication>();
+        services.AddSingleton<IFeishuAuthentication, FeishuV3Authentication>();
         services.Configure<JsonSerializerOptions>(options => HttpClientExtensions.GetDefaultJsonSerializerOptions());
 
         return services;

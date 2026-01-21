@@ -18,7 +18,7 @@ namespace Mud.Feishu.TokenManager;
 /// 应用令牌用于应用级别的权限验证，通过AppId和AppSecret获取。
 /// </remarks>
 internal class AppTokenManager(
-   IFeishuV3Authentication authenticationApi,
+   IFeishuAuthentication authenticationApi,
    IOptions<FeishuOptions> options,
    ILogger<TokenManagerWithCache> logger,
    ITokenCache tokenCache) : TokenManagerWithCache(authenticationApi, options, logger, tokenCache, TokenType.AppAccessToken), IAppTokenManager

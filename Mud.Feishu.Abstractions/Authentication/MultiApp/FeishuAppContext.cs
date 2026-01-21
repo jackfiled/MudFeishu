@@ -90,7 +90,7 @@ public class FeishuAppContext : IMudAppContext, IDisposable
     /// <remarks>
     /// 用于调用飞书认证相关API的服务接口。
     /// </remarks>
-    public IFeishuV3Authentication Authentication { get; }
+    public IFeishuAuthentication Authentication { get; }
 
     /// <summary>
     /// 令牌缓存
@@ -117,7 +117,7 @@ public class FeishuAppContext : IMudAppContext, IDisposable
         ITenantTokenManager tenantTokenManager,
         IAppTokenManager appTokenManager,
         IUserTokenManager userTokenManager,
-        IFeishuV3Authentication authenticationApi,
+        IFeishuAuthentication authenticationApi,
         ITokenCache tokenCache,
         IEnhancedHttpClient httpClient)
     {

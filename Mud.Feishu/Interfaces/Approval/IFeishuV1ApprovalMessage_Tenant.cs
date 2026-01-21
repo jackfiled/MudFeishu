@@ -16,7 +16,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Approval")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV1ApprovalMessage : IMudHttpClientService
+public interface IFeishuTenantV1ApprovalMessage : IFeishuHttpClientService
 {
     /// <summary>
     /// 用来通过飞书审批的 Bot 推送消息给用户，当有新的审批待办，或者审批待办的状态有更新时，可以通过飞书审批的 Bot 告知用户。

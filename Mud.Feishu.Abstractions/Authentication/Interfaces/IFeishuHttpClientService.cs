@@ -10,7 +10,7 @@ namespace Mud.Feishu.Abstractions;
 /// <summary>
 /// 所有HTTP客户端服务的标记接口
 /// </summary>
-public interface IMudHttpClientService
+public interface IFeishuHttpClientService
 {
     /// <summary>
     /// 更改当前HTTP客户端服务的应用上下文

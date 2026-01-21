@@ -20,7 +20,7 @@ namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
 
 public class UserTokenManagerTests
 {
-    private readonly Mock<IFeishuV3Authentication> _authenticationApiMock;
+    private readonly Mock<IFeishuAuthentication> _authenticationApiMock;
     private readonly Mock<IOptions<FeishuOptions>> _optionsMock;
     private readonly Mock<ILogger<TokenManagerWithCache>> _loggerMock;
     private readonly Mock<ITokenCache> _tokenCacheMock;
@@ -29,7 +29,7 @@ public class UserTokenManagerTests
 
     public UserTokenManagerTests()
     {
-        _authenticationApiMock = new Mock<IFeishuV3Authentication>();
+        _authenticationApiMock = new Mock<IFeishuAuthentication>();
         _optionsMock = new Mock<IOptions<FeishuOptions>>();
         _loggerMock = new Mock<ILogger<TokenManagerWithCache>>();
         _tokenCacheMock = new Mock<ITokenCache>();

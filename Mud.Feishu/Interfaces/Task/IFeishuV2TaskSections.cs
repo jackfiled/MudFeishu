@@ -17,7 +17,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2TaskSections : IMudHttpClientService
+public interface IFeishuV2TaskSections : IFeishuHttpClientService
 {
     /// <summary>
     /// <para>为清单或我负责的任务列表创建一个自定义分组。</para>

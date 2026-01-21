@@ -16,7 +16,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV3User : IMudHttpClientService
+public interface IFeishuV3User : IFeishuHttpClientService
 {
 
     /// <summary>

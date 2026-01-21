@@ -26,7 +26,7 @@ namespace Mud.Feishu.Abstractions;
 /// <exception cref="ArgumentNullException">当参数为null时抛出</exception>
 internal class FeishuV3Authentication(
     IEnhancedHttpClient httpClient,
-    IOptionsMonitor<JsonSerializerOptions> jsonSerializerOptions) : IFeishuV3Authentication
+    IOptionsMonitor<JsonSerializerOptions> jsonSerializerOptions) : IFeishuAuthentication
 {
     private readonly IEnhancedHttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     private readonly IOptionsMonitor<JsonSerializerOptions> _jsonSerializerOptions = jsonSerializerOptions ?? throw new ArgumentNullException(nameof(jsonSerializerOptions));

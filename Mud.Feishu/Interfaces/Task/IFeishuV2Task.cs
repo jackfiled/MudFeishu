@@ -16,7 +16,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2Task : IMudHttpClientService
+public interface IFeishuV2Task : IFeishuHttpClientService
 {
     /// <summary>
     /// <para>创建一个任务，在创建任务时，支持填写任务的基本信息（如标题、描述、负责人等），</para>

@@ -15,7 +15,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV3JobTitle : IMudHttpClientService
+public interface IFeishuV3JobTitle : IFeishuHttpClientService
 {
     /// <summary>
     /// 获取当前租户下的职务信息，包括职务的 ID、名称、多语言名称以及启用状态。

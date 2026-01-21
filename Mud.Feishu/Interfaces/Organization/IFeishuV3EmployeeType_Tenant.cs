@@ -18,7 +18,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV3EmployeeType : IMudHttpClientService
+public interface IFeishuTenantV3EmployeeType : IFeishuHttpClientService
 {
     /// <summary>
     /// 新增一个自定义的人员类型。人员类型是用户属性之一，用于灵活标记用户的身份类型。

@@ -14,7 +14,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV1ChatGroupMember : IMudHttpClientService
+public interface IFeishuV1ChatGroupMember : IFeishuHttpClientService
 {
     /// <summary>
     /// 指定群组，将群内指定的用户或者机器人设置为群管理员。

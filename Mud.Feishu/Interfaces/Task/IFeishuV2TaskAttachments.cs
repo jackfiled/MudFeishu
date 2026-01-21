@@ -16,7 +16,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2TaskAttachments : IMudHttpClientService
+public interface IFeishuV2TaskAttachments : IFeishuHttpClientService
 {
     /// <summary>
     /// 为特定资源上传附件。本接口可以支持一次上传多个附件，最多5个。每个附件尺寸不超过50MB，格式不限。

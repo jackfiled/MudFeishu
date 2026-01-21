@@ -21,7 +21,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV3RoleMember : IMudHttpClientService
+public interface IFeishuTenantV3RoleMember : IFeishuHttpClientService
 {
     /// <summary>
     /// 在指定角色内添加一个或多个成员。

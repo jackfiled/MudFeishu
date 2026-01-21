@@ -15,7 +15,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV3WorkCity : IMudHttpClientService
+public interface IFeishuV3WorkCity : IFeishuHttpClientService
 {
     /// <summary>
     /// 获取当前租户下所有工作城市信息，包括工作城市的 ID、名称、多语言名称以及启用状态。

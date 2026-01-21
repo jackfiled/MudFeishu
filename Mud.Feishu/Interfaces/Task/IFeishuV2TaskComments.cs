@@ -14,7 +14,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2TaskComments : IMudHttpClientService
+public interface IFeishuV2TaskComments : IFeishuHttpClientService
 {
     /// <summary>
     /// <para>为一个任务创建评论，或者回复该任务的某个评论。</para>

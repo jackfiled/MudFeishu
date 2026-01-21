@@ -14,7 +14,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV1ChatTabs : IMudHttpClientService
+public interface IFeishuV1ChatTabs : IFeishuHttpClientService
 {
     /// <summary>
     /// 创建群聊，创建时支持设置群头像、群名称、群主以及群类型等配置，同时支持邀请群成员、群机器人入群。

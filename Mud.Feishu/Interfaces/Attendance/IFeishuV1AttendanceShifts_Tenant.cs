@@ -16,7 +16,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Attendance")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV1AttendanceShifts : IMudHttpClientService
+public interface IFeishuTenantV1AttendanceShifts : IFeishuHttpClientService
 {
     /// <summary>
     /// 创建考勤班次
