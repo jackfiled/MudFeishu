@@ -73,12 +73,12 @@ internal class UserTokenManager(
         var cachedToken = await _tokenCache.GetAsync(cacheKey, cancellationToken);
         if (!string.IsNullOrEmpty(cachedToken))
         {
-            _logger.LogDebug("Using cached token for user {UserId}", userId);
+            _logger.LogDebug("Using cached token for user {UserId}, AppId: {AppId}", userId, _options.AppId);
             return FormatBearerToken(cachedToken);
         }
 
         // 用户令牌必须通过OAuth授权获取，不支持自动获取
-        _logger.LogWarning("No cached token found for user {UserId}. Please use GetUserTokenWithCodeAsync to obtain a token.", userId);
+        _logger.LogWarning("No cached token found for user {UserId}, AppId: {AppId}. Please use GetUserTokenWithCodeAsync to obtain a token.", userId, _options.AppId);
         return null;
     }
 
@@ -148,8 +148,8 @@ internal class UserTokenManager(
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
         await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
 
-        _logger.LogInformation("User token acquired for user {UserId}, expires at {ExpireTime}",
-            userId, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));
+        _logger.LogInformation("User token acquired for user {UserId}, AppId: {AppId}, expires at {ExpireTime}",
+            userId, _options.AppId, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));
 
         return token;
     }
@@ -193,8 +193,8 @@ internal class UserTokenManager(
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
         await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
 
-        _logger.LogInformation("User token refreshed for user {UserId}, expires at {ExpireTime}",
-            userId, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));
+        _logger.LogInformation("User token refreshed for user {UserId}, AppId: {AppId}, expires at {ExpireTime}",
+            userId, _options.AppId, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));
 
         return token;
     }

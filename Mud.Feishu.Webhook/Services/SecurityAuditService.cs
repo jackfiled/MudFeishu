@@ -28,12 +28,17 @@ public class SecurityAuditService : ISecurityAuditService
         string clientIp,
         string requestPath,
         string details,
-        string? requestId = null)
+        string? requestId = null,
+        string? appKey = null)
     {
         var message = $"安全验证失败 - 类型: {eventType}, IP: {clientIp}, 路径: {requestPath}, 详情: {details}";
         if (!string.IsNullOrEmpty(requestId))
         {
             message += $", RequestId: {requestId}";
+        }
+        if (!string.IsNullOrEmpty(appKey))
+        {
+            message += $", AppKey: {appKey}";
         }
 
         _logger.LogWarning(message);
@@ -48,12 +53,17 @@ public class SecurityAuditService : ISecurityAuditService
         string clientIp,
         string requestPath,
         string details,
-        string? requestId = null)
+        string? requestId = null,
+        string? appKey = null)
     {
         var message = $"安全验证成功 - 类型: {eventType}, IP: {clientIp}, 路径: {requestPath}, 详情: {details}";
         if (!string.IsNullOrEmpty(requestId))
         {
             message += $", RequestId: {requestId}";
+        }
+        if (!string.IsNullOrEmpty(appKey))
+        {
+            message += $", AppKey: {appKey}";
         }
 
         _logger.LogInformation(message);

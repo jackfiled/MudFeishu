@@ -175,6 +175,12 @@ public class FeishuAppConfig
             if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
                 throw new InvalidOperationException("BaseUrl 必须是 HTTP 或 HTTPS 协议");
         }
+
+        // 多应用模式验证: 检测 AppKey 为 "default" 的应用必须标记为默认
+        if (AppKey.Equals("default", StringComparison.OrdinalIgnoreCase) && !IsDefault)
+        {
+            throw new InvalidOperationException("AppKey为'default'的应用必须标记为IsDefault=true");
+        }
     }
 
     /// <summary>

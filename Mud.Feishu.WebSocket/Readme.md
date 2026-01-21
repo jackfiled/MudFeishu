@@ -36,8 +36,11 @@ using Mud.Feishu.WebSocket;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 先注册多应用支持
+builder.Services.AddFeishuMultiApp(builder.Configuration);
+
 // 一行代码注册WebSocket服务（需要至少一个事件处理器）
-builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")
     .AddHandler<ReceiveMessageEventHandler>()
     .Build();
 
@@ -48,8 +51,11 @@ app.Run();
 ### 3. 完整配置（添加事件处理器）
 
 ```csharp
+// 先注册多应用支持
+builder.Services.AddFeishuMultiApp(builder.Configuration);
+
 // 从配置文件注册并添加事件处理器
-builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")
     .AddHandler<ReceiveMessageEventHandler>()
     .AddHandler<UserCreatedEventHandler>()
     .Build();
@@ -62,16 +68,24 @@ app.Run();
 
 ```json
 {
-  "Feishu": {
-    "AppId": "your_app_id",
-    "AppSecret": "your_app_secret",
-    "WebSocket": {
-      "AutoReconnect": true,
-      "MaxReconnectAttempts": 5,
-      "ReconnectDelayMs": 5000,
-      "HeartbeatIntervalMs": 30000,
-      "EnableLogging": true
+  "FeishuApps": [
+    {
+      "AppKey": "default",
+      "AppId": "your_app_id",
+      "AppSecret": "your_app_secret",
+      "BaseUrl": "https://open.feishu.cn",
+      "TimeOut": 30,
+      "RetryCount": 3,
+      "EnableLogging": true,
+      "IsDefault": true
     }
+  ],
+  "WebSocket": {
+    "AutoReconnect": true,
+    "MaxReconnectAttempts": 5,
+    "ReconnectDelayMs": 5000,
+    "HeartbeatIntervalMs": 30000,
+    "EnableLogging": true
   }
 }
 ```

@@ -62,6 +62,9 @@ public static class FeishuMultiAppExtensions
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
 
+        // 检测是否已注册单应用模式的TokenManager,给出警告
+        DetectAndWarnSingleAppRegistration(services);
+
         // 注册基础服务（HttpClient工厂、认证服务等）
         services.AddFeishuMultiAppBaseServices();
 
@@ -80,6 +83,27 @@ public static class FeishuMultiAppExtensions
         services.TryAddSingleton<IFeishuAppManager, FeishuAppManager>();
 
         return services;
+    }
+
+    /// <summary>
+    /// 检测并警告单应用模式注册
+    /// </summary>
+    private static void DetectAndWarnSingleAppRegistration(IServiceCollection services)
+    {
+        // 检测是否已注册全局TokenManager
+        var hasTenantTokenManager = services.Any(s =>
+            s.ServiceType == typeof(ITenantTokenManager) ||
+            s.ServiceType == typeof(IAppTokenManager) ||
+            s.ServiceType == typeof(IUserTokenManager));
+
+        if (hasTenantTokenManager)
+        {
+            Console.WriteLine(
+                "⚠️  警告: 检测到已注册单应用模式的TokenManager。" +
+                "多应用模式已启用,单应用模式的TokenManager将被忽略。" +
+                "建议移除 AddTokenManagers() 等单应用API的调用。" +
+                "请参考文档: https://github.com/mudtools/MudFeishu/wiki/Multi-App-Migration");
+        }
     }
 
     /// <summary>

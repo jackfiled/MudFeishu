@@ -38,16 +38,32 @@ public class FeishuWebSocketServiceBuilder
     /// 从配置文件配置选项
     /// </summary>
     /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu:WebSocket"</param>
+    /// <param name="sectionName">配置节名称，默认为"WebSocket"</param>
+    /// <param name="appKey">应用键，默认为 "default"</param>
     /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuWebSocketServiceBuilder ConfigureFrom(IConfiguration configuration, string? sectionName = "Feishu:WebSocket")
+    /// <remarks>
+    /// 注意：使用此方法前需要先注册多应用支持（AddFeishuMultiApp）。
+    /// </remarks>
+    public FeishuWebSocketServiceBuilder ConfigureFrom(
+        IConfiguration configuration,
+        string sectionName = "WebSocket",
+        string appKey = "default")
     {
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
+        if (string.IsNullOrWhiteSpace(appKey))
+            throw new ArgumentException("应用键不能为空", nameof(appKey));
 
-        var section = sectionName ?? "Feishu:WebSocket";
+        var section = sectionName ?? "WebSocket";
         _services.Configure<FeishuWebSocketOptions>(options => configuration.GetSection(section).Bind(options));
-        _services.AddTenantTokenManager(configuration, "Feishu");
+
+        // 注册 FeishuAppContext，使用指定的应用键
+        _services.AddSingleton<FeishuAppContext>(sp =>
+        {
+            var appManager = sp.GetRequiredService<IFeishuAppManager>();
+            return appManager.GetApp(appKey);
+        });
+
         return this;
     }
 

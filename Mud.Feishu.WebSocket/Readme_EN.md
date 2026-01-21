@@ -33,8 +33,11 @@ using Mud.Feishu.WebSocket;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// First register multi-application support
+builder.Services.AddFeishuMultiApp(builder.Configuration);
+
 // One line to register WebSocket service (requires at least one event handler)
-builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")
     .AddHandler<ReceiveMessageEventHandler>()
     .Build();
 
@@ -45,8 +48,11 @@ app.Run();
 ### 3. Complete Configuration (Add Event Handlers)
 
 ```csharp
+// First register multi-application support
+builder.Services.AddFeishuMultiApp(builder.Configuration);
+
 // Register from configuration file and add event handlers
-builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")
     .AddHandler<ReceiveMessageEventHandler>()
     .AddHandler<UserCreatedEventHandler>()
     .Build();
@@ -59,16 +65,24 @@ app.Run();
 
 ```json
 {
-  "Feishu": {
-    "AppId": "your_app_id",
-    "AppSecret": "your_app_secret",
-    "WebSocket": {
-      "AutoReconnect": true,
-      "MaxReconnectAttempts": 5,
-      "ReconnectDelayMs": 5000,
-      "HeartbeatIntervalMs": 30000,
-      "EnableLogging": true
+  "FeishuApps": [
+    {
+      "AppKey": "default",
+      "AppId": "your_app_id",
+      "AppSecret": "your_app_secret",
+      "BaseUrl": "https://open.feishu.cn",
+      "TimeOut": 30,
+      "RetryCount": 3,
+      "EnableLogging": true,
+      "IsDefault": true
     }
+  ],
+  "WebSocket": {
+    "AutoReconnect": true,
+    "MaxReconnectAttempts": 5,
+    "ReconnectDelayMs": 5000,
+    "HeartbeatIntervalMs": 30000,
+    "EnableLogging": true
   }
 }
 ```

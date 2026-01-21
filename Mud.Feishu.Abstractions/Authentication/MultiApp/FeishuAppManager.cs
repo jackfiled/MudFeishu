@@ -183,22 +183,26 @@ internal class FeishuAppManager : IFeishuAppManager
         // 创建Logger
         var logger = _serviceProvider.GetRequiredService<ILogger<TokenManagerWithCache>>();
 
+        // 创建配置选项并验证
+        var options = CreateOptions(config);
+        ValidateConfigurationMatch(options.Value, config);
+
         // 创建TokenManager
         var tenantTokenManager = new TenantTokenManager(
             authenticationApi,
-            CreateOptions(config),
+            options,
             logger,
             appCache);
 
         var appTokenManager = new AppTokenManager(
             authenticationApi,
-            CreateOptions(config),
+            options,
             logger,
             appCache);
 
         var userTokenManager = new UserTokenManager(
             authenticationApi,
-            CreateOptions(config),
+            options,
             logger,
             appCache);
 
@@ -218,6 +222,23 @@ internal class FeishuAppManager : IFeishuAppManager
             config.AppKey, config.AppId);
 
         return context;
+    }
+
+    /// <summary>
+    /// 验证配置选项与应用配置匹配
+    /// </summary>
+    private void ValidateConfigurationMatch(FeishuOptions options, FeishuAppConfig config)
+    {
+        if (options.AppId != config.AppId)
+        {
+            throw new InvalidOperationException(
+                $"TokenManager配置不匹配: 配置中的AppId={options.AppId}, 应用的AppId={config.AppId}. 应用键: {config.AppKey}");
+        }
+
+        if (options.AppSecret != config.AppSecret)
+        {
+            _logger.LogWarning("应用 {AppKey} 的AppSecret与配置不完全一致", config.AppKey);
+        }
     }
 
     /// <summary>

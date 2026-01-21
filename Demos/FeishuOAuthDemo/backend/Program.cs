@@ -76,7 +76,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// 添加飞书服务
+// 添加飞书服务 - 使用多应用模式
+builder.Services.AddFeishuMultiApp(builder.Configuration, "Feishu");
+
+// 注册API服务
 builder.Services.CreateFeishuServicesBuilder(builder.Configuration, "Feishu")
     .AddModules(FeishuModule.Organization)
     .Build()

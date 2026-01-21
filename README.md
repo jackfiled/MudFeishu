@@ -147,27 +147,31 @@ dotnet add package Mud.Feishu.Redis
       "Mud.Feishu": "Debug"
     }
   },
-  "Feishu": {
-    "AppId": "your_feishu_app_id",
-    "AppSecret": "your_feishu_app_secret",
-    "BaseUrl": "https://open.feishu.cn",
-    "TimeOut": 30,
-    "RetryCount": 3,
-    "EnableLogging": true,
-    "WebSocket": {
-      "AutoReconnect": true,
-      "MaxReconnectAttempts": 5,
-      "ReconnectDelayMs": 5000,
-      "HeartbeatIntervalMs": 30000,
-      "EnableLogging": true
-    },
-    "Webhook": {
-      "VerificationToken": "your_verification_token",
-      "EncryptKey": "your_encrypt_key_32_bytes_long",
-      "RoutePrefix": "feishu/webhook",
-      "EnableRequestLogging": true,
-      "MaxConcurrentEvents": 10
+  "FeishuApps": [
+    {
+      "AppKey": "default",
+      "AppId": "your_feishu_app_id",
+      "AppSecret": "your_feishu_app_secret",
+      "BaseUrl": "https://open.feishu.cn",
+      "TimeOut": 30,
+      "RetryCount": 3,
+      "EnableLogging": true,
+      "IsDefault": true
     }
+  ],
+  "WebSocket": {
+    "AutoReconnect": true,
+    "MaxReconnectAttempts": 5,
+    "ReconnectDelayMs": 5000,
+    "HeartbeatIntervalMs": 30000,
+    "EnableLogging": true
+  },
+  "Webhook": {
+    "VerificationToken": "your_verification_token",
+    "EncryptKey": "your_encrypt_key_32_bytes_long",
+    "RoutePrefix": "feishu/webhook",
+    "EnableRequestLogging": true,
+    "MaxConcurrentEvents": 10
   }
 }
 ```
@@ -181,11 +185,33 @@ using Mud.Feishu.Webhook;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 注册 HTTP API 服务（方式一：懒人模式 - 注册所有服务）
-builder.Services.AddFeishuServices(builder.Configuration);
+// 注册多应用模式（方式一：从配置文件加载）
+builder.Services.AddFeishuMultiApp(builder.Configuration);
 
-// 注册 HTTP API 服务（方式二：构造者模式 - 按需注册）
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
+// 注册多应用模式（方式二：代码配置）
+builder.Services.AddFeishuMultiApp(configure =>
+{
+    config.AddDefaultApp("default", "cli_xxx", "dsk_xxx");
+    config.AddApp("hr-app", "cli_yyy", "dsk_yyy", opt =>
+    {
+        opt.TimeOut = 45;
+        opt.RetryCount = 5;
+    });
+});
+
+// 注册多应用模式（方式三：使用预构建的配置列表）
+var configs = new List<FeishuAppConfig>
+{
+    new FeishuAppConfig { AppKey = "default", AppId = "cli_xxx", AppSecret = "dsk_xxx", IsDefault = true },
+    new FeishuAppConfig { AppKey = "hr-app", AppId = "cli_yyy", AppSecret = "dsk_yyy" }
+};
+builder.Services.AddFeishuMultiApp(configs);
+
+// 注册 HTTP API 服务（懒人模式 - 注册所有服务）
+builder.Services.AddFeishuHttpClient();
+
+// 注册 HTTP API 服务（构造者模式 - 按需注册）
+builder.Services.CreateFeishuServicesBuilder()
     .AddOrganizationApi()
     .AddMessageApi()
     .AddChatGroupApi()
@@ -194,23 +220,13 @@ builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
     .AddCardApi()
     .Build();
 
-// 注册 HTTP API 服务（方式三：按模块注册）
-builder.Services.AddFeishuServices(builder.Configuration, new[] {
+// 注册 HTTP API 服务（按模块注册）
+builder.Services.AddFeishuHttpClient(new[] {
     FeishuModule.Organization,
     FeishuModule.Message,
     FeishuModule.ChatGroup,
     FeishuModule.Approval
 });
-
-// 注册 HTTP API 服务（方式四：代码配置）
-builder.Services.CreateFeishuServicesBuilder(options =>
-{
-    options.AppId = "your_app_id";
-    options.AppSecret = "your_app_secret";
-    options.BaseUrl = "https://open.feishu.cn";
-})
-.AddAllApis()
-.Build();
 
 // 注册 WebSocket 事件订阅服务
 builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)

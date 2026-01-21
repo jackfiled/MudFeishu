@@ -16,8 +16,11 @@ var builder = WebApplication.CreateBuilder(args);
 // 配置Redis分布式去重服务
 builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
 
+// 注册多应用支持
+builder.Services.AddFeishuMultiApp(builder.Configuration);
+
 // 配置飞书WebSocket服务（添加拦截器）
-builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration)
+builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")
                 .AddInterceptor<LoggingEventInterceptor>() // 日志拦截器（内置）
                 .AddInterceptor<WebSocketTelemetryInterceptor>() // 遥测拦截器（自定义）
                 .AddInterceptor(sp => new RateLimitingInterceptor(

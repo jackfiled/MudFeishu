@@ -1,4 +1,5 @@
 
+
 // -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
@@ -8,6 +9,7 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Mud.Feishu.Abstractions;
 using Mud.Feishu.DataModels.WsEndpoint;
 using Mud.Feishu.WebSocket.SocketEventArgs;
 
@@ -19,9 +21,7 @@ namespace Mud.Feishu.WebSocket;
 public class FeishuWebSocketManager : IFeishuWebSocketManager
 {
     private readonly ILogger<FeishuWebSocketManager> _logger;
-    private readonly IFeishuAuthentication _authenticationApi;
-    private readonly ITenantTokenManager _appTokenManager;
-    private readonly FeishuOptions _feishuOptions;
+    private readonly FeishuAppContext _appContext;
     private readonly FeishuWebSocketOptions _webSocketOptions;
     private readonly IFeishuWebSocketClient _webSocketClient;
     private readonly SemaphoreSlim _startStopLock = new(1, 1);
@@ -37,23 +37,17 @@ public class FeishuWebSocketManager : IFeishuWebSocketManager
     /// 构造函数
     /// </summary>
     /// <param name="logger">日志记录器</param>
-    /// <param name="authenticationApi">认证API</param>
-    /// <param name="appTokenManager">应用令牌管理器</param>
-    /// <param name="feishuOptions">飞书配置选项</param>
+    /// <param name="appContext">飞书应用上下文</param>
     /// <param name="webSocketOptions">WebSocket配置选项</param>
     /// <param name="webSocketClient">WebSocket客户端</param>
     public FeishuWebSocketManager(
         ILogger<FeishuWebSocketManager> logger,
-        IFeishuAuthentication authenticationApi,
-        ITenantTokenManager appTokenManager,
-        IOptions<FeishuOptions> feishuOptions,
+        FeishuAppContext appContext,
         IOptions<FeishuWebSocketOptions> webSocketOptions,
         IFeishuWebSocketClient webSocketClient)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _authenticationApi = authenticationApi ?? throw new ArgumentNullException(nameof(authenticationApi));
-        _appTokenManager = appTokenManager ?? throw new ArgumentNullException(nameof(appTokenManager));
-        _feishuOptions = feishuOptions?.Value ?? throw new ArgumentNullException(nameof(feishuOptions));
+        _appContext = appContext ?? throw new ArgumentNullException(nameof(appContext));
         _webSocketOptions = webSocketOptions?.Value ?? throw new ArgumentNullException(nameof(webSocketOptions));
         _webSocketClient = webSocketClient ?? throw new ArgumentNullException(nameof(webSocketClient));
 
@@ -80,7 +74,7 @@ public class FeishuWebSocketManager : IFeishuWebSocketManager
         }
 
         // 需要刷新令牌
-        var newToken = await _appTokenManager.GetTokenAsync(cancellationToken);
+        var newToken = await _appContext.TenantTokenManager.GetTokenAsync(cancellationToken);
 
         if (string.IsNullOrEmpty(newToken))
         {
@@ -190,7 +184,7 @@ public class FeishuWebSocketManager : IFeishuWebSocketManager
             _logger.LogInformation("正在启动飞书WebSocket服务...");
 
             // 获取应用访问令牌，使用配置的超时时间
-            int timeoutSeconds = _feishuOptions.TimeOut;
+            int timeoutSeconds = _appContext.Config.TimeOut;
 
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
             using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
@@ -215,18 +209,18 @@ public class FeishuWebSocketManager : IFeishuWebSocketManager
             // 获取WebSocket端点
             var credentials = new WsAppCredentials
             {
-                AppId = _feishuOptions.AppId,
-                AppSecret = _feishuOptions.AppSecret
+                AppId = _appContext.Config.AppId,
+                AppSecret = _appContext.Config.AppSecret
             };
 
             // 使用重试策略获取WebSocket端点
-            var maxRetries = _feishuOptions.RetryCount;
+            var maxRetries = _appContext.Config.RetryCount;
             WsEndpointResult? wsEndpointData = null;
 
             wsEndpointData = await RetryWithExponentialBackoffAsync(
                 async () =>
                 {
-                    var wsEndpointResult = await _authenticationApi.GetWebSocketEndpointAsync(credentials, cancellationToken);
+                    var wsEndpointResult = await _appContext.Authentication.GetWebSocketEndpointAsync(credentials, cancellationToken);
                     if (wsEndpointResult?.Data == null)
                     {
                         throw new InvalidOperationException("获取的WebSocket端点信息为空");

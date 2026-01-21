@@ -1,4 +1,5 @@
 
+
 // -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
@@ -17,17 +18,28 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class ServiceCollectionExtensions
 {
     private const string DefaultConfigurationSection = ":WebSocket";
-    private const string DefaultFeishuConfigurationSection = "Feishu";
 
     /// <summary>
     /// 注册飞书WebSocket服务（使用配置节）
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <param name="configuration">配置对象</param>
+    /// <param name="appKey">应用键，默认为 "default"</param>
     /// <returns>服务集合，支持链式调用</returns>
-    public static FeishuWebSocketServiceBuilder CreateFeishuWebSocketServiceBuilder(this IServiceCollection services, IConfiguration configuration)
+    /// <remarks>
+    /// 注意：使用此方法前需要先注册多应用支持。
+    /// 示例：
+    /// <code>
+    /// builder.Services.AddFeishuMultiApp(builder.Configuration);
+    /// builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default");
+    /// </code>
+    /// </remarks>
+    public static FeishuWebSocketServiceBuilder CreateFeishuWebSocketServiceBuilder(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        string appKey = "default")
     {
-        return services.CreateFeishuWebSocketServiceBuilder(configuration, DefaultFeishuConfigurationSection);
+        return services.CreateFeishuWebSocketServiceBuilder(configuration, "WebSocket", appKey);
     }
 
     /// <summary>
@@ -36,7 +48,9 @@ public static class ServiceCollectionExtensions
     /// <param name="services">服务集合</param>
     /// <param name="configureOptions">配置选项的委托</param>
     /// <returns>服务集合，支持链式调用</returns>
-    public static FeishuWebSocketServiceBuilder CreateFeishuWebSocketServiceBuilder(this IServiceCollection services, Action<FeishuWebSocketOptions> configureOptions)
+    public static FeishuWebSocketServiceBuilder CreateFeishuWebSocketServiceBuilder(
+        this IServiceCollection services,
+        Action<FeishuWebSocketOptions> configureOptions)
     {
         if (configureOptions == null)
             throw new ArgumentNullException(nameof(configureOptions));
@@ -50,13 +64,27 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"WebSocket"</param>
+    /// <param name="sectionName">WebSocket配置节名称，默认为"WebSocket"</param>
+    /// <param name="appKey">应用键，默认为 "default"</param>
     /// <returns>WebSocket服务建造者</returns>
-    public static FeishuWebSocketServiceBuilder CreateFeishuWebSocketServiceBuilder(this IServiceCollection services, IConfiguration configuration, string? sectionName = null)
+    /// <remarks>
+    /// 注意：使用此方法前需要先注册多应用支持。
+    /// 示例：
+    /// <code>
+    /// builder.Services.AddFeishuMultiApp(builder.Configuration);
+    /// builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "WebSocket", "default");
+    /// </code>
+    /// </remarks>
+    public static FeishuWebSocketServiceBuilder CreateFeishuWebSocketServiceBuilder(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        string sectionName = "WebSocket",
+        string appKey = "default")
     {
-        sectionName = sectionName ?? DefaultFeishuConfigurationSection;
-        services.AddTenantTokenManager(configuration, sectionName);
+        if (string.IsNullOrWhiteSpace(appKey))
+            throw new ArgumentException("应用键不能为空", nameof(appKey));
+
         var builder = new FeishuWebSocketServiceBuilder(services);
-        return builder.ConfigureFrom(configuration, sectionName + DefaultConfigurationSection);
+        return builder.ConfigureFrom(configuration, sectionName, appKey);
     }
 }

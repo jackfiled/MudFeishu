@@ -134,7 +134,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
         var cachedToken = await _tokenCache.GetAsync(cacheKey, cancellationToken);
         if (!string.IsNullOrEmpty(cachedToken))
         {
-            _logger.LogDebug("Using cached token for {TokenType}", _tokenType);
+            _logger.LogDebug("Using cached token for {TokenType}, AppId: {AppId}", _tokenType, _options.AppId);
             return FormatBearerToken(cachedToken);
         }
 
@@ -176,7 +176,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// </remarks>
     private async Task<CredentialToken> AcquireTokenAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Acquiring new token for {TokenType}", _tokenType);
+        _logger.LogInformation("Acquiring new token for {TokenType}, AppId: {AppId}", _tokenType, _options.AppId);
 
         // 实现重试机制
         var retryCount = 0;
@@ -194,8 +194,8 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
                 // 原子性地更新缓存
                 await UpdateTokenCacheAsync(newToken, cancellationToken);
 
-                _logger.LogInformation("Successfully acquired new token for {TokenType}, expires at {ExpireTime}",
-                    _tokenType, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));
+                _logger.LogInformation("Successfully acquired new token for {TokenType}, AppId: {AppId}, expires at {ExpireTime}",
+                    _tokenType, _options.AppId, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));
 
                 return newToken;
             }

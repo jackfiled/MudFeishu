@@ -135,27 +135,31 @@ dotnet add package Mud.Feishu.Redis
       "Mud.Feishu": "Debug"
     }
   },
-  "Feishu": {
-    "AppId": "your_feishu_app_id",
-    "AppSecret": "your_feishu_app_secret",
-    "BaseUrl": "https://open.feishu.cn",
-    "TimeOut": 30,
-    "RetryCount": 3,
-    "EnableLogging": true,
-    "WebSocket": {
-      "AutoReconnect": true,
-      "MaxReconnectAttempts": 5,
-      "ReconnectDelayMs": 5000,
-      "HeartbeatIntervalMs": 30000,
-      "EnableLogging": true
-    },
-    "Webhook": {
-      "VerificationToken": "your_verification_token",
-      "EncryptKey": "your_encrypt_key_32_bytes_long",
-      "RoutePrefix": "feishu/webhook",
-      "EnableRequestLogging": true,
-      "MaxConcurrentEvents": 10
+  "FeishuApps": [
+    {
+      "AppKey": "default",
+      "AppId": "your_feishu_app_id",
+      "AppSecret": "your_feishu_app_secret",
+      "BaseUrl": "https://open.feishu.cn",
+      "TimeOut": 30,
+      "RetryCount": 3,
+      "EnableLogging": true,
+      "IsDefault": true
     }
+  ],
+  "WebSocket": {
+    "AutoReconnect": true,
+    "MaxReconnectAttempts": 5,
+    "ReconnectDelayMs": 5000,
+    "HeartbeatIntervalMs": 30000,
+    "EnableLogging": true
+  },
+  "Webhook": {
+    "VerificationToken": "your_verification_token",
+    "EncryptKey": "your_encrypt_key_32_bytes_long",
+    "RoutePrefix": "feishu/webhook",
+    "EnableRequestLogging": true,
+    "MaxConcurrentEvents": 10
   }
 }
 ```
@@ -169,11 +173,33 @@ using Mud.Feishu.Webhook;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register HTTP API Services (One line for all services)
-builder.Services.AddFeishuServices(builder.Configuration);
+// Register multi-application mode (Option 1: Load from configuration file)
+builder.Services.AddFeishuMultiApp(builder.Configuration);
+
+// Register multi-application mode (Option 2: Code configuration)
+builder.Services.AddFeishuMultiApp(configure =>
+{
+    config.AddDefaultApp("default", "cli_xxx", "dsk_xxx");
+    config.AddApp("hr-app", "cli_yyy", "dsk_yyy", opt =>
+    {
+        opt.TimeOut = 45;
+        opt.RetryCount = 5;
+    });
+});
+
+// Register multi-application mode (Option 3: Use pre-built configuration list)
+var configs = new List<FeishuAppConfig>
+{
+    new FeishuAppConfig { AppKey = "default", AppId = "cli_xxx", AppSecret = "dsk_xxx", IsDefault = true },
+    new FeishuAppConfig { AppKey = "hr-app", AppId = "cli_yyy", AppSecret = "dsk_yyy" }
+};
+builder.Services.AddFeishuMultiApp(configs);
+
+// Register HTTP API services (All services)
+builder.Services.AddFeishuHttpClient();
 
 // Or use builder pattern for selective registration
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration)
+builder.Services.CreateFeishuServicesBuilder()
     .AddOrganizationApi()
     .AddMessageApi()
     .AddChatGroupApi()

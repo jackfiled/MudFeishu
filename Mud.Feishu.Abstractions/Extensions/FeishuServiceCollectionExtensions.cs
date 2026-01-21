@@ -56,9 +56,12 @@ public static class FeishuServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 添加飞书HttpClient注册代码。
+    /// 添加飞书HttpClient注册代码（已过时,请使用多应用模式）
     /// </summary>
     /// <returns></returns>
+    /// <remarks>
+    /// 此方法仅为向后兼容保留,推荐使用 AddFeishuMultiApp() 方法
+    /// </remarks>
     public static IServiceCollection AddFeishuHttpClient<TImplementation>(this IServiceCollection services)
         where TImplementation : class, IEnhancedHttpClient
     {
@@ -84,151 +87,14 @@ public static class FeishuServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 添加飞书HttpClient注册代码。
+    /// 添加飞书HttpClient注册代码（已过时,请使用多应用模式）
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <returns></returns>
+    /// <remarks>
+    /// 此方法仅为向后兼容保留,推荐使用 AddFeishuMultiApp() 方法
+    /// </remarks>
     public static IServiceCollection AddFeishuHttpClient(this IServiceCollection services) => services.AddFeishuHttpClient<FeishuHttpClient>();
-
-    /// <summary>
-    /// 添加令牌管理服务（使用默认的内存缓存）
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddTokenManagers(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
-    {
-        return services.ConfigureFrom(configuration, sectionName)
-                       .AddTokenManagers();
-    }
-
-    /// <summary>
-    /// 添加令牌管理服务（使用默认的内存缓存）
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddTokenManagers(this IServiceCollection services)
-    {
-        services.AddFeishuHttpClient();
-        services.TryAddSingleton<ITokenCache, MemoryTokenCache>();
-
-        services.TryAddSingleton<ITenantTokenManager, TenantTokenManager>();
-        services.TryAddSingleton<IAppTokenManager, AppTokenManager>();
-        services.TryAddSingleton<IUserTokenManager, UserTokenManager>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// 添加令牌管理服务（使用自定义缓存实现）
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddTokenManagers<TCacheImplementation>(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
-        where TCacheImplementation : class, ITokenCache
-    {
-        return services.ConfigureFrom(configuration, sectionName)
-                       .AddTokenManagers<TCacheImplementation>();
-    }
-
-    /// <summary>
-    /// 添加令牌管理服务（使用自定义缓存实现）
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddTokenManagers<TCacheImplementation>(this IServiceCollection services)
-        where TCacheImplementation : class, ITokenCache
-    {
-        services.AddFeishuHttpClient();
-        services.TryAddSingleton<ITokenCache, TCacheImplementation>();
-
-        services.TryAddSingleton<ITenantTokenManager, TenantTokenManager>();
-        services.TryAddSingleton<IAppTokenManager, AppTokenManager>();
-        services.TryAddSingleton<IUserTokenManager, UserTokenManager>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// 添加租户令牌管理服务
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddTenantTokenManager(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
-    {
-        return services.ConfigureFrom(configuration, sectionName)
-                       .AddTenantTokenManager();
-    }
-
-    /// <summary>
-    /// 添加租户令牌管理服务
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddTenantTokenManager(this IServiceCollection services)
-    {
-        services.AddFeishuHttpClient();
-        services.TryAddSingleton<ITokenCache, MemoryTokenCache>();
-        services.TryAddSingleton<ITenantTokenManager, TenantTokenManager>();
-        return services;
-    }
-
-    /// <summary>
-    /// 添加应用令牌管理服务
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddAppTokenManager(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
-    {
-        return services.ConfigureFrom(configuration, sectionName)
-                       .AddAppTokenManager();
-    }
-
-    /// <summary>
-    /// 添加应用令牌管理服务
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddAppTokenManager(this IServiceCollection services)
-    {
-        services.AddFeishuHttpClient();
-        services.TryAddSingleton<ITokenCache, MemoryTokenCache>();
-        services.TryAddSingleton<IAppTokenManager, AppTokenManager>();
-        return services;
-    }
-
-    /// <summary>
-    /// 添加用户令牌管理服务
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddUserTokenManager(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
-    {
-        return services.ConfigureFrom(configuration, sectionName)
-                       .AddUserTokenManager();
-    }
-
-    /// <summary>
-    /// 添加用户令牌管理服务
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <returns>服务集合实例。支持链式调用</returns>
-    public static IServiceCollection AddUserTokenManager(this IServiceCollection services)
-    {
-        services.AddFeishuHttpClient();
-        services.TryAddSingleton<ITokenCache, MemoryTokenCache>();
-        services.TryAddSingleton<IUserTokenManager, UserTokenManager>();
-        return services;
-    }
 
     /// <summary>
     /// 添加令牌缓存服务（自定义实现）

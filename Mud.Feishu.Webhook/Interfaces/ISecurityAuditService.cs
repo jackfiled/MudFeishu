@@ -20,12 +20,14 @@ public interface ISecurityAuditService
     /// <param name="requestPath">请求路径</param>
     /// <param name="details">详细信息</param>
     /// <param name="requestId">请求ID</param>
+    /// <param name="appKey">应用标识（可选，多应用模式下使用）</param>
     Task LogSecurityFailureAsync(
         SecurityEventType eventType,
         string clientIp,
         string requestPath,
         string details,
-        string? requestId = null);
+        string? requestId = null,
+        string? appKey = null);
 
     /// <summary>
     /// 记录安全验证成功事件
@@ -35,12 +37,14 @@ public interface ISecurityAuditService
     /// <param name="requestPath">请求路径</param>
     /// <param name="details">详细信息</param>
     /// <param name="requestId">请求ID</param>
+    /// <param name="appKey">应用标识（可选，多应用模式下使用）</param>
     Task LogSecuritySuccessAsync(
         SecurityEventType eventType,
         string clientIp,
         string requestPath,
         string details,
-        string? requestId = null);
+        string? requestId = null,
+        string? appKey = null);
 }
 
 /// <summary>

@@ -36,8 +36,15 @@ public static class FeishuServiceCollectionBuilderExtensions
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
 
-        services.AddTokenManagers(configuration, sectionName);
-        return services.CreateFeishuServicesBuilder();
+        // 注册API服务需要的基础HTTP服务
+        services.AddFeishuHttpClient();
+
+        return services.CreateFeishuServicesBuilder()
+                       .ConfigureOptions(options =>
+                       {
+                           var section = configuration.GetSection(sectionName);
+                           section.Bind(options);
+                       });
     }
 
 
@@ -52,25 +59,13 @@ public static class FeishuServiceCollectionBuilderExtensions
         if (configureOptions == null)
             throw new ArgumentNullException(nameof(configureOptions));
 
-        services.AddTokenManagers();
+        // 注册API服务需要的基础HTTP服务
+        services.AddFeishuHttpClient();
+
         return services.CreateFeishuServicesBuilder()
                        .ConfigureOptions(configureOptions);
     }
 
-
-    /// <summary>
-    /// 快速注册飞书所有服务（懒人模式全功能注册）
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
-    /// <returns>服务集合，支持链式调用</returns>
-    public static IServiceCollection AddFeishuServices(this IServiceCollection services, IConfiguration configuration, string sectionName = "Feishu")
-    {
-        return services.CreateFeishuServicesBuilder(configuration, sectionName)
-                       .AddAllApis()
-                       .Build();
-    }
 
 
 

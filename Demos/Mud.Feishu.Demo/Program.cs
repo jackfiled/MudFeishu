@@ -22,7 +22,10 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddOpenApi();
 #endif
 
-// 添加飞书服务
+// 添加飞书服务 - 使用多应用模式
+builder.Services.AddFeishuMultiApp(builder.Configuration, "Feishu");
+
+// 注册API服务
 builder.Services.CreateFeishuServicesBuilder(builder.Configuration, "Feishu")
                 .AddModules(FeishuModule.All)
                 .Build()
