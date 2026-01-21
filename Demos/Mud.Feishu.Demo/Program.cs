@@ -23,10 +23,10 @@ builder.Services.AddOpenApi();
 #endif
 
 // 添加飞书服务 - 使用多应用模式
-builder.Services.AddFeishuApp(builder.Configuration, "Feishu");
+builder.Services.AddFeishuApp(builder.Configuration, "FeishuApps");
 
 // 注册API服务
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration, "Feishu")
+builder.Services.CreateFeishuServicesBuilder()
                 .AddModules(FeishuModule.All)
                 .Build()
                 .AddLogging(option => option.AddConsole());

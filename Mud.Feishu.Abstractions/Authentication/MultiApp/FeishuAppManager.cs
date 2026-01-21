@@ -68,12 +68,41 @@ internal class FeishuAppManager : IFeishuAppManager
         _logger.LogInformation("飞书应用管理器初始化完成，共加载 {Count} 个应用", _apps.Count);
     }
 
+    /// <summary>
+    /// 根据应用键获取飞书API实例
+    /// </summary>
+    /// <typeparam name="T">飞书API类型</typeparam>
+    /// <param name="appKey">应用键</param>
+    /// <returns>指定应用的飞书API实例</returns>
+    public T GetFeishuApi<T>(string appKey) where T : IFeishuAppContextSwitcher
+    {
+        var service = _serviceProvider.GetService<T>();
+        if (service == null)
+            throw new InvalidOperationException($"未注册飞书API服务: {typeof(T).FullName}");
+        service.UseApp(appKey);
+        return service;
+    }
+
+    /// <summary>
+    /// 获取默认应用的飞书API实例
+    /// </summary>
+    /// <typeparam name="T">飞书API类型</typeparam>
+    /// <returns>默认应用的飞书API实例</returns>
+    public T GetFeishuApi<T>() where T : IFeishuAppContextSwitcher
+    {
+        var service = _serviceProvider.GetService<T>();
+        if (service == null)
+            throw new InvalidOperationException($"未注册飞书API服务: {typeof(T).FullName}");
+        service.UseDefaultApp();
+        return service;
+    }
+
 
 
     /// <summary>
     /// 获取默认应用上下文
     /// </summary>
-    public FeishuAppContext GetDefaultApp()
+    public IMudAppContext GetDefaultApp()
     {
         var defaultApp = _apps.Values.FirstOrDefault(a => a.Config.IsDefault)
             ?? throw new InvalidOperationException("未配置默认应用");
@@ -84,7 +113,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 获取指定应用上下文
     /// </summary>
-    public FeishuAppContext GetApp(string appKey)
+    public IMudAppContext GetApp(string appKey)
     {
         if (string.IsNullOrWhiteSpace(appKey))
             return GetDefaultApp();
@@ -98,7 +127,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 尝试获取应用上下文
     /// </summary>
-    public bool TryGetApp(string appKey, out FeishuAppContext? appContext)
+    public bool TryGetApp(string appKey, out IMudAppContext? appContext)
     {
         if (string.IsNullOrWhiteSpace(appKey))
         {
@@ -114,7 +143,9 @@ internal class FeishuAppManager : IFeishuAppManager
             }
         }
 
-        return _apps.TryGetValue(appKey, out appContext);
+        var result = _apps.TryGetValue(appKey, out var appContext1);
+        appContext = appContext1;
+        return result;
     }
 
     /// <summary>
@@ -136,7 +167,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 运行时添加应用
     /// </summary>
-    public FeishuAppContext AddApp(FeishuAppConfig config)
+    public IMudAppContext AddApp(FeishuAppConfig config)
     {
         config.Validate();
 

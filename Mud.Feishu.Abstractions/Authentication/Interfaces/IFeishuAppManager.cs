@@ -21,6 +21,22 @@ namespace Mud.Feishu.Abstractions;
 /// </remarks>
 public interface IFeishuAppManager
 {
+
+    /// <summary>
+    /// 根据应用键获取飞书API实例
+    /// </summary>
+    /// <typeparam name="T">飞书API类型</typeparam>
+    /// <param name="appKey">应用键</param>
+    /// <returns>指定应用的飞书API实例</returns>
+    T GetFeishuApi<T>(string appKey) where T : IFeishuAppContextSwitcher;
+
+    /// <summary>
+    /// 获取默认应用的飞书API实例
+    /// </summary>
+    /// <typeparam name="T">飞书API类型</typeparam>
+    /// <returns>默认应用的飞书API实例</returns>
+    T GetFeishuApi<T>() where T : IFeishuAppContextSwitcher;
+
     /// <summary>
     /// 获取默认应用上下文
     /// </summary>
@@ -30,7 +46,7 @@ public interface IFeishuAppManager
     /// 获取系统配置的默认应用上下文。
     /// 默认应用是通过 FeishuAppConfig.IsDefault = true 标记的应用。
     /// </remarks>
-    FeishuAppContext GetDefaultApp();
+    IMudAppContext GetDefaultApp();
 
     /// <summary>
     /// 获取指定应用上下文
@@ -42,7 +58,7 @@ public interface IFeishuAppManager
     /// 根据应用键获取对应的飞书应用上下文。
     /// 应用键是在配置中定义的唯一标识，如 "default", "hr-app" 等。
     /// </remarks>
-    FeishuAppContext GetApp(string appKey);
+    IMudAppContext GetApp(string appKey);
 
     /// <summary>
     /// 尝试获取应用上下文
@@ -53,7 +69,7 @@ public interface IFeishuAppManager
     /// <remarks>
     /// 安全地尝试获取应用上下文，如果应用不存在不会抛出异常。
     /// </remarks>
-    bool TryGetApp(string appKey, out FeishuAppContext? appContext);
+    bool TryGetApp(string appKey, out IMudAppContext? appContext);
 
     /// <summary>
     /// 获取所有已注册的应用
@@ -85,7 +101,7 @@ public interface IFeishuAppManager
     /// 应用配置会自动验证，验证通过后会创建对应的应用上下文。
     /// 如果应用键已存在，会抛出异常。
     /// </remarks>
-    FeishuAppContext AddApp(FeishuAppConfig config);
+    IMudAppContext AddApp(FeishuAppConfig config);
 
     /// <summary>
     /// 移除应用

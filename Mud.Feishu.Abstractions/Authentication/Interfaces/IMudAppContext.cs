@@ -37,4 +37,20 @@ public interface IMudAppContext : IDisposable
     /// <param name="tokenType">令牌类型</param>
     /// <returns></returns>
     ITokenManager GetTokenManager(TokenType tokenType);
+
+    /// <summary>
+    /// 应用配置
+    /// </summary>
+    /// <remarks>
+    /// 包含此应用的所有配置信息，如AppId、AppSecret、BaseUrl等。
+    /// </remarks>
+    FeishuAppConfig Config { get; }
+
+    /// <summary>
+    /// 认证API客户端
+    /// </summary>
+    /// <remarks>
+    /// 用于调用飞书认证相关API的服务接口。
+    /// </remarks>
+    IFeishuAuthentication Authentication { get; }
 }
