@@ -43,11 +43,15 @@ public class ChatGroupController : ControllerBase
     {
         try
         {
+            _chatGroupApi.UseApp("hr-app");
+
             var result = await _chatGroupApi.CreateChatGroupAsync(
                 createChatRequest,
                 userIdType,
                 setBotManager,
                 uuid);
+
+            _chatGroupApi.UseDefaultApp();
 
             if (result.Code == 0)
             {

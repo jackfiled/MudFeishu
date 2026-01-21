@@ -15,7 +15,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV1Departments : IFeishuHttpClientService
+public interface IFeishuV1Departments : IFeishuAppContextSwitcher
 {
 
     /// <summary>

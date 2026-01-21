@@ -19,7 +19,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV3JobFamilies : IFeishuHttpClientService
+public interface IFeishuTenantV3JobFamilies : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 创建一个序列。序列是用户属性之一，用来定义用户的工作类型，例如产品、研发、运营等。

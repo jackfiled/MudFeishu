@@ -18,7 +18,7 @@ namespace Mud.Feishu;
 [HttpClientApi(RegistryGroupName = "Cards", TokenManage = nameof(IFeishuAppManager))]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV2AppCardMessageStream : IFeishuHttpClientService
+public interface IFeishuTenantV2AppCardMessageStream : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 创建应用消息流卡片

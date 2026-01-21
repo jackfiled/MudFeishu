@@ -14,7 +14,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2TaskList : IFeishuHttpClientService
+public interface IFeishuV2TaskList : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// <para>创建一个清单。清单可以用于组织和管理属于同一个项目的多个任务。</para>

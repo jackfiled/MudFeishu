@@ -15,7 +15,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary> 
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV1Message : IFeishuHttpClientService
+public interface IFeishuV1Message : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 撤回指定消息。调用接口的身份不同（身份通过 Authorization 请求头参数指定），可实现的效果不同：

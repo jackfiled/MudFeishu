@@ -17,7 +17,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Approval")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV2ApprovalFile : IFeishuHttpClientService
+public interface IFeishuTenantV2ApprovalFile : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 当审批表单中有图片或者附件控件时，开发者需要在调用创建审批实例前，

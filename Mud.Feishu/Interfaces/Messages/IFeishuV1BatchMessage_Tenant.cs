@@ -16,7 +16,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Message")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV1BatchMessage : IFeishuHttpClientService
+public interface IFeishuTenantV1BatchMessage : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 给多个用户或者多个部门中的成员发送文本消息。

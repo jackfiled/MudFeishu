@@ -15,7 +15,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV3Departments : IFeishuHttpClientService
+public interface IFeishuV3Departments : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 获取单个部门信息，包括部门名称、ID、父部门、负责人、状态以及成员个数等。

@@ -14,7 +14,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV1ChatGroup : IFeishuHttpClientService
+public interface IFeishuV1ChatGroup : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 更新指定群的信息，包括群头像、群名称、群描述、群配置以及群主等。

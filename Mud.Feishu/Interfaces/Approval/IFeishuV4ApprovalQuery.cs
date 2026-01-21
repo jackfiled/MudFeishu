@@ -15,7 +15,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV4ApprovalQuery : IFeishuHttpClientService
+public interface IFeishuV4ApprovalQuery : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 根据用户和任务分组查询任务列表。

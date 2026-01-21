@@ -18,7 +18,7 @@ namespace Mud.Feishu;
 [HttpClientApi(RegistryGroupName = "Cards", TokenManage = nameof(IFeishuAppManager))]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV1CardElements : IFeishuHttpClientService
+public interface IFeishuTenantV1CardElements : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 为指定卡片实体新增组件，以扩展卡片内容，如在卡片中添加一个点击按钮。

@@ -14,7 +14,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV1ChatGroupAnnouncement : IFeishuHttpClientService
+public interface IFeishuV1ChatGroupAnnouncement : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 获取指定群组中的群公告基本信息。

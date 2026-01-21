@@ -19,7 +19,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV3Role : IFeishuHttpClientService
+public interface IFeishuTenantV3Role : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 创建一个角色。

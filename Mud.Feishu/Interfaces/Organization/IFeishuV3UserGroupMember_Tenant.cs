@@ -17,7 +17,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV3UserGroupMember : IFeishuHttpClientService
+public interface IFeishuTenantV3UserGroupMember : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 向指定的普通用户组内添加成员。

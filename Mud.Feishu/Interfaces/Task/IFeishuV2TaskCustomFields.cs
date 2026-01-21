@@ -15,7 +15,7 @@ namespace Mud.Feishu.Interfaces;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2TaskCustomFields : IFeishuHttpClientService
+public interface IFeishuV2TaskCustomFields : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// <para>创建一个自定义字段，并将其加入一个资源上（目前资源只支持清单）。</para>

@@ -16,7 +16,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Approval")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV4Approval : IFeishuHttpClientService
+public interface IFeishuTenantV4Approval : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 用于创建审批定义，可以灵活指定审批定义的基础信息、表单和流程等。
