@@ -14,8 +14,9 @@ namespace Mud.Feishu;
 /// <item>按类别分组，市场相关、人事相关，...</item></list></para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/task-v2/section/section-feature-overview"/></para>
 /// </summary> 
-[HttpClientApi(TokenManage = nameof(IUserTokenManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2TaskSections))]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2TaskSections))]
 [Header(Consts.Authorization)]
+[Token(TokenType.UserAccessToken)]
 public interface IFeishuUserV2TaskSections : IFeishuV2TaskSections
 {
 

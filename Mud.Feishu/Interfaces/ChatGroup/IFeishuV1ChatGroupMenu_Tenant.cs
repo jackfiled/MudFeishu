@@ -15,9 +15,10 @@ namespace Mud.Feishu;
 /// <para>当前接口使用租户令牌访问，适应于租户应用场景。</para>
 /// 接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/group/chat-menu_tree/overview"/>
 /// </summary>
-[HttpClientApi(RegistryGroupName = "ChatGroup", TokenManage = nameof(ITenantTokenManager))]
+[HttpClientApi(RegistryGroupName = "ChatGroup", TokenManage = nameof(IFeishuAppManager))]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV1ChatGroupMenu
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV1ChatGroupMenu : IMudHttpClientService
 {
     /// <summary>
     /// 在指定群组中添加一个或多个群菜单。成功调用后接口会返回当前群组内所有群菜单信息。

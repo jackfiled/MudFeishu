@@ -11,8 +11,9 @@ namespace Mud.Feishu;
 /// <para>飞书清单可以用于组织和管理属于同一个项目的多个任务。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/task-v2/tasklist/overview"/></para>
 /// </summary> 
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2TaskList))]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2TaskList))]
 [Header(Consts.Authorization)]
+[Token(TokenType.TenantAccessToken)]
 public interface IFeishuTenantV2TaskList : IFeishuV2TaskList
 {
 }

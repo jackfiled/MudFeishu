@@ -12,9 +12,9 @@ namespace Mud.Feishu.Interfaces;
 /// <summary>
 /// 飞书群成员包括用户和机器人。在飞书群组内，支持添加用户或者机器人作为群成员，同时支持将用户或者机器人设置为群管理员。
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV1ChatGroupMember
+public interface IFeishuV1ChatGroupMember : IMudHttpClientService
 {
     /// <summary>
     /// 指定群组，将群内指定的用户或者机器人设置为群管理员。

@@ -17,17 +17,12 @@ namespace Mud.Feishu.TokenManager;
 /// 负责租户访问令牌（Tenant Access Token）的获取、缓存和管理。
 /// 租户令牌用于租户级别的权限验证，通过AppId和AppSecret获取。
 /// </remarks>
-internal class TenantTokenManager : TokenManagerWithCache, ITenantTokenManager
+internal class TenantTokenManager(
+   IFeishuV3Authentication authenticationApi,
+   IOptions<FeishuOptions> options,
+   ILogger<TokenManagerWithCache> logger,
+   ITokenCache tokenCache) : TokenManagerWithCache(authenticationApi, options, logger, tokenCache, TokenType.TenantAccessToken), ITenantTokenManager
 {
-    public TenantTokenManager(
-       IFeishuV3Authentication authenticationApi,
-       IOptions<FeishuOptions> options,
-       ILogger<TokenManagerWithCache> logger,
-       ITokenCache tokenCache) : base(authenticationApi, options, logger, tokenCache, TokenType.TenantAccessToken)
-    {
-
-    }
-
     protected override async Task<CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)
     {
         var credentials = new AppCredentials

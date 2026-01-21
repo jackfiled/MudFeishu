@@ -13,9 +13,10 @@ namespace Mud.Feishu;
 /// 原生审批：根据企业业务需要在飞书审批中心创建审批定义，用来定义一类审批的表单与流程，后续员工发起审批时，需要填写定义的表单，审批的流转也会按照定义的流程进行。
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/approval-v4/approval/overview-of-approval-resources"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Approval")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Approval")]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV4Approval
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV4Approval : IMudHttpClientService
 {
     /// <summary>
     /// 用于创建审批定义，可以灵活指定审批定义的基础信息、表单和流程等。

@@ -17,17 +17,12 @@ namespace Mud.Feishu.TokenManager;
 /// 负责应用身份访问令牌（App Access Token）的获取、缓存和管理。
 /// 应用令牌用于应用级别的权限验证，通过AppId和AppSecret获取。
 /// </remarks>
-internal class AppTokenManager : TokenManagerWithCache, IAppTokenManager
+internal class AppTokenManager(
+   IFeishuV3Authentication authenticationApi,
+   IOptions<FeishuOptions> options,
+   ILogger<TokenManagerWithCache> logger,
+   ITokenCache tokenCache) : TokenManagerWithCache(authenticationApi, options, logger, tokenCache, TokenType.AppAccessToken), IAppTokenManager
 {
-    public AppTokenManager(
-       IFeishuV3Authentication authenticationApi,
-       IOptions<FeishuOptions> options,
-       ILogger<TokenManagerWithCache> logger,
-       ITokenCache tokenCache) : base(authenticationApi, options, logger, tokenCache, TokenType.AppAccessToken)
-    {
-
-    }
-
     protected override async Task<CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)
     {
         var credentials = new AppCredentials

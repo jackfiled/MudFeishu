@@ -15,9 +15,10 @@ namespace Mud.Feishu;
 /// <para>使用通讯录 API，可以对人员类型资源进行增删改查操作。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/overview"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Organization")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV3EmployeeType
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV3EmployeeType : IMudHttpClientService
 {
     /// <summary>
     /// 新增一个自定义的人员类型。人员类型是用户属性之一，用于灵活标记用户的身份类型。

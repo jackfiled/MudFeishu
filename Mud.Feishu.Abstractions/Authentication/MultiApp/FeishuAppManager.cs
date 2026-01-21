@@ -68,28 +68,7 @@ internal class FeishuAppManager : IFeishuAppManager
         _logger.LogInformation("飞书应用管理器初始化完成，共加载 {Count} 个应用", _apps.Count);
     }
 
-    /// <summary>
-    /// 更改当前的默认应用
-    /// </summary>
-    /// <param name="appKey">应用键</param>
-    /// <returns>默认应用上下文</returns>
-    /// <remarks>
-    /// 根据应用键更改当前对应的飞书应用上下文。
-    /// 应用键是在配置中定义的唯一标识，如 "default", "hr-app" 等。
-    /// </remarks>
-    public FeishuAppContext ChangeDefaultApp(string appKey)
-    {
-        var app = GetApp(appKey);
-        // 重置其他应用的默认标记
-        foreach (var otherApp in _apps.Values)
-        {
-            otherApp.Config.IsDefault = false;
-        }
-        app.Config.IsDefault = true;
-        _logger.LogInformation("已更改默认飞书应用为: {AppKey} (AppId: {AppId})",
-            app.Config.AppKey, app.Config.AppId);
-        return app;
-    }
+
 
     /// <summary>
     /// 获取默认应用上下文
@@ -193,9 +172,13 @@ internal class FeishuAppManager : IFeishuAppManager
         // 创建带应用键前缀的缓存
         var baseCache = _serviceProvider.GetRequiredService<ITokenCache>();
         var appCache = new PrefixedTokenCache(baseCache, config.AppKey);
+        var jsonSerializerOptions = _serviceProvider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>();
+
+        // 为每个应用创建独立的HttpClient
+        var httpClient = CreateHttpClient(config, jsonSerializerOptions);
 
         // 创建认证API
-        var authenticationApi = _serviceProvider.GetRequiredService<IFeishuV3Authentication>();
+        var authenticationApi = new FeishuV3Authentication(httpClient, jsonSerializerOptions);
 
         // 创建Logger
         var logger = _serviceProvider.GetRequiredService<ILogger<TokenManagerWithCache>>();
@@ -219,8 +202,6 @@ internal class FeishuAppManager : IFeishuAppManager
             logger,
             appCache);
 
-        // 为每个应用创建独立的HttpClient
-        var httpClient = CreateHttpClient(config);
 
         var context = new FeishuAppContext(
             config,
@@ -242,12 +223,11 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 创建独立的HttpClient实例
     /// </summary>
-    private IEnhancedHttpClient CreateHttpClient(FeishuAppConfig config)
+    private IEnhancedHttpClient CreateHttpClient(FeishuAppConfig config, IOptionsMonitor<JsonSerializerOptions> jsonSerializerOptions)
     {
         var httpClientFactory = _serviceProvider.GetRequiredService<IHttpClientFactory>();
         var httpClient = httpClientFactory.CreateClient($"feishu-{config.AppKey}");
         var logger = _serviceProvider.GetRequiredService<ILogger<FeishuHttpClient>>();
-        var jsonSerializerOptions = _serviceProvider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>();
 
         // 配置HttpClient
         httpClient.BaseAddress = new Uri(config.BaseUrl ?? "https://open.feishu.cn");

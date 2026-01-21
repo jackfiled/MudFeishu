@@ -5,15 +5,22 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu;
+namespace Mud.Feishu.Abstractions;
 
 /// <summary>
-/// 任务清单动态订阅
-/// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/task-v2/tasklist-activity_subscription/create"/></para>
+/// 所有HTTP客户端服务的标记接口
 /// </summary>
-[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2TaskActivitySubscriptions))]
-[Header(Consts.Authorization)]
-[Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV2TaskActivitySubscriptions : IFeishuV2TaskActivitySubscriptions
+public interface IMudHttpClientService
 {
+    /// <summary>
+    /// 更改当前HTTP客户端服务的应用上下文
+    /// </summary>
+    /// <param name="appKey">应用键</param>
+    /// <returns>当前HTTP客户端服务的应用上下文</returns>
+    /// <remarks>
+    /// 根据应用键更改当前对应的飞书应用上下文。
+    /// 应用键是在配置中定义的唯一标识，如 "default", "hr-app" 等。
+    /// </remarks>
+    [IgnoreGenerator]
+    IMudAppContext ChangeCurrentContext(string appKey);
 }

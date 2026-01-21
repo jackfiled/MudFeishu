@@ -14,9 +14,9 @@ namespace Mud.Feishu.Interfaces;
 /// <para>可以轻松地在飞书App的任务中心，群组，文档等场景中快捷创建任务。</para>
 /// <para>同时也可以将任务分享给感兴趣的成员，或者关注和跟进一些感兴趣的任务。</para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2Task
+public interface IFeishuV2Task : IMudHttpClientService
 {
     /// <summary>
     /// <para>创建一个任务，在创建任务时，支持填写任务的基本信息（如标题、描述、负责人等），</para>

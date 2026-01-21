@@ -14,9 +14,9 @@ namespace Mud.Feishu.Interfaces;
 /// <para>附件不可以单独存在，必须与某种资源产生关联关系。</para>
 /// <para>关联附件的资源类型只有任务。因为附件不可单独存在，因此为新任务添加附件时，必须先调用创建任务接口，完成任务创建，再调用上传附件接口上传文件，并关联到新建的任务上。</para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2TaskAttachments
+public interface IFeishuV2TaskAttachments : IMudHttpClientService
 {
     /// <summary>
     /// 为特定资源上传附件。本接口可以支持一次上传多个附件，最多5个。每个附件尺寸不超过50MB，格式不限。

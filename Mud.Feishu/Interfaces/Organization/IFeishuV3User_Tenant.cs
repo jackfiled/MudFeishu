@@ -14,8 +14,9 @@ namespace Mud.Feishu;
 /// <para>当前接口使用租户令牌访问，适应于租户应用场景。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/contact-v3/user/field-overview"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Organization", InheritedFrom = nameof(FeishuV3User))]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization", InheritedFrom = nameof(FeishuV3User))]
 [Header(Consts.Authorization)]
+[Token(TokenType.TenantAccessToken)]
 public interface IFeishuTenantV3User : IFeishuV3User
 {
     /// <summary>

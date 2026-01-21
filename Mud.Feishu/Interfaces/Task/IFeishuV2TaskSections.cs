@@ -15,9 +15,9 @@ namespace Mud.Feishu.Interfaces;
 /// <item>按优先级分组，P0-重要且紧急，P1-重要但不紧急，...</item>
 /// <item>按类别分组，市场相关、人事相关，...</item></list></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2TaskSections
+public interface IFeishuV2TaskSections : IMudHttpClientService
 {
     /// <summary>
     /// <para>为清单或我负责的任务列表创建一个自定义分组。</para>

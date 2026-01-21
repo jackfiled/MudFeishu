@@ -7,6 +7,7 @@
 
 namespace Mud.Feishu.Abstractions;
 
+
 /// <summary>
 /// 飞书应用上下文
 /// </summary>
@@ -20,8 +21,34 @@ namespace Mud.Feishu.Abstractions;
 /// 
 /// 每个应用上下文是完全独立的，不同应用之间的配置、缓存和资源互不干扰。
 /// </remarks>
-public class FeishuAppContext : IDisposable
+public class FeishuAppContext : IMudAppContext, IDisposable
 {
+    /// <summary>
+    /// HTTP客户端
+    /// </summary>
+    /// <remarks>
+    /// 用于发送HTTP请求到飞书API的客户端实例。
+    /// 每个应用拥有独立的HTTP客户端实例。
+    /// </remarks>
+    public IEnhancedHttpClient HttpClient { get; private set; }
+
+
+    /// <summary>
+    /// 根据令牌类型获取对应的令牌管理器
+    /// </summary>
+    /// <param name="tokenType">令牌类型</param>
+    /// <returns></returns>
+    public ITokenManager GetTokenManager(TokenType tokenType)
+    {
+        return tokenType switch
+        {
+            TokenType.TenantAccessToken => TenantTokenManager,
+            TokenType.AppAccessToken => AppTokenManager,
+            TokenType.UserAccessToken => UserTokenManager,
+            _ => throw new ArgumentOutOfRangeException(nameof(tokenType), $"Unsupported token type: {tokenType}")
+        };
+    }
+
     /// <summary>
     /// 应用配置
     /// </summary>
@@ -73,15 +100,6 @@ public class FeishuAppContext : IDisposable
     /// 缓存键会自动添加应用前缀，确保不同应用的缓存互不干扰。
     /// </remarks>
     public ITokenCache TokenCache { get; }
-
-    /// <summary>
-    /// HTTP客户端
-    /// </summary>
-    /// <remarks>
-    /// 用于发送HTTP请求到飞书API的客户端实例。
-    /// 每个应用拥有独立的HTTP客户端实例。
-    /// </remarks>
-    public IEnhancedHttpClient HttpClient { get; }
 
     /// <summary>
     /// 初始化飞书应用上下文

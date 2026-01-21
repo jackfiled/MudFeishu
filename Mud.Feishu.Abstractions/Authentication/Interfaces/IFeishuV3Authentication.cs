@@ -13,7 +13,6 @@ namespace Mud.Feishu.Abstractions;
 /// 飞书认证授权相关的API
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal"/></para>
 /// </summary>
-[HttpClientApi(RegistryGroupName = "Authentication")]
 public interface IFeishuV3Authentication
 {
     /// <summary>

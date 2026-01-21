@@ -22,17 +22,6 @@ namespace Mud.Feishu.Abstractions;
 public interface IFeishuAppManager
 {
     /// <summary>
-    /// 更改当前的默认应用
-    /// </summary>
-    /// <param name="appKey">应用键</param>
-    /// <returns>默认应用上下文</returns>
-    /// <remarks>
-    /// 根据应用键更改当前对应的飞书应用上下文。
-    /// 应用键是在配置中定义的唯一标识，如 "default", "hr-app" 等。
-    /// </remarks>
-    FeishuAppContext ChangeDefaultApp(string appKey);
-
-    /// <summary>
     /// 获取默认应用上下文
     /// </summary>
     /// <returns>默认应用上下文</returns>

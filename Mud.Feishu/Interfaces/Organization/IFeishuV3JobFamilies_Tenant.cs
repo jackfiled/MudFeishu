@@ -16,9 +16,10 @@ namespace Mud.Feishu;
 /// <para>通过序列 API，可以创建、更新、查询、删除序列信息。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/contact-v3/job_family/job-family-resource-introduction"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Organization")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV3JobFamilies
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV3JobFamilies : IMudHttpClientService
 {
     /// <summary>
     /// 创建一个序列。序列是用户属性之一，用来定义用户的工作类型，例如产品、研发、运营等。

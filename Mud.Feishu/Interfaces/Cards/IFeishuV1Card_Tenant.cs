@@ -15,9 +15,9 @@ namespace Mud.Feishu;
 /// <para>当前接口使用租户令牌访问，适应于租户应用场景。</para>
 /// 接口详细文档请参见：<see href="https://open.feishu.cn/document/cardkit-v1/feishu-card-resource-overview"/>
 /// </summary>
-[HttpClientApi(RegistryGroupName = "Cards", TokenManage = nameof(ITenantTokenManager))]
+[HttpClientApi(RegistryGroupName = "Cards", TokenManage = nameof(IFeishuAppManager))]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV1Card
+public interface IFeishuTenantV1Card : IMudHttpClientService
 {
     /// <summary>
     /// 基于卡片 JSON 代码或卡片搭建工具搭建的卡片，创建卡片实体。用于后续通过卡片实体 ID（card_id）发送卡片、更新卡片等。

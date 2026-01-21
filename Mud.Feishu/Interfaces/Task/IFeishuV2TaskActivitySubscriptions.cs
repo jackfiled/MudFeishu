@@ -12,9 +12,9 @@ namespace Mud.Feishu.Interfaces;
 /// <summary>
 /// 任务清单动态订阅
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2TaskActivitySubscriptions
+public interface IFeishuV2TaskActivitySubscriptions : IMudHttpClientService
 {
     /// <summary>
     /// <para>为一个清单创建一个订阅。每个订阅可以包含1个或多个订阅者（目前只支持普通群组）。</para>

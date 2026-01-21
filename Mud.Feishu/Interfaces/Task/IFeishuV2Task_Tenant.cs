@@ -13,8 +13,9 @@ namespace Mud.Feishu;
 /// <para>同时也可以将任务分享给感兴趣的成员，或者关注和跟进一些感兴趣的任务。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/task-v2/task/overview"/></para>
 /// </summary> 
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2Task))]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2Task))]
 [Header(Consts.Authorization)]
+[Token(TokenType.TenantAccessToken)]
 public interface IFeishuTenantV2Task : IFeishuV2Task
 {
 }

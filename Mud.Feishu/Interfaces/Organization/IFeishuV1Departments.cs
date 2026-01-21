@@ -13,9 +13,9 @@ namespace Mud.Feishu.Interfaces;
 /// 部门是飞书组织架构里的一个基础实体，每个员工都归属于一个或多个部门。
 /// <para>当前接口不能直接调用，仅为子接口的公共方法抽象</para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV1Departments
+public interface IFeishuV1Departments : IMudHttpClientService
 {
 
     /// <summary>

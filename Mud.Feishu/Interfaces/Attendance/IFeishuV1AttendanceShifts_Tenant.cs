@@ -13,9 +13,10 @@ namespace Mud.Feishu;
 /// 考勤班次是描述一次考勤任务时间规则的统称，比如一天打多少次卡，每次卡的上下班时间，晚到多长时间算迟到，晚到多长时间算缺卡等。
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/attendance-v1/shift/create"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Attendance")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Attendance")]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV1AttendanceShifts
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV1AttendanceShifts : IMudHttpClientService
 {
     /// <summary>
     /// 创建考勤班次

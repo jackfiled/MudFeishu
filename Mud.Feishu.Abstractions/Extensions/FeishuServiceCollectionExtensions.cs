@@ -9,7 +9,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using Mud.Feishu.Abstractions.Internal;
 using Mud.Feishu.Abstractions.Utilities;
 using Mud.Feishu.TokenManager;
 using Polly;

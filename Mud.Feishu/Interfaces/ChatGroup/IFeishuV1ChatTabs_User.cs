@@ -12,8 +12,9 @@ namespace Mud.Feishu;
 /// <para>当前接口使用用户令牌访问，适应于用户应用场景。</para>
 /// 接口详细文档请参见：<see href="https://open.feishu.cn/document/group/chat-tab/chat-tab-overview"/>
 /// </summary>
-[HttpClientApi(RegistryGroupName = "ChatGroup", TokenManage = nameof(IUserTokenManager), InheritedFrom = nameof(FeishuV1ChatTabs))]
+[HttpClientApi(RegistryGroupName = "ChatGroup", TokenManage = nameof(IFeishuAppManager), InheritedFrom = nameof(FeishuV1ChatTabs))]
 [Header(Consts.Authorization)]
+[Token(TokenType.UserAccessToken)]
 public interface IFeishuUserV1ChatTabs : IFeishuV1ChatTabs
 {
 }

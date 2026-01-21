@@ -13,9 +13,9 @@ namespace Mud.Feishu.Interfaces;
 /// 任务功能支持在任务中扩充自定义字段，更清晰地添加任务关键信息，高效管理任务，辅助协作推进。
 /// <para>任务的使用者可以在使用“任务截止时间”，“任务负责人”……等系统字段之外，自行定义如”优先级“，”项目发布日期“，”价格“等和使用场景密切相关的字段。</para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV2TaskCustomFields
+public interface IFeishuV2TaskCustomFields : IMudHttpClientService
 {
     /// <summary>
     /// <para>创建一个自定义字段，并将其加入一个资源上（目前资源只支持清单）。</para>

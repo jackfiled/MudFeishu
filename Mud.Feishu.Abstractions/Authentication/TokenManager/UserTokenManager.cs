@@ -27,18 +27,13 @@ namespace Mud.Feishu.TokenManager;
 /// <remarks>
 /// 支持多用户令牌缓存，每个用户的令牌独立存储和管理。
 /// </remarks>
-internal class UserTokenManager : TokenManagerWithCache, IUserTokenManager
+internal class UserTokenManager(
+   IFeishuV3Authentication authenticationApi,
+   IOptions<FeishuOptions> options,
+   ILogger<TokenManagerWithCache> logger,
+   ITokenCache tokenCache) : TokenManagerWithCache(authenticationApi, options, logger, tokenCache, TokenType.UserAccessToken), IUserTokenManager
 {
     private string? _currentUserId;
-
-    public UserTokenManager(
-       IFeishuV3Authentication authenticationApi,
-       IOptions<FeishuOptions> options,
-       ILogger<TokenManagerWithCache> logger,
-       ITokenCache tokenCache) : base(authenticationApi, options, logger, tokenCache, TokenType.UserAccessToken)
-    {
-
-    }
 
     public override async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
     {

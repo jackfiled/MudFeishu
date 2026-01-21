@@ -18,7 +18,8 @@ partial class FeishuV2TaskAttachments
          string user_id_type = Consts.User_Id_Type,
          CancellationToken cancellationToken = default)
     {
-        var access_token = await _tokenManager.GetTokenAsync();
+        var tokenManager = _appContext.GetTokenManager(GetTokeType());
+        var access_token = await tokenManager.GetTokenAsync();
         if (string.IsNullOrEmpty(access_token))
         {
             throw new InvalidOperationException("无法获取访问令牌");
@@ -40,7 +41,7 @@ partial class FeishuV2TaskAttachments
         fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
         formData.Add(fileContent, "file", Path.GetFileName(uploadFileRequest.File));
         request.Content = fileContent;
-
-        return await _httpClient.SendAsync<FeishuApiResult<TaskAttachmentsUploadResult>>(request, cancellationToken);
+        var httpClient = _appContext.HttpClient;
+        return await httpClient.SendAsync<FeishuApiResult<TaskAttachmentsUploadResult>>(request, cancellationToken);
     }
 }

@@ -17,7 +17,8 @@ partial class FeishuTenantV1Message
       [Body] UploadFileRequest uploadFileRequest,
       CancellationToken cancellationToken = default)
     {
-        var access_token = await _tokenManager.GetTokenAsync();
+        var tokenManager = _appContext.GetTokenManager(GetTokeType());
+        var access_token = await tokenManager.GetTokenAsync();
         if (string.IsNullOrEmpty(access_token))
         {
             throw new InvalidOperationException("无法获取访问令牌");
@@ -43,7 +44,8 @@ partial class FeishuTenantV1Message
         formData.Add(fileContent, "file", Path.GetFileName(uploadFileRequest.FullName));
         request.Content = fileContent;
 
-        return await _httpClient.SendAsync<FeishuApiResult<FileUploadResult>>(request, cancellationToken);
+        var httpClient = _appContext.HttpClient;
+        return await httpClient.SendAsync<FeishuApiResult<FileUploadResult>>(request, cancellationToken);
 
     }
 
@@ -51,7 +53,8 @@ partial class FeishuTenantV1Message
              [Body] UploadImageRequest uploadImageRequest,
              CancellationToken cancellationToken = default)
     {
-        var access_token = await _tokenManager.GetTokenAsync();
+        var tokenManager = _appContext.GetTokenManager(GetTokeType());
+        var access_token = await tokenManager.GetTokenAsync();
         if (string.IsNullOrEmpty(access_token))
         {
             throw new InvalidOperationException("无法获取访问令牌");
@@ -72,7 +75,9 @@ partial class FeishuTenantV1Message
         fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
         formData.Add(fileContent, "image", Path.GetFileName(uploadImageRequest.FullName));
         request.Content = fileContent;
-        return await _httpClient.SendAsync<FeishuApiResult<ImageUpdateResult>>(request, cancellationToken);
+
+        var httpClient = _appContext.HttpClient;
+        return await httpClient.SendAsync<FeishuApiResult<ImageUpdateResult>>(request, cancellationToken);
 
     }
 

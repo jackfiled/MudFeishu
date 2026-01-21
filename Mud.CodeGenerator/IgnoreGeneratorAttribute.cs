@@ -8,9 +8,9 @@
 namespace Mud.CodeGenerator;
 
 /// <summary>
-/// 忽略生成函数的包装接口及实现。
+/// 忽略代码生成。
 /// </summary>
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-internal class IgnoreWrapInterfaceAttribute : Attribute
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Method, AllowMultiple = false)]
+public class IgnoreGeneratorAttribute : Attribute
 {
 }

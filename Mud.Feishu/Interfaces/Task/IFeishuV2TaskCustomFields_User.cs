@@ -12,8 +12,9 @@ namespace Mud.Feishu;
 /// <para>任务的使用者可以在使用“任务截止时间”，“任务负责人”……等系统字段之外，自行定义如”优先级“，”项目发布日期“，”价格“等和使用场景密切相关的字段。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/task-v2/custom_field/custom-field-overview"/></para>
 /// </summary> 
-[HttpClientApi(TokenManage = nameof(IUserTokenManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2TaskCustomFields))]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2TaskCustomFields))]
 [Header(Consts.Authorization)]
+[Token(TokenType.UserAccessToken)]
 public interface IFeishuUserV2TaskCustomFields : IFeishuV2TaskCustomFields
 {
 }

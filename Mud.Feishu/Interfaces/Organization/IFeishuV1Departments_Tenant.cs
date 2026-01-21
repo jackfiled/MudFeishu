@@ -13,8 +13,9 @@ namespace Mud.Feishu;
 /// <para>部门在飞书的身份标识包括department_id、open_department_id。</para>
 /// 接口详细文档请参见：<see href="https://open.feishu.cn/document/directory-v1/department/overview"/>
 /// </summary>
-[HttpClientApi(RegistryGroupName = "Organization", TokenManage = nameof(ITenantTokenManager), InheritedFrom = nameof(FeishuV1Departments))]
+[HttpClientApi(RegistryGroupName = "Organization", TokenManage = nameof(IFeishuAppManager), InheritedFrom = nameof(FeishuV1Departments))]
 [Header(Consts.Authorization)]
+[Token(TokenType.TenantAccessToken)]
 public interface IFeishuTenantV1Departments : IFeishuV1Departments
 {
 }

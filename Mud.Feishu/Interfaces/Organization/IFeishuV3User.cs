@@ -14,9 +14,9 @@ namespace Mud.Feishu.Interfaces;
 /// <para>当前接口不能直接调用，仅为子接口的公共方法抽象</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/contact-v3/user/field-overview"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV3User
+public interface IFeishuV3User : IMudHttpClientService
 {
 
     /// <summary>

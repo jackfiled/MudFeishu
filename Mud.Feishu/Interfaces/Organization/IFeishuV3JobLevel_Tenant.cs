@@ -16,9 +16,10 @@ namespace Mud.Feishu;
 /// <para>使用职级 API，可以创建、更新、删除或查询职级。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/contact-v3/job_level/job-level-resources-introduction"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Organization")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV3JobLevel
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV3JobLevel : IMudHttpClientService
 {
     /// <summary>
     /// 创建一个职级。职级是用户属性之一，用于标识用户的职位级别，例如 P1、P2、P3、P4。

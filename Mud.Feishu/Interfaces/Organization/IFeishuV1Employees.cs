@@ -13,9 +13,9 @@ namespace Mud.Feishu.Interfaces;
 /// 员工指飞书企业内身份为「Employee」的成员，等同于通讯录OpenAPI中的「User」。
 /// <para>当前接口不能直接调用，仅为子接口的公共方法抽象</para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV1Employees
+public interface IFeishuV1Employees : IMudHttpClientService
 {
     /// <summary>
     /// 用于在企业下创建员工。支持传入姓名、手机号等信息，生成在职状态的员工对象。员工指飞书企业内身份为「Employee」的成员，等同于通讯录OpenAPI中的「User」。

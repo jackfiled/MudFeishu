@@ -12,6 +12,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)EventHandlerAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)FilePathAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpClientApiWrapAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IgnoreGeneratorAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TokenAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)BodyAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HeaderAttribute.cs" />
@@ -28,6 +29,5 @@
     <Compile Include="$(MSBuildThisFileDirectory)ArrayQueryAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IgnoreImplementAttribute.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)IgnoreWrapInterfaceAttribute.cs" />
   </ItemGroup>
 </Project>

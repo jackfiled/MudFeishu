@@ -16,9 +16,10 @@ namespace Mud.Feishu;
 /// <para>例如，选择财务角色作为报销流程的审批人。这样做可以避免因成员离职变动导致的审批流失效的情况，角色内的其他成员可以继续完成审批，提高审批效率。</para> 
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/contact-v3/functional_role/resource-introduction"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Organization")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV3Role
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV3Role : IMudHttpClientService
 {
     /// <summary>
     /// 创建一个角色。

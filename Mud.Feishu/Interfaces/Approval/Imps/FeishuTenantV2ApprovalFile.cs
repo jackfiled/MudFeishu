@@ -17,7 +17,8 @@ partial class FeishuTenantV2ApprovalFile
       UploadFileRequest uploadFileRequest,
       CancellationToken cancellationToken = default)
     {
-        var access_token = await _tokenManager.GetTokenAsync();
+        var tokenManager = _appContext.GetTokenManager(GetTokeType());
+        var access_token = await tokenManager.GetTokenAsync();
         if (string.IsNullOrEmpty(access_token))
         {
             throw new InvalidOperationException("无法获取访问令牌");
@@ -41,8 +42,8 @@ partial class FeishuTenantV2ApprovalFile
         fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
         formData.Add(fileContent, "content", Path.GetFileName(uploadFileRequest.FullName));
         request.Content = fileContent;
-
-        return await _httpClient.SendAsync<FeishuApiResult<FileUploadResult>>(request, cancellationToken);
+        var httpClient = _appContext.HttpClient;
+        return await httpClient.SendAsync<FeishuApiResult<FileUploadResult>>(request, cancellationToken);
 
     }
 }

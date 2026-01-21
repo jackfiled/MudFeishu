@@ -13,9 +13,9 @@ namespace Mud.Feishu.Interfaces;
 /// 职务是用户属性之一，通过职务 API 仅支持查询职务信息。
 /// <para>当前接口不能直接调用，仅为子接口的公共方法抽象</para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV3JobTitle
+public interface IFeishuV3JobTitle : IMudHttpClientService
 {
     /// <summary>
     /// 获取当前租户下的职务信息，包括职务的 ID、名称、多语言名称以及启用状态。

@@ -12,8 +12,9 @@ namespace Mud.Feishu;
 /// <para>当前接口使用用户令牌访问，适应于用户应用场景。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/contact-v3/work_city/work-city-resources-introduction"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(IUserTokenManager), RegistryGroupName = "Organization", InheritedFrom = nameof(FeishuV3WorkCity))]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization", InheritedFrom = nameof(FeishuV3WorkCity))]
 [Header(Consts.Authorization)]
+[Token(TokenType.UserAccessToken)]
 public interface IFeishuUserV3WorkCity : IFeishuV3WorkCity
 {
 }

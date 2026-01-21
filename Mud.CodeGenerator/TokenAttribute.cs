@@ -10,7 +10,7 @@ namespace Mud.CodeGenerator;
 /// <summary>
 /// HTTP 声明式token参数特性
 /// </summary>
-[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Interface, AllowMultiple = false)]
 internal sealed class TokenAttribute : Attribute
 {
     /// <summary>
@@ -41,7 +41,7 @@ internal sealed class TokenAttribute : Attribute
 public enum TokenType
 {
     /// <summary>
-    /// 使用租户Token调用函数。
+    /// 使用应用Token调用函数。
     /// </summary>
     TenantAccessToken = 0,
     /// <summary>
@@ -49,7 +49,7 @@ public enum TokenType
     /// </summary>
     UserAccessToken = 1,
     /// <summary>
-    /// 使用应用Token调用函数。
+    /// 使用用户Token调用函数。
     /// </summary>
     AppAccessToken = 2,
 }

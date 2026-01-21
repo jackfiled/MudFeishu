@@ -16,9 +16,10 @@ namespace Mud.Feishu;
 /// <para>使三方审批系统的审批数据可以在飞书审批之间来回流转，从而实现企业员工在飞书内一站式查看和处理所有审批任务。</para>
 /// 接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/approval-v4/external_approval/overview"/>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Approval")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Approval")]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV4ApprovalExternal
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV4ApprovalExternal : IMudHttpClientService
 {
 
     /// <summary>

@@ -14,9 +14,10 @@ namespace Mud.Feishu;
 /// <para>当审批表单中有图片或者附件控件时，开发者需要在调用创建审批实例前，将传入图片或附件控件的文件上传到审批系统，系统会返回文件的 code，该 code 用于创建审批实例时为图片或附件控件赋值。</para>
 /// 接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/approval-v4/file/overview"/>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Approval")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Approval")]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV2ApprovalFile
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV2ApprovalFile : IMudHttpClientService
 {
     /// <summary>
     /// 当审批表单中有图片或者附件控件时，开发者需要在调用创建审批实例前，

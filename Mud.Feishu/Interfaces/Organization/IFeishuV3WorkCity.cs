@@ -13,9 +13,9 @@ namespace Mud.Feishu.Interfaces;
 /// 工作城市是用户属性之一，通过工作城市 API 仅支持查询工作城市信息。
 /// <para>当前接口不能直接调用，仅为子接口的公共方法抽象</para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV3WorkCity
+public interface IFeishuV3WorkCity : IMudHttpClientService
 {
     /// <summary>
     /// 获取当前租户下所有工作城市信息，包括工作城市的 ID、名称、多语言名称以及启用状态。

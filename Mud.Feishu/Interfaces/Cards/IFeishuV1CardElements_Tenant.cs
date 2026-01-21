@@ -15,9 +15,10 @@ namespace Mud.Feishu;
 /// <para>当前接口使用租户令牌访问，适应于租户应用场景。</para>
 /// 接口详细文档请参见：<see href="https://open.feishu.cn/document/cardkit-v1/feishu-card-resource-overview"/>
 /// </summary>
-[HttpClientApi(RegistryGroupName = "Cards", TokenManage = nameof(ITenantTokenManager))]
+[HttpClientApi(RegistryGroupName = "Cards", TokenManage = nameof(IFeishuAppManager))]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV1CardElements
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV1CardElements : IMudHttpClientService
 {
     /// <summary>
     /// 为指定卡片实体新增组件，以扩展卡片内容，如在卡片中添加一个点击按钮。

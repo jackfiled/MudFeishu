@@ -15,9 +15,10 @@ namespace Mud.Feishu;
 /// <para>各类业务权限管控可以与用户组关联，从而实现高效便捷的成员权限管控。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/contact-v3/group/overview"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITenantTokenManager), RegistryGroupName = "Organization")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization")]
 [Header(Consts.Authorization)]
-public interface IFeishuTenantV3UserGroup
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV3UserGroup : IMudHttpClientService
 {
     /// <summary>
     /// 创建用户组。用户组是飞书通讯录中基础实体之一，在用户组内可添加用户或部门资源。各类业务权限管控可以与用户组关联，从而实现高效便捷的成员权限管控。

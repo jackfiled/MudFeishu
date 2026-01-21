@@ -13,9 +13,9 @@ namespace Mud.Feishu.Interfaces;
 /// 通过不同条件查询审批系统中符合条件的审批实例、审批抄送、审批抄送列表(适用于原生审批及三方审批)。
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/approval-v4/approval-search/query-2"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 [Header(Consts.Authorization)]
-public interface IFeishuV4ApprovalQuery
+public interface IFeishuV4ApprovalQuery : IMudHttpClientService
 {
     /// <summary>
     /// 根据用户和任务分组查询任务列表。
