@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
 
 // 注册多应用支持
-builder.Services.AddFeishuMultiApp(builder.Configuration);
+builder.Services.AddFeishuApp(builder.Configuration);
 
 // 配置飞书WebSocket服务（添加拦截器）
 builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")

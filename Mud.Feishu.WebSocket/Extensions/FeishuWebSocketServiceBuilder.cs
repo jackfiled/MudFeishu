@@ -42,7 +42,7 @@ public class FeishuWebSocketServiceBuilder
     /// <param name="appKey">应用键，默认为 "default"</param>
     /// <returns>建造者实例，支持链式调用</returns>
     /// <remarks>
-    /// 注意：使用此方法前需要先注册多应用支持（AddFeishuMultiApp）。
+    /// 注意：使用此方法前需要先注册多应用支持（AddFeishuApp）。
     /// </remarks>
     public FeishuWebSocketServiceBuilder ConfigureFrom(
         IConfiguration configuration,

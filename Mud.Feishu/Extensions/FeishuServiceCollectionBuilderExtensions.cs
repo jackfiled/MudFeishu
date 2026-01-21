@@ -5,8 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.Extensions.Configuration;
-
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -19,40 +17,23 @@ public static class FeishuServiceCollectionBuilderExtensions
     /// </summary>
     /// <param name="services">服务集合</param>
     /// <returns>飞书服务建造者实例</returns>
-    static FeishuServiceBuilder CreateFeishuServicesBuilder(this IServiceCollection services)
+    public static FeishuServiceBuilder CreateFeishuServicesBuilder(this IServiceCollection services)
     {
         return new FeishuServiceBuilder(services);
     }
 
     /// <summary>
-    /// 使用配置文件创建飞书服务建造者
-    /// </summary>
-    /// <param name="services">服务集合</param>
-    /// <param name="configuration">配置对象</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
-    /// <returns>飞书服务建造者实例</returns>
-    public static FeishuServiceBuilder CreateFeishuServicesBuilder(this IServiceCollection services, IConfiguration configuration, string sectionName = "FeishuApps")
-    {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
-        return services.CreateFeishuServicesBuilder();
-    }
-
-
-    /// <summary>
     /// 根据模块注册飞书服务
     /// </summary>
     /// <param name="services">服务集合</param>
-    /// <param name="configuration">配置对象</param>
     /// <param name="modules">要注册的模块</param>
-    /// <param name="sectionName">配置节名称，默认为"Feishu"</param>
     /// <returns>服务集合，支持链式调用</returns>
-    public static IServiceCollection AddFeishuServices(this IServiceCollection services, IConfiguration configuration, FeishuModule[] modules, string sectionName = "Feishu")
+    public static IServiceCollection AddFeishuServices(this IServiceCollection services, FeishuModule[] modules)
     {
         if (modules == null || modules.Length == 0)
             throw new ArgumentException("至少需要指定一个模块", nameof(modules));
 
-        return services.CreateFeishuServicesBuilder(configuration, sectionName)
+        return services.CreateFeishuServicesBuilder()
                        .AddModules(modules)
                        .Build();
     }

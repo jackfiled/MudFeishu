@@ -76,11 +76,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// 添加飞书服务 - 使用多应用模式
-builder.Services.AddFeishuMultiApp(builder.Configuration, "Feishu");
+// 添加飞书应用服务
+builder.Services.AddFeishuApp(builder.Configuration, "FeishuApps");
 
 // 注册API服务
-builder.Services.CreateFeishuServicesBuilder(builder.Configuration, "Feishu")
+builder.Services.CreateFeishuServicesBuilder()
     .AddModules(FeishuModule.Organization)
     .Build()
     .AddLogging(options => options.AddConsole());

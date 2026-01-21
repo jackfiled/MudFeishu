@@ -74,7 +74,7 @@ public static class FeishuServiceCollectionExtensions
     /// <remarks>
     /// 此方法用于多应用系统，注册了基础依赖项但不注册全局TokenManager。
     /// </remarks>
-    internal static IServiceCollection AddFeishuMultiAppBaseServices(this IServiceCollection services, List<FeishuAppConfig> configs)
+    internal static IServiceCollection AddFeishuAppBaseServices(this IServiceCollection services, List<FeishuAppConfig> configs)
     {
         foreach (var config in configs)
         {

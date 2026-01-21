@@ -186,10 +186,10 @@ using Mud.Feishu.Webhook;
 var builder = WebApplication.CreateBuilder(args);
 
 // 注册多应用模式（方式一：从配置文件加载）
-builder.Services.AddFeishuMultiApp(builder.Configuration);
+builder.Services.AddFeishuApp(builder.Configuration);
 
 // 注册多应用模式（方式二：代码配置）
-builder.Services.AddFeishuMultiApp(configure =>
+builder.Services.AddFeishuApp(configure =>
 {
     config.AddDefaultApp("default", "cli_xxx", "dsk_xxx");
     config.AddApp("hr-app", "cli_yyy", "dsk_yyy", opt =>
@@ -205,7 +205,7 @@ var configs = new List<FeishuAppConfig>
     new FeishuAppConfig { AppKey = "default", AppId = "cli_xxx", AppSecret = "dsk_xxx", IsDefault = true },
     new FeishuAppConfig { AppKey = "hr-app", AppId = "cli_yyy", AppSecret = "dsk_yyy" }
 };
-builder.Services.AddFeishuMultiApp(configs);
+builder.Services.AddFeishuApp(configs);
 
 // 注册 HTTP API 服务（懒人模式 - 注册所有服务）
 builder.Services.AddFeishuHttpClient();

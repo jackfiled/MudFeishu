@@ -33,7 +33,7 @@ public static class RedisFeishuServiceBuilderExtensions
             var logger = sp.GetService<ILogger<RedisOptions>>();
             var options = new RedisOptions();
 
-            configuration?.GetSection("Feishu:Redis").Bind(options);
+            configuration?.GetSection("FeishuRedis").Bind(options);
 
             // 验证配置
             options.Validate();
@@ -92,7 +92,7 @@ public static class RedisFeishuServiceBuilderExtensions
         // 注册健康检查
         services.AddSingleton<RedisHealthCheck>();
         services.AddHealthChecks()
-            .AddCheck<RedisHealthCheck>("feishu-redis", tags: new[] { "redis", "feishu" });
+            .AddCheck<RedisHealthCheck>("feishu-redis", tags: ["redis", "feishu"]);
 
         return services;
     }
@@ -178,10 +178,11 @@ public static class RedisFeishuServiceBuilderExtensions
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
 
-        // 使用标准的 IOptions 模式注册配置
+        var section = sectionName ?? "FeishuRedis";
         services.Configure<RedisOptions>(options =>
         {
-            configuration.GetSection(sectionName).Bind(options);
+            configuration.GetSection(section).Bind(options);
+            options.Validate();
         });
 
         return services

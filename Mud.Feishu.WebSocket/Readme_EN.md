@@ -34,7 +34,7 @@ using Mud.Feishu.WebSocket;
 var builder = WebApplication.CreateBuilder(args);
 
 // First register multi-application support
-builder.Services.AddFeishuMultiApp(builder.Configuration);
+builder.Services.AddFeishuApp(builder.Configuration);
 
 // One line to register WebSocket service (requires at least one event handler)
 builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")
@@ -49,7 +49,7 @@ app.Run();
 
 ```csharp
 // First register multi-application support
-builder.Services.AddFeishuMultiApp(builder.Configuration);
+builder.Services.AddFeishuApp(builder.Configuration);
 
 // Register from configuration file and add event handlers
 builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")

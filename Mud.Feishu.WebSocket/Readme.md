@@ -37,7 +37,7 @@ using Mud.Feishu.WebSocket;
 var builder = WebApplication.CreateBuilder(args);
 
 // 先注册多应用支持
-builder.Services.AddFeishuMultiApp(builder.Configuration);
+builder.Services.AddFeishuApp(builder.Configuration);
 
 // 一行代码注册WebSocket服务（需要至少一个事件处理器）
 builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")
@@ -52,7 +52,7 @@ app.Run();
 
 ```csharp
 // 先注册多应用支持
-builder.Services.AddFeishuMultiApp(builder.Configuration);
+builder.Services.AddFeishuApp(builder.Configuration);
 
 // 从配置文件注册并添加事件处理器
 builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default")

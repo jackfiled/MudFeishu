@@ -52,7 +52,7 @@ public static class FeishuMultiAppExtensions
     /// }
     /// </code>
     /// </remarks>
-    public static IServiceCollection AddFeishuMultiApp(
+    public static IServiceCollection AddFeishuApp(
         this IServiceCollection services,
         IConfiguration configuration,
         string sectionName = "FeishuApps")
@@ -74,7 +74,7 @@ public static class FeishuMultiAppExtensions
         ValidateAndSetDefaultApp(configs);
 
         // 注册基础服务（HttpClient工厂）
-        services.AddFeishuMultiAppBaseServices(configs);
+        services.AddFeishuAppBaseServices(configs);
 
         // 注册配置到服务容器
         services.AddSingleton(configs);
@@ -128,7 +128,7 @@ public static class FeishuMultiAppExtensions
     /// 通过代码方式配置飞书应用。
     /// 配置示例：
     /// <code>
-    /// services.AddFeishuMultiApp(configure =>
+    /// services.AddFeishuApp(configure =>
     /// {
     ///     config.AddDefaultApp("default", "cli_xxx", "dsk_xxx");
     ///     config.AddApp("hr-app", "cli_yyy", "dsk_yyy", opt =>
@@ -139,7 +139,7 @@ public static class FeishuMultiAppExtensions
     /// });
     /// </code>
     /// </remarks>
-    public static IServiceCollection AddFeishuMultiApp(
+    public static IServiceCollection AddFeishuApp(
         this IServiceCollection services,
         Action<FeishuAppConfigBuilder> configure)
     {
@@ -153,7 +153,7 @@ public static class FeishuMultiAppExtensions
         var configs = builder.Build();
 
         // 注册基础服务
-        services.AddFeishuMultiAppBaseServices(configs);
+        services.AddFeishuAppBaseServices(configs);
 
         // 验证并设置默认应用
         ValidateAndSetDefaultApp(configs);
@@ -185,10 +185,10 @@ public static class FeishuMultiAppExtensions
     ///     new FeishuAppConfig { AppKey = "default", AppId = "cli_xxx", AppSecret = "dsk_xxx", IsDefault = true },
     ///     new FeishuAppConfig { AppKey = "hr-app", AppId = "cli_yyy", AppSecret = "dsk_yyy" }
     /// };
-    /// services.AddFeishuMultiApp(configs);
+    /// services.AddFeishuApp(configs);
     /// </code>
     /// </remarks>
-    public static IServiceCollection AddFeishuMultiApp(
+    public static IServiceCollection AddFeishuApp(
         this IServiceCollection services,
         List<FeishuAppConfig> configs)
     {
@@ -198,7 +198,7 @@ public static class FeishuMultiAppExtensions
             throw new ArgumentNullException(nameof(configs));
 
         // 注册基础服务
-        services.AddFeishuMultiAppBaseServices(configs);
+        services.AddFeishuAppBaseServices(configs);
 
         // 验证并设置默认应用
         ValidateAndSetDefaultApp(configs);

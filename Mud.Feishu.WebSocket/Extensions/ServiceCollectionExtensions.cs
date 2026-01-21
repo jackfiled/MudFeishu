@@ -28,7 +28,7 @@ public static class ServiceCollectionExtensions
     /// 注意：使用此方法前需要先注册多应用支持。
     /// 示例：
     /// <code>
-    /// builder.Services.AddFeishuMultiApp(builder.Configuration);
+    /// builder.Services.AddFeishuApp(builder.Configuration);
     /// builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "default");
     /// </code>
     /// </remarks>
@@ -70,7 +70,7 @@ public static class ServiceCollectionExtensions
     /// 注意：使用此方法前需要先注册多应用支持。
     /// 示例：
     /// <code>
-    /// builder.Services.AddFeishuMultiApp(builder.Configuration);
+    /// builder.Services.AddFeishuApp(builder.Configuration);
     /// builder.Services.CreateFeishuWebSocketServiceBuilder(builder.Configuration, "FeishuWebSocket", "default");
     /// </code>
     /// </remarks>
