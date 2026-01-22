@@ -10,7 +10,6 @@ using Mud.Feishu.Abstractions.EventHandlers;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook;
 using Mud.Feishu.Webhook.Configuration;
-using Mud.Feishu.Webhook.Models;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +22,8 @@ public class FeishuWebhookServiceBuilder
     private readonly IServiceCollection _services;
     private readonly List<Type> _handlerTypes = new();
     private readonly List<Type> _interceptorTypes = new();
+    private readonly List<(string AppKey, Type HandlerType)> _pendingHandlerRegistrations = new();
+    private readonly List<(string AppKey, Type InterceptorType)> _pendingInterceptorRegistrations = new();
     private bool _enableHealthChecks = true;
     private bool _autoRegisterEndpoint = true;
     private bool _configured = false;
@@ -208,6 +209,44 @@ public class FeishuWebhookServiceBuilder
     }
 
     /// <summary>
+    /// 为指定应用添加事件处理器（多应用模式）
+    /// </summary>
+    /// <typeparam name="THandler">处理器类型</typeparam>
+    /// <param name="appKey">应用键</param>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder AddHandler<THandler>(string appKey)
+        where THandler : class, IFeishuEventHandler
+    {
+        if (string.IsNullOrEmpty(appKey))
+            throw new ArgumentException("应用键不能为空", nameof(appKey));
+
+        _handlerTypes.Add(typeof(THandler));
+        _pendingHandlerRegistrations.Add((appKey, typeof(THandler)));
+        _services.AddScoped<THandler>();
+        _services.AddScoped<IFeishuEventHandler, THandler>();
+        return this;
+    }
+
+    /// <summary>
+    /// 为指定应用添加事件拦截器（多应用模式）
+    /// </summary>
+    /// <typeparam name="TInterceptor">拦截器类型</typeparam>
+    /// <param name="appKey">应用键</param>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder AddInterceptor<TInterceptor>(string appKey)
+        where TInterceptor : class, IFeishuEventInterceptor
+    {
+        if (string.IsNullOrEmpty(appKey))
+            throw new ArgumentException("应用键不能为空", nameof(appKey));
+
+        _interceptorTypes.Add(typeof(TInterceptor));
+        _pendingInterceptorRegistrations.Add((appKey, typeof(TInterceptor)));
+        _services.AddScoped<TInterceptor>();
+        _services.AddScoped<IFeishuEventInterceptor, TInterceptor>();
+        return this;
+    }
+
+    /// <summary>
     /// 应用自定义配置操作
     /// </summary>
     /// <param name="configureAction">配置操作</param>
@@ -285,7 +324,7 @@ public class FeishuWebhookServiceBuilder
             _services.Configure(_configureOptions);
         }
 
-        // 确保基本配置存在
+        // 确保基本配置存在，并注册多应用的处理器和拦截器
         _services.PostConfigure<FeishuWebhookOptions>(options =>
         {
             // 设置默认值
@@ -310,6 +349,24 @@ public class FeishuWebhookServiceBuilder
             // 验证配置
             options.Validate();
         });
+
+        // 使用 AddOptions 注册配置后处理
+        _services.AddOptions<FeishuWebhookOptions>()
+            .PostConfigure<IServiceProvider>((options, serviceProvider) =>
+            {
+                // 注册多应用的处理器和拦截器到共享注册表
+                var handlerRegistry = serviceProvider.GetRequiredService<FeishuWebhookHandlerRegistry>();
+                foreach (var (appKey, handlerType) in _pendingHandlerRegistrations)
+                {
+                    handlerRegistry.Register(appKey, handlerType);
+                }
+
+                var interceptorRegistry = serviceProvider.GetRequiredService<FeishuWebhookInterceptorRegistry>();
+                foreach (var (appKey, interceptorType) in _pendingInterceptorRegistrations)
+                {
+                    interceptorRegistry.Register(appKey, interceptorType);
+                }
+            });
     }
 
     /// <summary>
@@ -325,6 +382,10 @@ public class FeishuWebhookServiceBuilder
         // 分布式去重器（默认使用内存实现）
         _services.TryAddSingleton<IFeishuEventDistributedDeduplicator, FeishuEventDistributedDeduplicator>();
         _services.TryAddSingleton<IFeishuNonceDistributedDeduplicator, FeishuNonceDistributedDeduplicator>();
+
+        // 注册多应用注册表（单例，所有应用共享）
+        _services.TryAddSingleton<FeishuWebhookHandlerRegistry>();
+        _services.TryAddSingleton<FeishuWebhookInterceptorRegistry>();
 
         // 作用域服务
         _services.TryAddScoped<IFeishuEventValidator, FeishuEventValidator>();
@@ -421,4 +482,5 @@ public class FeishuWebhookServiceBuilder
             }
         });
     }
+
 }

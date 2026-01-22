@@ -115,7 +115,7 @@ public class FeishuWebhookService : IFeishuWebhookService
 
         try
         {
-            return await HandleEventWithInterceptorsAsync(request, cancellationToken);
+            return await HandleEventWithInterceptorsAsync(request, null, cancellationToken);
         }
         finally
         {
@@ -127,7 +127,7 @@ public class FeishuWebhookService : IFeishuWebhookService
     /// <summary>
     /// 使用拦截器处理事件（已解密的 EventData）
     /// </summary>
-    private async Task<(bool Success, string? ErrorReason)> HandleEventWithInterceptorsAsync(EventData eventData, string? clientIp, CancellationToken cancellationToken)
+    private async Task<(bool Success, string? ErrorReason)> HandleEventWithInterceptorsAsync(EventData eventData, string? appKey, CancellationToken cancellationToken)
     {
         Exception? processingException = null;
 
@@ -139,17 +139,17 @@ public class FeishuWebhookService : IFeishuWebhookService
                 var shouldContinue = await interceptor.BeforeHandleAsync(eventData.EventType, eventData, cancellationToken);
                 if (!shouldContinue)
                 {
-                    _logger.LogWarning("事件被拦截器中断: {EventType}, EventId: {EventId}, Interceptor: {InterceptorType}",
-                        eventData.EventType, eventData.EventId, interceptor.GetType().Name);
+                    _logger.LogWarning("事件被拦截器中断: {EventType}, EventId: {EventId}, Interceptor: {InterceptorType}, AppKey: {AppKey}",
+                        eventData.EventType, eventData.EventId, interceptor.GetType().Name, appKey ?? "null");
                     return (false, "Event intercepted");
                 }
             }
 
             // 去重检查
-            var deduplicationResult = await CheckDeduplicationAsync(eventData.EventId, cancellationToken);
+            var deduplicationResult = await CheckDeduplicationAsync(eventData.EventId, appKey, cancellationToken);
             if (deduplicationResult.shouldSkip)
             {
-                _logger.LogWarning("检测到重复事件 {EventId}，跳过处理（幂等性）", eventData.EventId);
+                _logger.LogWarning("检测到重复事件 {EventId}（AppKey: {AppKey}），跳过处理（幂等性）", eventData.EventId, appKey ?? "null");
                 return (true, null); // 幂等性：返回成功避免飞书重试
             }
 
@@ -166,33 +166,33 @@ public class FeishuWebhookService : IFeishuWebhookService
                 await _handlerFactory.HandleEventParallelAsync(eventData.EventType, eventData, timeoutCts.Token);
 
                 // 处理成功，标记为已完成
-                await MarkDeduplicationCompletedAsync(eventData.EventId);
+                MarkDeduplicationCompletedAsync(eventData.EventId);
 
-                _logger.LogInformation("事件处理完成: {EventType}, 事件ID: {EventId}",
-                    eventData.EventType, eventData.EventId);
+                _logger.LogInformation("事件处理完成: {EventType}, 事件ID: {EventId}, AppKey: {AppKey}",
+                    eventData.EventType, eventData.EventId, appKey ?? "null");
 
                 return (true, null);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                await RollbackDeduplicationAsync(eventData.EventId);
+                RollbackDeduplicationAsync(eventData.EventId);
 
-                _logger.LogWarning("事件处理超时: {EventType}, 事件ID: {EventId}, 超时时间: {TimeoutMs}ms",
-                    eventData.EventType, eventData.EventId, Options.EventHandlingTimeoutMs);
+                _logger.LogWarning("事件处理超时: {EventType}, 事件ID: {EventId}, 超时时间: {TimeoutMs}ms, AppKey: {AppKey}",
+                    eventData.EventType, eventData.EventId, Options.EventHandlingTimeoutMs, appKey ?? "null");
                 throw;
             }
         }
         catch (OperationCanceledException)
         {
-            await RollbackDeduplicationAsync(eventData.EventId);
-            _logger.LogWarning("事件处理被取消");
+            RollbackDeduplicationAsync(eventData.EventId);
+            _logger.LogWarning("事件处理被取消，EventId: {EventId}, AppKey: {AppKey}", eventData.EventId, appKey ?? "null");
             throw;
         }
         catch (Exception ex)
         {
             processingException = ex;
-            await RollbackDeduplicationAsync(eventData.EventId);
-            _logger.LogError(ex, "处理飞书事件时发生错误");
+            RollbackDeduplicationAsync(eventData.EventId);
+            _logger.LogError(ex, "处理飞书事件时发生错误，EventId: {EventId}, AppKey: {AppKey}", eventData.EventId, appKey ?? "null");
 
             if (Options.EnableExceptionHandling)
             {
@@ -213,12 +213,12 @@ public class FeishuWebhookService : IFeishuWebhookService
     /// <summary>
     /// 使用拦截器处理事件（加密的 FeishuWebhookRequest）
     /// </summary>
-    private async Task<(bool Success, string? ErrorReason)> HandleEventWithInterceptorsAsync(FeishuWebhookRequest request, CancellationToken cancellationToken)
+    private async Task<(bool Success, string? ErrorReason)> HandleEventWithInterceptorsAsync(FeishuWebhookRequest request, string? appKey, CancellationToken cancellationToken)
     {
         // 验证请求签名
         if (Options.EnableBodySignatureValidation && !await ValidateRequestSignature(request))
         {
-            _logger.LogWarning("请求体签名验证失败");
+            _logger.LogWarning("请求体签名验证失败，AppKey: {AppKey}", appKey ?? "null");
 
             // 记录安全审计日志
             _ = _securityAuditService?.LogSecurityFailureAsync(
@@ -226,7 +226,8 @@ public class FeishuWebhookService : IFeishuWebhookService
                 "unknown", // 在服务层无法获取客户端IP
                 "FeishuWebhookService",
                 "请求体签名验证失败",
-                "");
+                "",
+                appKey);
 
             return (false, "Signature validation failed");
         }
@@ -234,18 +235,18 @@ public class FeishuWebhookService : IFeishuWebhookService
         // 解密事件数据
         if (string.IsNullOrEmpty(request.Encrypt))
         {
-            _logger.LogError("请求中缺少加密数据");
+            _logger.LogError("请求中缺少加密数据，AppKey: {AppKey}", appKey ?? "null");
             return (false, "Missing encrypted data");
         }
 
         var eventData = await DecryptEventAsync(request.Encrypt!, cancellationToken);
         if (eventData == null)
         {
-            _logger.LogError("事件数据解密失败");
+            _logger.LogError("事件数据解密失败，AppKey: {AppKey}", appKey ?? "null");
             return (false, "Decryption failed");
         }
 
-        return await HandleEventWithInterceptorsAsync(eventData, "unknown", cancellationToken);
+        return await HandleEventWithInterceptorsAsync(eventData, appKey, cancellationToken);
     }
 
     /// <summary />
@@ -292,11 +293,11 @@ public class FeishuWebhookService : IFeishuWebhookService
     /// <summary>
     /// 检查去重状态
     /// </summary>
-    private async Task<(bool shouldSkip, bool isProcessing)> CheckDeduplicationAsync(string eventId, CancellationToken cancellationToken)
+    private async Task<(bool shouldSkip, bool isProcessing)> CheckDeduplicationAsync(string eventId, string? appKey, CancellationToken cancellationToken)
     {
         if (_distributedDeduplicator != null)
         {
-            return (await _distributedDeduplicator.TryMarkAsProcessedAsync(eventId, cancellationToken: cancellationToken), false);
+            return (await _distributedDeduplicator.TryMarkAsProcessedAsync(eventId, appKey, cancellationToken: cancellationToken), false);
         }
         else
         {
@@ -307,22 +308,16 @@ public class FeishuWebhookService : IFeishuWebhookService
     /// <summary>
     /// 标记去重为已完成
     /// </summary>
-    private async Task MarkDeduplicationCompletedAsync(string eventId)
+    private void MarkDeduplicationCompletedAsync(string eventId)
     {
-        if (_distributedDeduplicator == null)
-        {
-            _deduplicator.MarkAsCompleted(eventId);
-        }
+        _deduplicator.MarkAsCompleted(eventId);
     }
 
     /// <summary>
     /// 回滚去重状态
     /// </summary>
-    private async Task RollbackDeduplicationAsync(string eventId)
+    private void RollbackDeduplicationAsync(string eventId)
     {
-        if (_distributedDeduplicator == null)
-        {
-            _deduplicator.RollbackProcessing(eventId);
-        }
+        _deduplicator.RollbackProcessing(eventId);
     }
 }

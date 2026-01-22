@@ -43,7 +43,7 @@ public class FeishuEventDistributedDeduplicator : IFeishuEventDistributedDedupli
     }
 
     /// <inheritdoc />
-    public async Task<bool> TryMarkAsProcessedAsync(string eventId, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
+    public async Task<bool> TryMarkAsProcessedAsync(string eventId, string? appKey = null, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;
 
@@ -53,38 +53,41 @@ public class FeishuEventDistributedDeduplicator : IFeishuEventDistributedDedupli
             return false;
         }
 
+        var cacheKey = GetCacheKey(eventId, appKey);
+
         lock (_lock)
         {
             // 先清理已过期的条目
             CleanupExpiredEntriesLocked();
 
             // 检查是否已存在且未过期
-            if (_eventCache.TryGetValue(eventId, out var entry))
+            if (_eventCache.TryGetValue(cacheKey, out var entry))
             {
                 var actualTtl = ttl ?? _cacheExpiration;
                 if (DateTimeOffset.UtcNow - entry.ProcessedAt <= actualTtl)
                 {
-                    _logger?.LogDebug("事件 {EventId} 已处理过，跳过", eventId);
+                    _logger?.LogDebug("事件 {EventId} (AppKey: {AppKey}) 已处理过，跳过", eventId, appKey ?? "default");
                     return true; // 已处理
                 }
                 // 已过期，删除并继续处理
-                _eventCache.Remove(eventId);
+                _eventCache.Remove(cacheKey);
             }
 
             // 记录新事件
-            _eventCache[eventId] = new EventCacheEntry
+            _eventCache[cacheKey] = new EventCacheEntry
             {
                 ProcessedAt = DateTimeOffset.UtcNow,
-                EventId = eventId
+                EventId = eventId,
+                AppKey = appKey
             };
 
-            _logger?.LogDebug("事件 {EventId} 标记为已处理", eventId);
+            _logger?.LogDebug("事件 {EventId} (AppKey: {AppKey}) 标记为已处理", eventId, appKey ?? "default");
             return false; // 未处理，新事件
         }
     }
 
     /// <inheritdoc />
-    public async Task<bool> IsProcessedAsync(string eventId, CancellationToken cancellationToken = default)
+    public async Task<bool> IsProcessedAsync(string eventId, string? appKey = null, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;
 
@@ -93,9 +96,11 @@ public class FeishuEventDistributedDeduplicator : IFeishuEventDistributedDedupli
             return false;
         }
 
+        var cacheKey = GetCacheKey(eventId, appKey);
+
         lock (_lock)
         {
-            if (!_eventCache.TryGetValue(eventId, out var entry))
+            if (!_eventCache.TryGetValue(cacheKey, out var entry))
                 return false;
 
             // 检查是否已过期
@@ -172,6 +177,24 @@ public class FeishuEventDistributedDeduplicator : IFeishuEventDistributedDedupli
     private class EventCacheEntry
     {
         public string EventId { get; set; } = string.Empty;
+        public string? AppKey { get; set; }
         public DateTimeOffset ProcessedAt { get; set; }
+    }
+
+    /// <summary>
+    /// 生成缓存键
+    /// </summary>
+    /// <param name="eventId">事件ID</param>
+    /// <param name="appKey">应用键（可选）</param>
+    /// <returns>缓存键</returns>
+    private static string GetCacheKey(string eventId, string? appKey = null)
+    {
+        // 如果提供了 appKey，将其包含在键中以实现多应用隔离
+        // 格式: {appKey}:{eventId} 或 {eventId}
+        if (!string.IsNullOrEmpty(appKey))
+        {
+            return $"{appKey}:{eventId}";
+        }
+        return eventId;
     }
 }

@@ -115,7 +115,7 @@ public class FeishuEventValidatorTests
             null);
 
         _nonceDeduplicatorMock
-            .Setup(x => x.TryMarkAsUsedAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.TryMarkAsUsedAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -152,7 +152,7 @@ public class FeishuEventValidatorTests
             null);
 
         _nonceDeduplicatorMock
-            .Setup(x => x.TryMarkAsUsedAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.TryMarkAsUsedAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();

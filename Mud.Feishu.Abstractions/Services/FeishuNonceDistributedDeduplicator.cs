@@ -43,7 +43,7 @@ public class FeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDedupli
     }
 
     /// <inheritdoc />
-    public async Task<bool> TryMarkAsUsedAsync(string nonce, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
+    public async Task<bool> TryMarkAsUsedAsync(string nonce, string? appKey = null, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;
 
@@ -53,34 +53,36 @@ public class FeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDedupli
             return false;
         }
 
+        var cacheKey = GetCacheKey(nonce, appKey);
+
         lock (_lock)
         {
             // 先清理已过期的 nonce
             CleanupExpiredNoncesLocked();
 
             // 检查 nonce 是否已存在且未过期
-            if (_nonceCache.TryGetValue(nonce, out var createdAt))
+            if (_nonceCache.TryGetValue(cacheKey, out var createdAt))
             {
                 var actualTtl = ttl ?? _nonceTtl;
                 if (DateTimeOffset.UtcNow - createdAt <= actualTtl)
                 {
-                    _logger?.LogWarning("Nonce {Nonce} 已使用过，拒绝重放攻击", nonce);
+                    _logger?.LogWarning("Nonce {Nonce} (AppKey: {AppKey}) 已使用过，拒绝重放攻击", nonce, appKey ?? "default");
                     return true; // 已使用且未过期
                 }
                 // 已过期，删除并继续处理
-                _nonceCache.Remove(nonce);
+                _nonceCache.Remove(cacheKey);
             }
 
             // 标记新 nonce（使用当前时间）
-            _nonceCache[nonce] = DateTimeOffset.UtcNow;
+            _nonceCache[cacheKey] = DateTimeOffset.UtcNow;
 
-            _logger?.LogDebug("Nonce {Nonce} 标记为已使用", nonce);
+            _logger?.LogDebug("Nonce {Nonce} (AppKey: {AppKey}) 标记为已使用", nonce, appKey ?? "default");
             return false; // 未使用
         }
     }
 
     /// <inheritdoc />
-    public async Task<bool> IsUsedAsync(string nonce, CancellationToken cancellationToken = default)
+    public async Task<bool> IsUsedAsync(string nonce, string? appKey = null, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;
 
@@ -89,9 +91,11 @@ public class FeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDedupli
             return false;
         }
 
+        var cacheKey = GetCacheKey(nonce, appKey);
+
         lock (_lock)
         {
-            if (!_nonceCache.TryGetValue(nonce, out var createdAt))
+            if (!_nonceCache.TryGetValue(cacheKey, out var createdAt))
                 return false;
 
             // 检查是否已过期
@@ -160,5 +164,22 @@ public class FeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDedupli
         }
 
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 生成缓存键
+    /// </summary>
+    /// <param name="nonce">Nonce 值</param>
+    /// <param name="appKey">应用键（可选）</param>
+    /// <returns>缓存键</returns>
+    private static string GetCacheKey(string nonce, string? appKey = null)
+    {
+        // 如果提供了 appKey，将其包含在键中以实现多应用隔离
+        // 格式: {appKey}:{nonce} 或 {nonce}
+        if (!string.IsNullOrEmpty(appKey))
+        {
+            return $"{appKey}:{nonce}";
+        }
+        return nonce;
     }
 }

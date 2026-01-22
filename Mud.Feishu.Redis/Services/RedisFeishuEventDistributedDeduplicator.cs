@@ -50,7 +50,7 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
     }
 
     /// <inheritdoc />
-    public async Task<bool> TryMarkAsProcessedAsync(string eventId, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
+    public async Task<bool> TryMarkAsProcessedAsync(string eventId, string? appKey = null, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(eventId))
         {
@@ -61,7 +61,7 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
         try
         {
             var actualTtl = ttl ?? _defaultCacheExpiration;
-            var redisKey = GetRedisKey(eventId);
+            var redisKey = GetRedisKey(eventId, appKey);
 
             // 使用 SETNX + EXPIRE 实现原子性去重（仅当键不存在时设置，并设置过期时间）
             var setResult = await _database.StringSetAsync(
@@ -72,11 +72,11 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
 
             if (!setResult)
             {
-                _logger?.LogDebug("事件 {EventId} 已处理过，跳过", eventId);
+                _logger?.LogDebug("事件 {EventId} 已处理过，跳过 (AppKey: {AppKey})", eventId, appKey ?? "default");
                 return true; // 已处理
             }
 
-            _logger?.LogDebug("事件 {EventId} 标记为已处理，TTL: {Ttl}", eventId, actualTtl);
+            _logger?.LogDebug("事件 {EventId} 标记为已处理，TTL: {Ttl} (AppKey: {AppKey})", eventId, actualTtl, appKey ?? "default");
             return false; // 未处理，新事件
         }
         catch (RedisConnectionException ex)
@@ -97,7 +97,7 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
     }
 
     /// <inheritdoc />
-    public async Task<bool> IsProcessedAsync(string eventId, CancellationToken cancellationToken = default)
+    public async Task<bool> IsProcessedAsync(string eventId, string? appKey = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(eventId))
         {
@@ -106,10 +106,10 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
 
         try
         {
-            var redisKey = GetRedisKey(eventId);
+            var redisKey = GetRedisKey(eventId, appKey);
             var exists = await _database.KeyExistsAsync(redisKey);
 
-            _logger?.LogDebug("事件 {EventId} 处理状态: {Status}", eventId, exists ? "已处理" : "未处理");
+            _logger?.LogDebug("事件 {EventId} 处理状态: {Status} (AppKey: {AppKey})", eventId, exists ? "已处理" : "未处理", appKey ?? "default");
             return exists;
         }
         catch (RedisConnectionException ex)
@@ -143,8 +143,9 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
     /// 手动移除指定事件ID的去重标记
     /// </summary>
     /// <param name="eventId">事件ID</param>
+    /// <param name="appKey">应用键（用于多应用场景，避免跨应用冲突）</param>
     /// <returns>是否成功移除</returns>
-    public async Task<bool> RemoveAsync(string eventId)
+    public async Task<bool> RemoveAsync(string eventId, string? appKey = null)
     {
         if (string.IsNullOrEmpty(eventId))
         {
@@ -153,12 +154,12 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
 
         try
         {
-            var redisKey = GetRedisKey(eventId);
+            var redisKey = GetRedisKey(eventId, appKey);
             var result = await _database.KeyDeleteAsync(redisKey);
 
             if (result)
             {
-                _logger?.LogDebug("已移除事件 {EventId} 的去重标记", eventId);
+                _logger?.LogDebug("已移除事件 {EventId} 的去重标记 (AppKey: {AppKey})", eventId, appKey ?? "default");
             }
 
             return result;
@@ -174,8 +175,9 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
     /// 批量移除多个事件ID的去重标记
     /// </summary>
     /// <param name="eventIds">事件ID集合</param>
+    /// <param name="appKey">应用键，用于多应用隔离（可选）</param>
     /// <returns>成功移除的数量</returns>
-    public async Task<long> RemoveRangeAsync(IEnumerable<string> eventIds)
+    public async Task<long> RemoveRangeAsync(IEnumerable<string> eventIds, string? appKey = null)
     {
         if (eventIds == null)
         {
@@ -186,7 +188,7 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
         {
             var keys = eventIds
                 .Where(eid => !string.IsNullOrEmpty(eid))
-                .Select(GetRedisKey)
+                .Select(eid => GetRedisKey(eid!, appKey))
                 .ToArray();
 
             if (keys.Length == 0)
@@ -203,7 +205,7 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
                 }
             }
 
-            _logger?.LogDebug("批量移除了 {Count} 个事件的去重标记", count);
+            _logger?.LogDebug("批量移除了 {Count} 个事件的去重标记 (AppKey: {AppKey})", count, appKey ?? "default");
             return count;
         }
         catch (Exception ex)
@@ -266,9 +268,16 @@ public class RedisFeishuEventDistributedDeduplicator : IFeishuEventDistributedDe
     /// 生成 Redis 键
     /// </summary>
     /// <param name="eventId">事件ID</param>
+    /// <param name="appKey">应用键，用于多应用隔离（可选）</param>
     /// <returns>Redis 键</returns>
-    private string GetRedisKey(string eventId)
+    private string GetRedisKey(string eventId, string? appKey = null)
     {
+        // 如果提供了 appKey，将其包含在键中以实现多应用隔离
+        // 格式: {prefix}{appKey}:{eventId} 或 {prefix}{eventId}
+        if (!string.IsNullOrEmpty(appKey))
+        {
+            return $"{_keyPrefix}{appKey}:{eventId}";
+        }
         return $"{_keyPrefix}{eventId}";
     }
 }

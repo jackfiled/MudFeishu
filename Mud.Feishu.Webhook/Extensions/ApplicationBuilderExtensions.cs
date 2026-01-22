@@ -16,25 +16,12 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class ApplicationBuilderExtensions
 {
     /// <summary>
-    /// 使用飞书 Webhook 中间件
+    /// 使用飞书多应用 Webhook 中间件（推荐）
     /// </summary>
     /// <param name="builder">应用程序构建器</param>
     /// <returns>应用程序构建器</returns>
     public static IApplicationBuilder UseFeishuWebhook(this IApplicationBuilder builder)
     {
-        var options = builder.ApplicationServices.GetRequiredService<IOptions<FeishuWebhookOptions>>().Value;
-
-        // 限流中间件必须在主中间件之前
-        if (options.RateLimit.EnableRateLimit)
-        {
-            builder.UseMiddleware<FeishuRateLimitMiddleware>();
-        }
-
-        if (options.AutoRegisterEndpoint)
-        {
-            builder.UseMiddleware<FeishuWebhookMiddleware>();
-        }
-
-        return builder;
+        return builder.UseMiddleware<FeishuMultiAppMiddleware>();
     }
 }

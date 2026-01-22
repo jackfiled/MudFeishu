@@ -17,18 +17,20 @@ public interface IFeishuEventDistributedDeduplicator : IAsyncDisposable
     /// 尝试将事件标记为已处理
     /// </summary>
     /// <param name="eventId">事件唯一标识符</param>
+    /// <param name="appKey">应用键（用于多应用场景，避免跨应用冲突）</param>
     /// <param name="ttl">过期时间（可选），不指定则使用默认值</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>如果事件已被处理过返回 true（重复事件），否则返回 false 并标记为已处理</returns>
-    Task<bool> TryMarkAsProcessedAsync(string eventId, TimeSpan? ttl = null, CancellationToken cancellationToken = default);
+    Task<bool> TryMarkAsProcessedAsync(string eventId, string? appKey = null, TimeSpan? ttl = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 检查事件是否已被处理（不标记）
     /// </summary>
     /// <param name="eventId">事件唯一标识符</param>
+    /// <param name="appKey">应用键（用于多应用场景，避免跨应用冲突）</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>如果事件已被处理返回 true，否则返回 false</returns>
-    Task<bool> IsProcessedAsync(string eventId, CancellationToken cancellationToken = default);
+    Task<bool> IsProcessedAsync(string eventId, string? appKey = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 手动清理过期条目

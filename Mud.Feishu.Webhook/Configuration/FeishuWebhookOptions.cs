@@ -186,6 +186,16 @@ public class FeishuWebhookOptions
     public bool EnableEventInterceptors { get; set; } = false;
 
     /// <summary>
+    /// 应用配置集合（AppKey -> 应用配置）
+    /// </summary>
+    public Dictionary<string, FeishuAppWebhookOptions> Apps { get; set; } = new();
+
+    /// <summary>
+    /// 全局路由前缀（所有应用共享的基础路径）
+    /// </summary>
+    public string GlobalRoutePrefix { get; set; } = "feishu";
+
+    /// <summary>
     /// 验证配置的有效性
     /// </summary>
     public void Validate()
@@ -216,6 +226,41 @@ public class FeishuWebhookOptions
 
         // 验证重试配置
         Retry.Validate();
+
+        // 验证多应用配置
+        foreach (var appConfig in Apps)
+        {
+            var appKey = appConfig.Key;
+            var config = appConfig.Value;
+
+            if (string.IsNullOrEmpty(config.AppKey))
+                config.AppKey = appKey;
+
+            if (string.IsNullOrEmpty(config.EncryptKey))
+                throw new InvalidOperationException($"应用 {appKey} 的 EncryptKey 不能为空");
+
+            if (string.IsNullOrEmpty(config.VerificationToken))
+                throw new InvalidOperationException($"应用 {appKey} 的 VerificationToken 不能为空");
+
+            if (config.EncryptKey.Length != 32)
+                throw new InvalidOperationException($"应用 {appKey} 的 EncryptKey 长度必须为 32 字符");
+        }
+    }
+
+    /// <summary>
+    /// 根据应用键获取应用配置
+    /// </summary>
+    public FeishuAppWebhookOptions? GetAppConfig(string appKey)
+    {
+        return Apps.TryGetValue(appKey, out var config) ? config : null;
+    }
+
+    /// <summary>
+    /// 获取应用完整路由路径
+    /// </summary>
+    public string GetAppRoutePrefix(string appKey)
+    {
+        return $"{GlobalRoutePrefix}/{appKey}";
     }
 
     /// <summary>
@@ -232,4 +277,25 @@ public class FeishuWebhookOptions
             return "****";
         return $"{data.Substring(0, 2)}****{data.Substring(data.Length - 2)}";
     }
+}
+
+/// <summary>
+/// 单个应用的配置
+/// </summary>
+public class FeishuAppWebhookOptions
+{
+    /// <summary>
+    /// 应用键（用于标识应用）
+    /// </summary>
+    public string AppKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 应用验证 Token
+    /// </summary>
+    public string VerificationToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 事件加密 Key
+    /// </summary>
+    public string EncryptKey { get; set; } = string.Empty;
 }

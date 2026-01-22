@@ -72,7 +72,7 @@ public class TokenManagerWithCacheTests
             IOptions<FeishuOptions> options,
             ILogger<TokenManagerWithCache> logger,
             ITokenCache tokenCache)
-            : base(authenticationApi, options, logger, tokenCache, TokenType.AppAccessToken)
+            : base(authenticationApi, options, logger, tokenCache, Mud.CodeGenerator.TokenType.AppAccessToken)
         { }
 
         protected override async Task<CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)
@@ -162,7 +162,7 @@ public class TokenManagerWithCacheTests
             IOptions<FeishuOptions> options,
             ILogger<TokenManagerWithCache> logger,
             ITokenCache tokenCache)
-            : base(authenticationApi, options, logger, tokenCache, TokenType.AppAccessToken)
+            : base(authenticationApi, options, logger, tokenCache, Mud.CodeGenerator.TokenType.AppAccessToken)
         { }
 
         protected override async Task<CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)

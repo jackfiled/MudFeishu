@@ -2,17 +2,25 @@
 
 飞书 Webhook 事件处理演示项目，展示如何使用 Mud.Feishu.Webhook SDK 接收、处理和监控飞书平台的各种事件回调。
 
-## 📋 目录
+## 目录
 
 - [项目简介](#项目简介)
 - [核心功能](#核心功能)
 - [技术架构](#技术架构)
 - [快速开始](#快速开始)
+  - [单应用模式](#单应用模式)
+  - [多应用模式](#多应用模式)
 - [配置说明](#配置说明)
+  - [单应用配置](#单应用配置)
+  - [多应用配置](#多应用配置)
 - [项目结构](#项目结构)
 - [核心组件](#核心组件)
 - [事件处理器](#事件处理器)
+  - [单应用处理器](#单应用处理器)
+  - [多应用处理器](#多应用处理器)
 - [拦截器使用](#拦截器使用)
+  - [全局拦截器](#全局拦截器)
+  - [应用特定拦截器](#应用特定拦截器)
 - [诊断与测试](#诊断与测试)
 - [示例场景](#示例场景)
 - [常见问题](#常见问题)
@@ -24,6 +32,7 @@
 - ✅ 接收飞书平台推送的 Webhook 事件
 - ✅ 实现自定义事件处理器处理部门相关事件
 - ✅ 使用拦截器链增强事件处理能力（日志、遥测、审计、性能监控）
+- ✅ **支持多应用模式**（单个服务同时接入多个飞书应用）
 - ✅ 提供诊断端点检查处理器注册情况
 - ✅ 提供测试端点模拟飞书事件
 - ✅ 使用 OpenTelemetry 收集遥测指标
@@ -118,6 +127,19 @@ sequenceDiagram
 
 ## 快速开始
 
+### 模式选择
+
+本项目支持两种运行模式：
+
+| 模式 | 说明 | 适用场景 | 配置文件 |
+|------|------|----------|----------|
+| **单应用模式** | 只接入一个飞书应用 | 简单场景、单一业务 | `appsettings.json` + `Program.cs` |
+| **多应用模式** | 同时接入多个飞书应用 | 多租户、多业务场景 | `appsettings.MultiApp.example.json` + `Program.cs` (配置Apps部分) |
+
+---
+
+### 单应用模式
+
 ### 1. 环境要求
 
 - .NET 8.0 或更高版本
@@ -202,9 +224,195 @@ dotnet run
 curl http://localhost:5015/diagnostics/handlers
 ```
 
+查看控制台输出，应该看到类似日志：
+
+```
+[信息] Webhook 服务已启动
+[信息] 监听地址: http://localhost:5015/feishu/Webhook
+```
+
+访问诊断端点：
+
+```bash
+curl http://localhost:5015/diagnostics/handlers
+```
+
+---
+
+### 多应用模式
+
+#### 1. 环境要求
+
+- .NET 8.0 或更高版本
+- 两个或多个飞书企业自建应用凭证
+- 可公网访问的服务器（或使用 ngrok 等内网穿透工具）
+
+#### 2. 安装依赖
+
+```bash
+cd Demos/Mud.Feishu.Webhook.Demo
+dotnet restore
+```
+
+#### 3. 配置飞书应用
+
+**步骤1：创建两个飞书应用**
+
+在飞书开放平台创建两个应用：
+- **App1（组织架构应用）**：处理部门相关事件
+- **App2（用户和审批应用）**：处理用户和审批相关事件
+
+**步骤2：配置多应用配置文件**
+
+复制 `appsettings.MultiApp.example.json` 为 `appsettings.json` 并填入实际配置：
+
+```bash
+cp appsettings.MultiApp.example.json appsettings.json
+```
+
+**步骤3：配置飞书凭证**
+
+在 `appsettings.json` 中配置两个应用的凭证：
+
+```json
+{
+  "FeishuWebhook": {
+    "GlobalRoutePrefix": "feishu",
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_xxx1",
+        "VerificationToken": "token1",
+        "EncryptKey": "key1"
+      },
+      "app2": {
+        "AppKey": "cli_xxx2",
+        "VerificationToken": "token2",
+        "EncryptKey": "key2"
+      }
+    }
+  }
+}
+```
+
+#### 4. 配置 Webhook 回调地址
+
+在飞书开放平台为每个应用配置回调地址：
+
+**App1 回调地址**：
+```
+http://your-server-domain/feishu/app1
+```
+
+**App2 回调地址**：
+```
+http://your-server-domain/feishu/app2
+```
+
+**本地测试**：使用 ngrok 等工具创建公网隧道：
+
+```bash
+ngrok http 5015
+```
+
+然后配置飞书 Webhook 地址为：
+- App1: `https://abc123.ngrok.io/feishu/app1`
+- App2: `https://abc123.ngrok.io/feishu/app2`
+
+#### 5. 运行多应用项目
+
+```bash
+dotnet run --launch-profile MultiApp
+```
+
+或者在 Visual Studio 中，选择 `MultiApp` 启动配置。
+
+服务启动后监听：
+- HTTP: `http://localhost:5015`
+- HTTPS: `https://localhost:7144`
+
+#### 6. 验证多应用运行
+
+查看控制台输出，应该看到类似日志：
+
+```
+[信息] 多应用飞书Webhook服务已启动
+[信息] App1 路由: /feishu/app1
+[信息] App2 路由: /feishu/app2
+```
+
+访问多应用信息端点：
+
+```bash
+curl http://localhost:5015/multi-app/info
+```
+
+查看路由映射：
+
+```bash
+curl http://localhost:5015/multi-app/routes
+```
+
+访问诊断端点：
+
+```bash
+curl http://localhost:5015/diagnostics/handlers
+```
+
+#### 7. 测试多应用
+
+使用测试端点测试不同应用：
+
+```bash
+# 测试 App1 部门事件
+curl -X POST http://localhost:5015/test/mock-feishu-event \
+  -H "Content-Type: application/json" \
+  -d '{"eventType": "department"}'
+
+# 测试 App2 用户事件
+curl -X POST http://localhost:5015/test/mock-feishu-event \
+  -H "Content-Type: application/json" \
+  -d '{"eventType": "user"}'
+
+# 测试 App2 审批事件
+curl -X POST http://localhost:5015/test/mock-feishu-event \
+  -H "Content-Type: application/json" \
+  -d '{"eventType": "approval"}'
+```
+
+#### 8. 切换运行模式
+
+在 `Properties/launchSettings.json` 中配置两个启动配置：
+
+```json
+{
+  "profiles": {
+    "SingleApp": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "MultiApp": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5015",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
+根据需要选择不同的启动配置运行项目。
+
 ## 配置说明
 
-### 完整配置示例
+### 单应用配置
+
+### 多应用配置
+
+**单应用配置示例**：
 
 ```json
 {
@@ -219,8 +427,8 @@ curl http://localhost:5015/diagnostics/handlers
   "urls": "http://*:80",
   "AllowedHosts": "*",
   "FeishuWebhook": {
-    "VerificationToken": "",
-    "EncryptKey": "",
+    "VerificationToken": "your-verification-token",
+    "EncryptKey": "your-encrypt-key",
     "RoutePrefix": "feishu/Webhook",
     "AutoRegisterEndpoint": true,
     "EnableRequestLogging": true,
@@ -234,6 +442,50 @@ curl http://localhost:5015/diagnostics/handlers
     "MaxRequestBodySize": 10485760,
     "ValidateSourceIP": false,
     "AllowedSourceIPs": []
+  }
+}
+```
+
+**多应用配置示例**：
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug",
+      "Microsoft.AspNetCore": "Warning",
+      "Mud.Feishu.Webhook": "Debug",
+      "Mud.Feishu.Abstractions": "Debug"
+    }
+  },
+  "urls": "http://*:80",
+  "AllowedHosts": "*",
+  "FeishuWebhook": {
+    "RoutePrefix": "feishu/webhook",
+    "AutoRegisterEndpoint": true,
+    "EnableRequestLogging": true,
+    "EnableExceptionHandling": true,
+    "EnforceHeaderSignatureValidation": false,
+    "EnableBodySignatureValidation": false,
+    "EventHandlingTimeoutMs": 30000,
+    "MaxConcurrentEvents": 10,
+    "EnablePerformanceMonitoring": true,
+    "AllowedHttpMethods": ["POST"],
+    "MaxRequestBodySize": 10485760,
+    "ValidateSourceIP": false,
+    "AllowedSourceIPs": [],
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_app1_xxxxxx",
+        "VerificationToken": "token1_for_app1",
+        "EncryptKey": "encrypt_key1_for_app1"
+      },
+      "app2": {
+        "AppKey": "cli_app2_yyyyyy",
+        "VerificationToken": "token2_for_app2",
+        "EncryptKey": "encrypt_key2_for_app2"
+      }
+    }
   }
 }
 ```
@@ -258,23 +510,67 @@ curl http://localhost:5015/diagnostics/handlers
 | `ValidateSourceIP` | bool | false | 是否验证源 IP |
 | `AllowedSourceIPs` | string[] | [] | 允许的源 IP 列表 |
 
+### 路由映射说明
+
+**单应用模式**：
+- 配置 `RoutePrefix: "feishu/Webhook"`
+- Webhook 端点：`/feishu/Webhook`
+
+**多应用模式**：
+- 配置 `RoutePrefix: "feishu/webhook"`
+- 配置两个应用：`app1` 和 `app2`
+- App1 Webhook 端点：`/feishu/app1`
+- App2 Webhook 端点：`/feishu/app2`
+
+路由格式：`/{RoutePrefix}/{appKey}`
+
 ### 安全配置建议
 
-**生产环境**：
+**单应用生产环境**：
 
 ```json
 {
   "FeishuWebhook": {
+    "VerificationToken": "your-production-token",
+    "EncryptKey": "your-production-key",
+    "RoutePrefix": "feishu/webhook",
     "EnforceHeaderSignatureValidation": true,
     "EnableBodySignatureValidation": true,
     "ValidateSourceIP": true,
-    "AllowedSourceIPs": ["58.200.0.0/16"], // 飞书服务器 IP 段
-    "MaxRequestBodySize": 1048576 // 限制为 1MB
+    "AllowedSourceIPs": ["58.200.0.0/16"],
+    "MaxRequestBodySize": 1048576
   }
 }
 ```
 
-**开发环境**：
+**多应用生产环境**：
+
+```json
+{
+  "FeishuWebhook": {
+    "RoutePrefix": "feishu/webhook",
+    "EnforceHeaderSignatureValidation": true,
+    "EnableBodySignatureValidation": true,
+    "ValidateSourceIP": true,
+    "AllowedSourceIPs": ["58.200.0.0/16"],
+    "MaxRequestBodySize": 1048576,
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_prod_app1_xxxxxx",
+        "VerificationToken": "prod_token1",
+        "EncryptKey": "prod_key1"
+      },
+      "app2": {
+        "AppKey": "cli_prod_app2_yyyyyy",
+        "VerificationToken": "prod_token2",
+        "EncryptKey": "prod_key2"
+      }
+    }
+  }
+}
+```
+
+**单应用开发环境**：
 
 ```json
 {
@@ -287,7 +583,112 @@ curl http://localhost:5015/diagnostics/handlers
 }
 ```
 
+### 开发环境
+
+**单应用开发环境**：
+
+```json
+{
+  "FeishuWebhook": {
+    "EnforceHeaderSignatureValidation": false,
+    "EnableBodySignatureValidation": false,
+    "ValidateSourceIP": false,
+    "EnableRequestLogging": true
+  }
+}
+```
+
+**多应用开发环境**：
+
+```json
+{
+  "FeishuWebhook": {
+    "EnforceHeaderSignatureValidation": false,
+    "EnableBodySignatureValidation": false,
+    "ValidateSourceIP": false,
+    "EnableRequestLogging": true,
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_dev_app1_xxxxxx",
+        "VerificationToken": "dev_token1",
+        "EncryptKey": "dev_key1"
+      },
+      "app2": {
+        "AppKey": "cli_dev_app2_yyyyyy",
+        "VerificationToken": "dev_token2",
+        "EncryptKey": "dev_key2"
+      }
+    }
+  }
+}
+```
+
 ## 项目结构
+
+### 单应用项目结构
+
+```
+Mud.Feishu.Webhook.Demo/
+├── Program.cs                                    # 应用程序入口（支持单应用和多应用）
+├── Mud.Feishu.Webhook.Demo.csproj             # 项目文件
+├── appsettings.json                              # 单应用配置文件
+├── appsettings.Development.json                  # 开发环境配置
+├── appsettings.MultiApp.example.json             # 多应用配置示例
+├── Properties/
+│   └── launchSettings.json                      # 启动配置
+├── Handlers/                                     # 单应用事件处理器目录
+│   ├── DemoDepartmentEventHandler.cs           # 部门创建事件处理器
+│   ├── DemoDepartmentDeleteEventHandler.cs     # 部门删除事件处理器
+│   └── DemoDepartmentUpdateEventHandler.cs     # 部门更新事件处理器
+├── Handlers/                                     # 多应用事件处理器目录
+│   └── MultiApp/                               # 多应用处理器
+│       ├── App1DepartmentEventHandler.cs       # App1 部门创建
+│       ├── App1DepartmentDeleteEventHandler.cs # App1 部门删除
+│       ├── App1DepartmentUpdateEventHandler.cs # App1 部门更新
+│       ├── App2UserCreatedEventHandler.cs      # App2 用户创建
+│       ├── App2UserDeletedEventHandler.cs      # App2 用户删除
+│       ├── App2ApprovalPassedEventHandler.cs  # App2 审批通过
+│       └── App2ApprovalRejectedEventHandler.cs # App2 审批拒绝
+├── Interceptors/                                 # 单应用拦截器目录
+│   ├── README.md                               # 拦截器说明文档
+│   ├── AuditLogInterceptor.cs                  # 审计日志拦截器
+│   └── PerformanceMonitoringInterceptor.cs    # 性能监控拦截器
+├── Interceptors/                                 # 多应用拦截器目录
+│   └── MultiApp/                               # 多应用拦截器
+│       ├── App1SpecificInterceptor.cs           # App1 专用拦截器
+│       └── App2SpecificInterceptor.cs           # App2 专用拦截器
+├── Services/                                     # 服务目录
+│   └── DemoEventService.cs                     # 事件统计服务
+├── Models/                                      # 数据模型
+│   └── WebbookDemoModels.cs                    # Webhook 相关模型定义
+├── DiagnosticsEndpoint.cs                       # 诊断端点
+├── MultiAppEndpoint.cs                          # 多应用信息端点
+├── TestEndpoint.cs                              # 测试端点
+└── README.md                                    # 本文档
+```
+
+### 文件说明
+
+**程序入口文件**：
+- `Program.cs` - 应用程序入口，支持单应用和多应用模式
+
+**配置文件**：
+- `appsettings.json` - 单应用配置（包含单个应用的凭证）
+- `appsettings.MultiApp.example.json` - 多应用配置示例（包含多个应用的凭证）
+- `appsettings.Development.json` - 开发环境特定配置
+
+**处理器目录**：
+- `Handlers/` - 单应用处理器（直接继承基类）
+- `Handlers/MultiApp/` - 多应用处理器（按应用组织）
+
+**拦截器目录**：
+- `Interceptors/` - 全局拦截器（所有应用共享）
+- `Interceptors/MultiApp/` - 应用特定拦截器（仅特定应用使用）
+
+**端点文件**：
+- `DiagnosticsEndpoint.cs` - 诊断端点（查看已注册的处理器）
+- `MultiAppEndpoint.cs` - 多应用信息端点（查看应用信息）
+- `TestEndpoint.cs` - 测试端点（模拟飞书事件）
 
 ```
 Mud.Feishu.Webhook.Demo/
@@ -381,9 +782,381 @@ public class DemoEventService
 }
 ```
 
-## 事件处理器
+### 多应用处理器
 
-### 支持的事件类型
+#### App1 处理器（组织架构应用）
+
+**App1DepartmentEventHandler.cs** - App1 部门创建事件处理器
+
+```csharp
+public class App1DepartmentEventHandler : DepartmentCreatedEventHandler
+{
+    private readonly DemoEventService _eventService;
+
+    public App1DepartmentEventHandler(
+        IFeishuEventDeduplicator businessDeduplicator,
+        ILogger<App1DepartmentEventHandler> logger,
+        DemoEventService eventService)
+        : base(businessDeduplicator, logger)
+    {
+        _eventService = eventService;
+    }
+
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        DepartmentCreatedResult? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(">> [App1-部门事件] 开始处理部门创建事件: {EventId}", eventData.EventId);
+
+        // App1特定的业务逻辑
+        await _eventService.RecordDepartmentEventAsync(eventEntity, cancellationToken);
+        await ProcessDepartmentEventAsync(eventEntity, cancellationToken);
+
+        _logger.LogInformation(">> [App1-部门事件] 部门创建事件处理完成");
+    }
+}
+```
+
+**App1DepartmentDeleteEventHandler.cs** - App1 部门删除事件处理器
+
+```csharp
+public class App1DepartmentDeleteEventHandler : DepartmentDeleteEventHandler
+{
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        DepartmentDeletedResult? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(">> [App1-部门删除] 开始处理部门删除事件");
+
+        // App1特定的删除逻辑
+        await ProcessDepartmentDeleteAsync(eventEntity, cancellationToken);
+    }
+}
+```
+
+**App1DepartmentUpdateEventHandler.cs** - App1 部门更新事件处理器
+
+```csharp
+public class App1DepartmentUpdateEventHandler : DepartmentUpdateEventHandler
+{
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        DepartmentUpdatedResult? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(">> [App1-部门更新] 开始处理部门更新事件");
+
+        // App1特定的更新逻辑
+        await ProcessDepartmentUpdateAsync(eventEntity, cancellationToken);
+    }
+}
+```
+
+#### App2 处理器（用户和审批应用）
+
+**App2UserCreatedEventHandler.cs** - App2 用户创建事件处理器
+
+```csharp
+public class App2UserCreatedEventHandler : UserCreatedEventHandler
+{
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        UserCreatedResult? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(">> [App2-用户事件] 开始处理用户创建事件");
+
+        // App2特定的用户创建逻辑
+        await ProcessUserCreatedAsync(eventEntity, cancellationToken);
+    }
+}
+```
+
+**App2UserDeletedEventHandler.cs** - App2 用户删除事件处理器
+
+```csharp
+public class App2UserDeletedEventHandler : UserDeleteEventHandler
+{
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        UserDeletedResult? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(">> [App2-用户删除] 开始处理用户删除事件");
+
+        // App2特定的用户删除逻辑
+        await ProcessUserDeletedAsync(eventEntity, cancellationToken);
+    }
+}
+```
+
+#### 注册多应用处理器
+
+```csharp
+var webhookBuilder = builder.Services.CreateFeishuWebhookServiceBuilder(
+    builder.Configuration,
+    "FeishuWebhook");
+
+// 注册App1的处理器
+webhookBuilder
+    .AddHandler<App1DepartmentEventHandler>("app1")
+    .AddHandler<App1DepartmentDeleteEventHandler>("app1")
+    .AddHandler<App1DepartmentUpdateEventHandler>("app1");
+
+// 注册App2的处理器
+webhookBuilder
+    .AddHandler<App2UserCreatedEventHandler>("app2")
+    .AddHandler<App2UserDeletedEventHandler>("app2")
+    .AddHandler<App2ApprovalPassedEventHandler>("app2")
+    .AddHandler<App2ApprovalRejectedEventHandler>("app2");
+
+webhookBuilder.Build();
+```
+
+## 拦截器使用
+
+本项目支持两种类型的拦截器：
+- **全局拦截器**：所有应用共享，在所有应用的处理器执行前后运行
+- **应用特定拦截器**：仅对特定应用生效
+
+### 全局拦截器
+
+#### 全局拦截器执行流程
+
+在多应用模式下，全局拦截器对所有应用的事件处理都生效：
+
+```
+收到 Webhook 请求 (App1 或 App2)
+    ↓
+LoggingEventInterceptor (全局) → 记录开始
+    ↓
+TelemetryEventInterceptor (全局) → 创建 Activity
+    ↓
+AuditLogInterceptor (全局) → 记录审计信息
+    ↓
+PerformanceMonitoringInterceptor (全局) → 启动计时
+    ↓
+[应用特定拦截器] (如 App1SpecificInterceptor)
+    ↓
+[事件处理器处理事件]
+    ↓
+[应用特定拦截器 AfterHandleAsync]
+    ↓
+PerformanceMonitoringInterceptor (全局) → 记录耗时
+    ↓
+AuditLogInterceptor (全局) → 记录结果
+    ↓
+TelemetryEventInterceptor (全局) → 完成 Activity
+    ↓
+LoggingEventInterceptor (全局) → 记录结束
+```
+
+#### 注册全局拦截器
+
+```csharp
+var webhookBuilder = builder.Services.CreateFeishuWebhookServiceBuilder(
+    builder.Configuration,
+    "FeishuWebhook");
+
+// 注册全局拦截器（所有应用共享）
+webhookBuilder
+    .AddInterceptor<LoggingEventInterceptor>()
+    .AddInterceptor<TelemetryEventInterceptor>(sp =>
+        new TelemetryEventInterceptor("Mud.Feishu.Webhook.Demo"))
+    .AddInterceptor<AuditLogInterceptor>()
+    .AddInterceptor<PerformanceMonitoringInterceptor>();
+
+// 为不同应用注册处理器
+webhookBuilder
+    .AddHandler<App1DepartmentEventHandler>("app1")
+    .AddHandler<App2UserCreatedEventHandler>("app2");
+
+webhookBuilder.Build();
+```
+
+### 应用特定拦截器
+
+#### App1SpecificInterceptor - App1 专用拦截器
+
+**位置**: `Mud.Feishu.Webhook.Demo.Interceptors.MultiApp.App1SpecificInterceptor`
+
+```csharp
+public class App1SpecificInterceptor : IFeishuEventInterceptor
+{
+    private readonly ILogger<App1SpecificInterceptor> _logger;
+
+    public App1SpecificInterceptor(ILogger<App1SpecificInterceptor> logger)
+    {
+        _logger = logger;
+    }
+
+    public Task<bool> BeforeHandleAsync(string eventType, EventData eventData, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[App1拦截器] 事件开始处理: EventType={EventType}, EventId={EventId}",
+            eventType, eventData.EventId);
+
+        // App1特定的前置处理逻辑
+        if (eventType.StartsWith("department"))
+        {
+            _logger.LogDebug("[App1拦截器] 这是部门相关事件，执行App1特定逻辑");
+        }
+
+        return Task.FromResult(true);
+    }
+
+    public Task AfterHandleAsync(string eventType, EventData eventData, Exception? exception, CancellationToken cancellationToken = default)
+    {
+        if (exception != null)
+        {
+            _logger.LogError(exception, "[App1拦截器] 事件处理失败");
+        }
+        else
+        {
+            _logger.LogInformation("[App1拦截器] 事件处理成功");
+        }
+
+        return Task.CompletedTask;
+    }
+}
+```
+
+#### App2SpecificInterceptor - App2 专用拦截器
+
+**位置**: `Mud.Feishu.Webhook.Demo.Interceptors.MultiApp.App2SpecificInterceptor`
+
+```csharp
+public class App2SpecificInterceptor : IFeishuEventInterceptor
+{
+    private readonly ILogger<App2SpecificInterceptor> _logger;
+
+    public App2SpecificInterceptor(ILogger<App2SpecificInterceptor> logger)
+    {
+        _logger = logger;
+    }
+
+    public Task<bool> BeforeHandleAsync(string eventType, EventData eventData, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[App2拦截器] 事件开始处理: EventType={EventType}, EventId={EventId}",
+            eventType, eventData.EventId);
+
+        // App2特定的前置处理逻辑
+        if (eventType.StartsWith("user") || eventType.StartsWith("approval"))
+        {
+            _logger.LogDebug("[App2拦截器] 这是用户或审批相关事件，执行App2特定逻辑");
+        }
+
+        return Task.FromResult(true);
+    }
+
+    public Task AfterHandleAsync(string eventType, EventData eventData, Exception? exception, CancellationToken cancellationToken = default)
+    {
+        if (exception != null)
+        {
+            _logger.LogError(exception, "[App2拦截器] 事件处理失败");
+        }
+        else
+        {
+            _logger.LogInformation("[App2拦截器] 事件处理成功");
+        }
+
+        return Task.CompletedTask;
+    }
+}
+```
+
+#### 注册应用特定拦截器
+
+```csharp
+var webhookBuilder = builder.Services.CreateFeishuWebhookServiceBuilder(
+    builder.Configuration,
+    "FeishuWebhook");
+
+// 注册全局拦截器
+webhookBuilder
+    .AddInterceptor<LoggingEventInterceptor>()
+    .AddInterceptor<TelemetryEventInterceptor>(sp =>
+        new TelemetryEventInterceptor("Mud.Feishu.Webhook.Demo"))
+    .AddInterceptor<AuditLogInterceptor>()
+    .AddInterceptor<PerformanceMonitoringInterceptor>();
+
+// 注册App1特定拦截器和处理器
+webhookBuilder
+    .AddInterceptor<App1SpecificInterceptor>("app1")
+    .AddHandler<App1DepartmentEventHandler>("app1")
+    .AddHandler<App1DepartmentDeleteEventHandler>("app1")
+    .AddHandler<App1DepartmentUpdateEventHandler>("app1");
+
+// 注册App2特定拦截器和处理器
+webhookBuilder
+    .AddInterceptor<App2SpecificInterceptor>("app2")
+    .AddHandler<App2UserCreatedEventHandler>("app2")
+    .AddHandler<App2UserDeletedEventHandler>("app2")
+    .AddHandler<App2ApprovalPassedEventHandler>("app2")
+    .AddHandler<App2ApprovalRejectedEventHandler>("app2");
+
+webhookBuilder.Build();
+```
+
+### 单应用拦截器注册
+public class App2ApprovalPassedEventHandler : ApprovalPassedEventHandler
+{
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        ApprovalPassedResult? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(">> [App2-审批通过] 开始处理审批通过事件");
+
+        // App2特定的审批通过逻辑
+        await ProcessApprovalPassedAsync(eventEntity, cancellationToken);
+    }
+}
+```
+
+**App2ApprovalRejectedEventHandler.cs** - App2 审批拒绝事件处理器
+
+```csharp
+public class App2ApprovalRejectedEventHandler : ApprovalRejectedEventHandler
+{
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        ApprovalRejectedResult? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(">> [App2-审批拒绝] 开始处理审批拒绝事件");
+
+        // App2特定的审批拒绝逻辑
+        await ProcessApprovalRejectedAsync(eventEntity, cancellationToken);
+    }
+}
+```
+
+#### 注册多应用处理器
+
+```csharp
+var webhookBuilder = builder.Services.CreateFeishuWebhookServiceBuilder(
+    builder.Configuration,
+    "FeishuWebhook");
+
+// 注册App1的处理器
+webhookBuilder
+    .AddHandler<App1DepartmentEventHandler>("app1")
+    .AddHandler<App1DepartmentDeleteEventHandler>("app1")
+    .AddHandler<App1DepartmentUpdateEventHandler>("app1");
+
+// 注册App2的处理器
+webhookBuilder
+    .AddHandler<App2UserCreatedEventHandler>("app2")
+    .AddHandler<App2UserDeletedEventHandler>("app2")
+    .AddHandler<App2ApprovalPassedEventHandler>("app2")
+    .AddHandler<App2ApprovalRejectedEventHandler>("app2");
+
+webhookBuilder.Build();
+```
+
+### 单应用处理器
 
 | 事件类型 | 处理器基类 | 示例 |
 |---------|-----------|------|
@@ -443,7 +1216,13 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 }
 ```
 
-### 创建自定义事件处理器
+## 拦截器使用
+
+本项目支持两种类型的拦截器：
+- **全局拦截器**：所有应用共享，在所有应用的处理器执行前后运行
+- **应用特定拦截器**：仅对特定应用生效
+
+### 全局拦截器
 
 1. **继承对应的事件处理器基类**
 
@@ -1099,6 +1878,281 @@ builder.Services.AddOpenTelemetry()
 ```
 
 ### Q8: 如何记录详细日志？
+
+### Q10: 如何持久化事件统计？
+
+**A**: 扩展 `DemoEventService`：
+
+```csharp
+public class DemoEventService
+{
+    private readonly IDatabaseRepository _repository;
+
+    public EventStatistics GetStatistics()
+    {
+        var stats = new EventStatistics { ... };
+
+        // 从数据库加载
+        var dbStats = _repository.GetEventStatistics();
+        stats.UserCount += dbStats.UserCount;
+        // ...
+
+        return stats;
+    }
+
+    public async Task SaveStatisticsAsync()
+    {
+        await _repository.SaveEventStatisticsAsync(new EventStatistics
+        {
+            UserCount = _userCount,
+            DepartmentCount = _departmentCount,
+            // ...
+        });
+    }
+}
+```
+
+### Q11: 如何使用多应用模式？
+
+**A**: 按以下步骤配置多应用模式：
+
+1. **准备飞书应用凭证**：在飞书开放平台创建多个应用，获取每个应用的 Verification Token 和 Encrypt Key。
+
+2. **配置多应用配置文件**：
+   使用 `appsettings.MultiApp.example.json` 作为模板，修改为：
+
+```json
+{
+  "FeishuWebhook": {
+    "GlobalRoutePrefix": "feishu",
+    "Apps": {
+      "app1": {
+        "AppKey": "app1",
+        "VerificationToken": "app1_verification_token_32_bytes_here",
+        "EncryptKey": "app1_encrypt_key_example_32_bytes_here"
+      },
+      "app2": {
+        "AppKey": "app2",
+        "VerificationToken": "app2_verification_token_32_bytes_here",
+        "EncryptKey": "app2_encrypt_key_example_32_bytes_here"
+      }
+    }
+  }
+}
+```
+
+3. **配置飞书Webhook回调地址**：
+   - App1: `http://your-domain/feishu/app1`
+   - App2: `http://your-domain/feishu/app2`
+
+4. **在 Program.cs 中注册多应用处理器和拦截器**：
+
+```csharp
+// 注册飞书Webhook服务（多应用模式）
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "FeishuWebhook")
+    // 添加全局拦截器（所有应用共享）
+    .AddInterceptor<LoggingEventInterceptor>()
+    .AddInterceptor<TelemetryEventInterceptor>()
+    .AddInterceptor<AuditLogInterceptor>()
+    .AddInterceptor<PerformanceMonitoringInterceptor>()
+    
+    // 为 App1 添加处理器和拦截器
+    .AddHandler<App1DepartmentEventHandler>("app1")
+    .AddHandler<App1DepartmentDeleteEventHandler>("app1")
+    .AddInterceptor<App1SpecificInterceptor>("app1")
+    
+    // 为 App2 添加处理器和拦截器
+    .AddHandler<App2ApprovalPassedEventHandler>("app2")
+    .AddHandler<App2ApprovalRejectedEventHandler>("app2")
+    .AddInterceptor<App2SpecificInterceptor>("app2")
+    
+    .Build();
+
+var app = builder.Build();
+
+// 添加多应用信息端点（可选）
+app.MapMultiAppInfo();
+
+// 添加飞书Webhook中间件
+app.UseFeishuWebhook();
+```
+
+5. **验证配置**：
+
+```bash
+# 查看多应用信息
+curl http://localhost:5015/multi-app/info
+
+# 查看路由映射
+curl http://localhost:5015/multi-app/routes
+
+# 查看已注册的处理器
+curl http://localhost:5015/diagnostics/handlers
+```
+
+### Q12: 多应用模式下如何区分不同应用的事件？
+
+**A**: 通过路由和应用特定拦截器区分：
+
+1. **路由区分**：每个应用有独立的路由
+   - App1: `/feishu/app1`
+   - App2: `/feishu/app2`
+   
+   路由格式: `{GlobalRoutePrefix}/{AppKey}`，其中 `GlobalRoutePrefix` 默认为 `feishu`
+
+2. **处理器区分**：使用应用特定的处理器类
+   ```csharp
+   public class App1DepartmentEventHandler : DepartmentCreatedEventHandler
+   public class App2DepartmentEventHandler : DepartmentCreatedEventHandler
+   ```
+
+3. **拦截器区分**：使用应用特定的拦截器
+   ```csharp
+   public class App1SpecificInterceptor : IFeishuEventInterceptor
+   public class App2SpecificInterceptor : IFeishuEventInterceptor
+   ```
+
+4. **日志区分**：在处理器中使用应用特定的日志前缀
+   ```csharp
+   _logger.LogInformation(">> [App1-部门事件] 开始处理");
+   _logger.LogInformation(">> [App2-部门事件] 开始处理");
+   ```
+
+5. **验证配置**：
+
+```bash
+# 查看多应用信息
+curl http://localhost:5015/multi-app/info
+
+# 查看路由映射
+curl http://localhost:5015/multi-app/routes
+
+# 查看已注册的处理器
+curl http://localhost:5015/diagnostics/handlers
+```
+
+### Q13: 如何在多应用模式下共享业务逻辑？
+
+**A**: 使用共享服务和抽象：
+
+```csharp
+// 共享服务接口
+public interface IDepartmentService
+{
+    Task CreateDepartmentAsync(DepartmentData data, string appKey, CancellationToken cancellationToken);
+}
+
+// 共享服务实现
+public class DepartmentService : IDepartmentService
+{
+    public async Task CreateDepartmentAsync(DepartmentData data, string appKey, CancellationToken cancellationToken)
+    {
+        // 根据 appKey 执行不同的业务逻辑
+        switch (appKey)
+        {
+            case "app1":
+                await CreateApp1DepartmentAsync(data, cancellationToken);
+                break;
+            case "app2":
+                await CreateApp2DepartmentAsync(data, cancellationToken);
+                break;
+        }
+    }
+}
+
+// 在处理器中使用共享服务
+public class App1DepartmentEventHandler : DepartmentCreatedEventHandler
+{
+    private readonly IDepartmentService _departmentService;
+
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        DepartmentCreatedResult? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        await _departmentService.CreateDepartmentAsync(eventData, "app1", cancellationToken);
+    }
+}
+```
+
+### Q14: 多应用模式的性能考虑？
+
+**A**: 多应用模式的性能优化建议：
+
+1. **共享全局拦截器**：所有应用共享相同的基础拦截器，避免重复注册
+2. **独立并发控制**：每个应用有独立的并发数限制
+3. **事件隔离**：不同应用的事件互不影响
+4. **资源管理**：合理配置全局和应用特定的资源限制
+5. **监控分离**：为每个应用建立独立的监控指标
+
+### Q15: 如何在单应用和多应用模式之间切换？
+
+**A**: 通过不同的启动配置和配置文件切换：
+
+1. **配置启动配置** (`Properties/launchSettings.json`):
+
+```json
+{
+  "profiles": {
+    "SingleApp": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:5015",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "MultiApp": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:5015",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
+2. **使用不同的配置文件**：
+   - 单应用：使用 `appsettings.json`
+   - 多应用：使用 `appsettings.MultiApp.example.json`
+
+3. **使用同一程序入口，配置不同**：
+   - 单应用：`Program.cs` + `appsettings.json`
+   - 多应用：`Program.cs` + `appsettings.MultiApp.example.json`
+
+4. **运行时选择**：
+   ```bash
+   # 单应用模式
+   dotnet run --launch-profile SingleApp
+   
+   # 多应用模式
+   dotnet run --launch-profile MultiApp
+   ```
+
+### Q16: 如何为每个应用配置不同的超时时间？
+
+**A**: 在多应用配置中，可以为不同应用配置不同的参数（需要SDK支持）：
+
+```json
+{
+  "FeishuWebhook": {
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_app1_xxxxxx",
+        "VerificationToken": "token1",
+        "EncryptKey": "key1",
+        "EventHandlingTimeoutMs": 30000
+      },
+      "app2": {
+        "AppKey": "cli_app2_yyyyyy",
+        "VerificationToken": "token2",
+        "EncryptKey": "key2",
+        "EventHandlingTimeoutMs": 60000
+      }
+    }
+  }
+}
+```
 
 **A**: 配置日志级别：
 

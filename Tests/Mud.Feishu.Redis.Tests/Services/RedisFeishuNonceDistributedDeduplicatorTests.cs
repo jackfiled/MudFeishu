@@ -102,7 +102,7 @@ public class RedisFeishuNonceDistributedDeduplicatorTests
             _loggerMock.Object);
 
         // Act
-        var result = await deduplicator.TryMarkAsUsedAsync("test_nonce_123", customTtl);
+        var result = await deduplicator.TryMarkAsUsedAsync("test_nonce_123", null, customTtl);
 
         // Assert
         Assert.False(result);

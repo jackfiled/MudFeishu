@@ -396,11 +396,10 @@ public class MultiAppTests
         var hrApp = appManager.GetApp("hr-app");
 
         // Assert
-        Assert.NotNull(defaultApp.TenantTokenManager);
-        Assert.NotNull(defaultApp.AppTokenManager);
-        Assert.NotNull(defaultApp.UserTokenManager);
+        Assert.NotNull(defaultApp.GetTokenManager(Mud.CodeGenerator.TokenType.TenantAccessToken));
+        Assert.NotNull(defaultApp.GetTokenManager(Mud.CodeGenerator.TokenType.AppAccessToken));
+        Assert.NotNull(defaultApp.GetTokenManager(Mud.CodeGenerator.TokenType.UserAccessToken));
         Assert.NotNull(defaultApp.Authentication);
-        Assert.NotNull(defaultApp.TokenCache);
         Assert.NotNull(defaultApp.HttpClient);
 
         // 验证不同应用的配置隔离

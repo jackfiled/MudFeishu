@@ -15,6 +15,12 @@ namespace Mud.Feishu.Webhook;
 public interface IFeishuEventValidator
 {
     /// <summary>
+    /// 设置当前应用键（多应用场景）
+    /// </summary>
+    /// <param name="appKey">应用键</param>
+    void SetCurrentAppKey(string appKey);
+
+    /// <summary>
     /// 验证事件订阅请求
     /// </summary>
     /// <param name="request">验证请求</param>

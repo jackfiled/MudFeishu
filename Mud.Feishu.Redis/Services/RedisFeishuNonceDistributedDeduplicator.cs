@@ -50,7 +50,7 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
     }
 
     /// <inheritdoc />
-    public async Task<bool> TryMarkAsUsedAsync(string nonce, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
+    public async Task<bool> TryMarkAsUsedAsync(string nonce, string? appKey = null, TimeSpan? ttl = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(nonce))
         {
@@ -61,7 +61,7 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
         try
         {
             var actualTtl = ttl ?? _defaultNonceTtl;
-            var redisKey = GetRedisKey(nonce);
+            var redisKey = GetRedisKey(nonce, appKey);
 
             // 使用 SETNX + EXPIRE 实现原子性去重（仅当键不存在时设置，并设置过期时间）
             var setResult = await _database.StringSetAsync(
@@ -97,7 +97,7 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
     }
 
     /// <inheritdoc />
-    public async Task<bool> IsUsedAsync(string nonce, CancellationToken cancellationToken = default)
+    public async Task<bool> IsUsedAsync(string nonce, string? appKey = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(nonce))
         {
@@ -106,7 +106,7 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
 
         try
         {
-            var redisKey = GetRedisKey(nonce);
+            var redisKey = GetRedisKey(nonce, appKey);
             var exists = await _database.KeyExistsAsync(redisKey);
 
             _logger?.LogDebug("Nonce {Nonce} 使用状态: {Status}", nonce, exists ? "已使用" : "未使用");
@@ -143,8 +143,9 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
     /// 手动移除指定 Nonce 的去重标记
     /// </summary>
     /// <param name="nonce">Nonce 值</param>
+    /// <param name="appKey">应用键，用于多应用隔离（可选）</param>
     /// <returns>是否成功移除</returns>
-    public async Task<bool> RemoveAsync(string nonce)
+    public async Task<bool> RemoveAsync(string nonce, string? appKey = null)
     {
         if (string.IsNullOrEmpty(nonce))
         {
@@ -153,7 +154,7 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
 
         try
         {
-            var redisKey = GetRedisKey(nonce);
+            var redisKey = GetRedisKey(nonce, appKey);
             var result = await _database.KeyDeleteAsync(redisKey);
 
             if (result)
@@ -174,8 +175,9 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
     /// 批量移除多个 Nonce 的去重标记
     /// </summary>
     /// <param name="nonces">Nonce 集合</param>
+    /// <param name="appKey">应用键，用于多应用隔离（可选）</param>
     /// <returns>成功移除的数量</returns>
-    public async Task<long> RemoveRangeAsync(IEnumerable<string> nonces)
+    public async Task<long> RemoveRangeAsync(IEnumerable<string> nonces, string? appKey = null)
     {
         if (nonces == null)
         {
@@ -186,7 +188,7 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
         {
             var keys = nonces
                 .Where(n => !string.IsNullOrEmpty(n))
-                .Select(GetRedisKey)
+                .Select(n => GetRedisKey(n, appKey))
                 .ToArray();
 
             if (keys.Length == 0)
@@ -254,9 +256,16 @@ public class RedisFeishuNonceDistributedDeduplicator : IFeishuNonceDistributedDe
     /// 生成 Redis 键
     /// </summary>
     /// <param name="nonce">Nonce 值</param>
+    /// <param name="appKey">应用键，用于多应用隔离（可选）</param>
     /// <returns>Redis 键</returns>
-    private string GetRedisKey(string nonce)
+    private string GetRedisKey(string nonce, string? appKey = null)
     {
+        // 如果提供了 appKey，将其包含在键中以实现多应用隔离
+        // 格式: {prefix}{appKey}:{nonce} 或 {prefix}{nonce}
+        if (!string.IsNullOrEmpty(appKey))
+        {
+            return $"{_keyPrefix}{appKey}:{nonce}";
+        }
         return $"{_keyPrefix}{nonce}";
     }
 }

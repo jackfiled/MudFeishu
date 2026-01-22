@@ -172,7 +172,7 @@ public class RedisFeishuEventDistributedDeduplicatorTests
             _loggerMock.Object);
 
         // Act
-        var result = await deduplicator.TryMarkAsProcessedAsync("test_event_123", customTtl);
+        var result = await deduplicator.TryMarkAsProcessedAsync("test_event_123", null, customTtl);
 
         // Assert
         Assert.False(result);

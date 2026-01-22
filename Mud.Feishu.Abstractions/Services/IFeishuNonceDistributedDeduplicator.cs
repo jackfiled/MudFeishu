@@ -18,18 +18,20 @@ public interface IFeishuNonceDistributedDeduplicator : IAsyncDisposable
     /// 尝试将 Nonce 标记为已使用
     /// </summary>
     /// <param name="nonce">Nonce 值</param>
+    /// <param name="appKey">应用键（用于多应用场景，避免跨应用冲突）</param>
     /// <param name="ttl">过期时间（可选），不指定则使用默认值</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>如果 Nonce 已被使用返回 true（重放攻击），否则返回 false 并标记为已使用</returns>
-    Task<bool> TryMarkAsUsedAsync(string nonce, TimeSpan? ttl = null, CancellationToken cancellationToken = default);
+    Task<bool> TryMarkAsUsedAsync(string nonce, string? appKey = null, TimeSpan? ttl = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 检查 Nonce 是否已被使用（不标记）
     /// </summary>
     /// <param name="nonce">Nonce 值</param>
+    /// <param name="appKey">应用键（用于多应用场景，避免跨应用冲突）</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>如果 Nonce 已被使用返回 true，否则返回 false</returns>
-    Task<bool> IsUsedAsync(string nonce, CancellationToken cancellationToken = default);
+    Task<bool> IsUsedAsync(string nonce, string? appKey = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 手动清理过期条目

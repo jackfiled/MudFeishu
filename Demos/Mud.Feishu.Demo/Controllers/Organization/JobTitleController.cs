@@ -39,7 +39,11 @@ public class JobTitleController : ControllerBase
     {
         try
         {
+            _tenantJobTitleApi.UseApp("hr-app");
+            _userJobTitleApi.UseApp("hr-app");
             var result = await _tenantJobTitleApi.GetJobTitlesListAsync(pageSize, pageToken);
+            _tenantJobTitleApi.UseDefaultApp();
+            _userJobTitleApi.UseDefaultApp();
             return Ok(result.Data);
         }
         catch (Exception ex)

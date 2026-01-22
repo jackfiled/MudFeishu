@@ -1149,4 +1149,71 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 ---
 
+## 多应用模式
+
+Mud.Feishu.Webhook 支持多应用模式，允许你为不同的飞书应用配置独立的路由、处理器和配置。
+
+### 配置文件
+
+```json
+{
+  "FeishuWebhook": {
+    "GlobalRoutePrefix": "feishu",
+    "Apps": {
+      "app1": {
+        "VerificationToken": "app1_verification_token",
+        "EncryptKey": "app1_encrypt_key_32_bytes_long"
+      },
+      "app2": {
+        "VerificationToken": "app2_verification_token",
+        "EncryptKey": "app2_encrypt_key_32_bytes_long"
+      }
+    }
+  }
+}
+```
+
+### 注册代码
+
+```csharp
+// 为不同应用注册独立的处理器
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    // App1 处理器
+    .AddHandler<App1DepartmentEventHandler>("app1")
+    .AddHandler<App1MessageEventHandler>("app1")
+    
+    // App2 处理器
+    .AddHandler<App2DepartmentEventHandler>("app2")
+    .AddHandler<App2MessageEventHandler>("app2")
+    
+    .Build();
+
+var app = builder.Build();
+
+// 使用多应用中间件（自动处理路由）
+app.UseFeishuWebhook();
+
+app.Run();
+```
+
+### 路由映射
+
+系统会自动将路由映射到对应的应用：
+
+- `/feishu/app1` → App1 的处理器
+- `/feishu/app2` → App2 的处理器
+
+### 应用隔离
+
+每个应用完全隔离：
+
+- ✅ **配置隔离**：每个应用独立的 `EncryptKey` 和 `VerificationToken`
+- ✅ **处理器隔离**：每个应用只能调用自己的处理器
+- ✅ **路由隔离**：不同的路由前缀，互不干扰
+- ✅ **安全隔离**：每个应用独立的安全验证
+
+详细的多应用文档请参阅：[Readme.MultiApp.md](Readme.MultiApp.md)
+
+---
+
 **🚀 立即开始使用飞书Webhook，构建稳定可靠的事件处理系统！**
