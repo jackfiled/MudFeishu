@@ -82,9 +82,9 @@ public class BinaryMessageProcessor : IDisposable
                 _binaryDataStream.Write(data, offset, count);
 
                 // 检查数据大小限制
-                if (_binaryDataStream.Length > _options.MaxBinaryMessageSize)
+                if (_binaryDataStream.Length > _options.MessageSizeLimits.MaxBinaryMessageSize)
                 {
-                    var errorMessage = $"二进制消息大小超过限制 ({_binaryDataStream.Length} > {_options.MaxBinaryMessageSize})";
+                    var errorMessage = $"二进制消息大小超过限制 ({_binaryDataStream.Length} > {_options.MessageSizeLimits.MaxBinaryMessageSize})";
                     _logger.LogError(errorMessage);
 
                     // 清理当前数据流

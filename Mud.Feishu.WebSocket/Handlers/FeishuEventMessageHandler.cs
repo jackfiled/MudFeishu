@@ -109,12 +109,12 @@ public class FeishuEventMessageHandler : JsonMessageHandler
             bool isProcessing = false;
             bool shouldSkip = false;
 
-            if (_options.EnableDistributedDeduplication && _distributedDeduplicator != null)
+            if (_options.EventDeduplication.Mode == EventDeduplicationMode.Distributed && _distributedDeduplicator != null)
             {
-                // 优先使用分布式去重
+                // 使用分布式去重
                 isProcessing = await _distributedDeduplicator.TryMarkAsProcessedAsync(eventData.EventId, cancellationToken: cancellationToken);
             }
-            else if (_options.EnableEventDeduplication && _deduplicator != null)
+            else if (_options.EventDeduplication.Mode == EventDeduplicationMode.InMemory && _deduplicator != null)
             {
                 // 使用内存去重 - 标记为处理中
                 isProcessing = _deduplicator.TryMarkAsProcessing(eventData.EventId);
@@ -152,7 +152,7 @@ public class FeishuEventMessageHandler : JsonMessageHandler
                         await _eventHandlerFactory.HandleEventParallelAsync(eventData.EventType, eventData, cancellationToken);
 
                         // 处理成功，标记为已完成
-                        if (_options.EnableEventDeduplication && _deduplicator != null)
+                        if (_options.EventDeduplication.Mode == EventDeduplicationMode.InMemory && _deduplicator != null)
                         {
                             _deduplicator.MarkAsCompleted(eventData.EventId);
                         }
@@ -163,7 +163,7 @@ public class FeishuEventMessageHandler : JsonMessageHandler
                     processingException = ex;
 
                     // 处理失败，回滚处理中状态
-                    if (_options.EnableEventDeduplication && _deduplicator != null)
+                    if (_options.EventDeduplication.Mode == EventDeduplicationMode.InMemory && _deduplicator != null)
                     {
                         _deduplicator.RollbackProcessing(eventData.EventId);
                     }

@@ -8,6 +8,75 @@
 namespace Mud.Feishu.WebSocket;
 
 /// <summary>
+/// 事件去重模式
+/// </summary>
+public enum EventDeduplicationMode
+{
+    /// <summary>
+    /// 禁用去重（不推荐，仅用于特殊场景）
+    /// </summary>
+    None,
+
+    /// <summary>
+    /// 内存去重（单实例）
+    /// </summary>
+    InMemory,
+
+    /// <summary>
+    /// 分布式去重（需配置 IFeishuEventDistributedDeduplicator）
+    /// </summary>
+    Distributed
+}
+
+/// <summary>
+/// 消息大小限制配置
+/// </summary>
+public class MessageSizeLimits
+{
+    /// <summary>
+    /// 最大文本消息大小（字符数），默认为1MB
+    /// </summary>
+    public int MaxTextMessageSize { get; set; } = 1024 * 1024; // 1MB
+
+    /// <summary>
+    /// 最大二进制消息大小（字节），默认为10MB
+    /// </summary>
+    public long MaxBinaryMessageSize { get; set; } = 10 * 1024 * 1024; // 10MB
+}
+
+/// <summary>
+/// 事件去重配置
+/// </summary>
+public class EventDeduplicationOptions
+{
+    /// <summary>
+    /// 去重模式，默认为内存去重
+    /// </summary>
+    public EventDeduplicationMode Mode { get; set; } = EventDeduplicationMode.InMemory;
+
+    /// <summary>
+    /// 缓存过期时间（毫秒），默认为24小时
+    /// <para>建议设置为与飞书官方事件重试窗口期一致，避免长延时场景下的重复处理</para>
+    /// </summary>
+    public int CacheExpirationMs
+    {
+        get => _cacheExpirationMs;
+        set => _cacheExpirationMs = Math.Max(60000, value);
+    }
+    private int _cacheExpirationMs = 24 * 60 * 60 * 1000; // 默认 24 小时
+
+    /// <summary>
+    /// 缓存清理间隔（毫秒），默认为5分钟
+    /// </summary>
+    public int CleanupIntervalMs
+    {
+        get => _cleanupIntervalMs;
+        set => _cleanupIntervalMs = Math.Max(60000, value);
+    }
+    private int _cleanupIntervalMs = 5 * 60 * 1000;
+}
+
+/// <summary>
 /// 飞书WebSocket客户端配置选项
 /// </summary>
 public class FeishuWebSocketOptions
@@ -17,8 +86,6 @@ public class FeishuWebSocketOptions
     private int _emptyQueueCheckIntervalMs = 100;
     private int _maxReconnectDelayMs = 30000;
     private int _healthCheckIntervalMs = 60000;
-    private int _eventDeduplicationCacheExpirationMs = 24 * 60 * 60 * 1000; // 默认 24 小时
-    private int _eventDeduplicationCleanupIntervalMs = 5 * 60 * 1000;
     private int _maxConcurrentMessageProcessing = 10; // 默认最大并发消息处理数
 
     /// <summary>
@@ -50,9 +117,10 @@ public class FeishuWebSocketOptions
     }
 
     /// <summary>
-    /// 接收缓冲区大小（字节），默认为4KB
+    /// 初始接收缓冲区大小（字节），默认为4KB
+    /// <para>仅用于初始化WebSocket接收缓冲区，实际消息大小会动态调整</para>
     /// </summary>
-    public int ReceiveBufferSize { get; set; } = 4096;
+    public int InitialReceiveBufferSize { get; set; } = 4096;
 
     /// <summary>
     /// 心跳间隔时间（毫秒），默认为30000毫秒，最小为1000毫秒
@@ -74,15 +142,9 @@ public class FeishuWebSocketOptions
     public bool EnableLogging { get; set; } = true;
 
     /// <summary>
-    /// 最大消息大小（字符数），默认为1MB
+    /// 消息大小限制配置
     /// </summary>
-    public int MaxMessageSize { get; set; } = 1024 * 1024; // 1MB
-
-    /// <summary>
-    /// 多处理器模式下是否并行执行，默认为true
-    /// 注意：此配置项暂未使用，预留用于未来功能扩展
-    /// </summary>
-    public bool ParallelMultiHandlers { get; set; } = true;
+    public MessageSizeLimits MessageSizeLimits { get; set; } = new();
 
     /// <summary>
     /// 是否启用消息队列处理，默认为true
@@ -104,11 +166,6 @@ public class FeishuWebSocketOptions
     }
 
     /// <summary>
-    /// 最大二进制消息大小（字节），默认为10MB
-    /// </summary>
-    public long MaxBinaryMessageSize { get; set; } = 10 * 1024 * 1024; // 10MB
-
-    /// <summary>
     /// 健康检查间隔（毫秒），默认为60000毫秒
     /// </summary>
     public int HealthCheckIntervalMs
@@ -116,16 +173,6 @@ public class FeishuWebSocketOptions
         get => _healthCheckIntervalMs;
         set => _healthCheckIntervalMs = Math.Max(1000, value);
     }
-
-    /// <summary>
-    /// 是否启用事件去重，默认为true
-    /// </summary>
-    public bool EnableEventDeduplication { get; set; } = true;
-
-    /// <summary>
-    /// 是否启用分布式去重（需配置 IFeishuEventDistributedDeduplicator），默认为false
-    /// </summary>
-    public bool EnableDistributedDeduplication { get; set; } = false;
 
     /// <summary>
     /// 最大并发消息处理数，默认为10
@@ -138,23 +185,9 @@ public class FeishuWebSocketOptions
     }
 
     /// <summary>
-    /// 事件去重缓存过期时间（毫秒），默认为24小时
-    /// <para>建议设置为与飞书官方事件重试窗口期一致，避免长延时场景下的重复处理</para>
+    /// 事件去重配置
     /// </summary>
-    public int EventDeduplicationCacheExpirationMs
-    {
-        get => _eventDeduplicationCacheExpirationMs;
-        set => _eventDeduplicationCacheExpirationMs = Math.Max(60000, value);
-    }
-
-    /// <summary>
-    /// 事件去重缓存清理间隔（毫秒），默认为5分钟
-    /// </summary>
-    public int EventDeduplicationCleanupIntervalMs
-    {
-        get => _eventDeduplicationCleanupIntervalMs;
-        set => _eventDeduplicationCleanupIntervalMs = Math.Max(60000, value);
-    }
+    public EventDeduplicationOptions EventDeduplication { get; set; } = new();
 
     /// <summary>
     /// 验证配置项的有效性
@@ -171,8 +204,8 @@ public class FeishuWebSocketOptions
         if (MaxReconnectDelayMs < ReconnectDelayMs)
             throw new InvalidOperationException("MaxReconnectDelayMs必须大于等于ReconnectDelayMs");
 
-        if (ReceiveBufferSize < 1024)
-            throw new InvalidOperationException("ReceiveBufferSize必须至少为1024字节");
+        if (InitialReceiveBufferSize < 1024)
+            throw new InvalidOperationException("InitialReceiveBufferSize必须至少为1024字节");
 
         if (HeartbeatIntervalMs < 1000)
             throw new InvalidOperationException("HeartbeatIntervalMs必须至少为1000毫秒");
@@ -180,30 +213,24 @@ public class FeishuWebSocketOptions
         if (ConnectionTimeoutMs < 1000)
             throw new InvalidOperationException("ConnectionTimeoutMs必须至少为1000毫秒");
 
-        if (MaxMessageSize < 1024)
-            throw new InvalidOperationException("MaxMessageSize必须至少为1024字符");
-
         if (MessageQueueCapacity < 1)
             throw new InvalidOperationException("MessageQueueCapacity必须至少为1");
-
-        if (MaxBinaryMessageSize < 1024)
-            throw new InvalidOperationException("MaxBinaryMessageSize必须至少为1024字节");
-
-        if (EventDeduplicationCacheExpirationMs < 60000)
-            throw new InvalidOperationException("EventDeduplicationCacheExpirationMs必须至少为60000毫秒");
-
-        if (EventDeduplicationCleanupIntervalMs < 60000)
-            throw new InvalidOperationException("EventDeduplicationCleanupIntervalMs必须至少为60000毫秒");
 
         if (MaxConcurrentMessageProcessing < 1)
             throw new InvalidOperationException("MaxConcurrentMessageProcessing必须至少为1");
 
-        // 去重配置保护
-        if (!EnableEventDeduplication && !EnableDistributedDeduplication)
+        // 验证消息大小限制配置
+        if (MessageSizeLimits.MaxTextMessageSize < 1024)
+            throw new InvalidOperationException("MessageSizeLimits.MaxTextMessageSize必须至少为1024字符");
+
+        if (MessageSizeLimits.MaxBinaryMessageSize < 1024)
+            throw new InvalidOperationException("MessageSizeLimits.MaxBinaryMessageSize必须至少为1024字节");
+
+        // 去重配置警告（非强制）
+        if (EventDeduplication.Mode == EventDeduplicationMode.None)
         {
-            throw new InvalidOperationException(
-                "警告：事件去重未启用！生产环境强烈建议启用至少一种去重机制（内存去重或分布式去重）。" +
-                "请设置 EnableEventDeduplication=true 或 EnableDistributedDeduplication=true");
+            // 记录警告但不抛出异常，允许用户根据场景自行决定
+            // 生产环境建议启用至少一种去重机制
         }
     }
 
@@ -212,7 +239,7 @@ public class FeishuWebSocketOptions
     /// </summary>
     public override string ToString()
     {
-        return $"FeishuWebSocketOptions {{ AutoReconnect: {AutoReconnect}, MaxReconnectAttempts: {MaxReconnectAttempts}, ReconnectDelayMs: {ReconnectDelayMs}, HeartbeatIntervalMs: {HeartbeatIntervalMs}, EnableLogging: {EnableLogging}, EnableEventDeduplication: {EnableEventDeduplication} }}";
+        return $"FeishuWebSocketOptions {{ AutoReconnect: {AutoReconnect}, MaxReconnectAttempts: {MaxReconnectAttempts}, ReconnectDelayMs: {ReconnectDelayMs}, HeartbeatIntervalMs: {HeartbeatIntervalMs}, EnableLogging: {EnableLogging}, EventDeduplicationMode: {EventDeduplication.Mode} }}";
     }
 }
 

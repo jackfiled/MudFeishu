@@ -251,15 +251,15 @@ public class WebSocketConnectionManager : IDisposable
     /// <exception cref="InvalidOperationException">当WebSocket未连接时抛出</exception>
     /// <remarks>
     /// 消息会使用UTF-8编码发送。
-    /// 最大消息长度由<see cref="FeishuWebSocketOptions.MaxMessageSize"/>配置决定。
+    /// 最大消息长度由<see cref="MessageSizeLimits.MaxTextMessageSize"/>配置决定。
     /// </remarks>
     public async Task SendMessageAsync(string message, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(message))
             throw new ArgumentException("消息不能为空或仅包含空白字符", nameof(message));
 
-        if (message.Length > _options.MaxMessageSize)
-            throw new ArgumentException($"消息大小超过限制 ({_options.MaxMessageSize} 字符)", nameof(message));
+        if (message.Length > _options.MessageSizeLimits.MaxTextMessageSize)
+            throw new ArgumentException($"消息大小超过限制 ({_options.MessageSizeLimits.MaxTextMessageSize} 字符)", nameof(message));
 
         await _connectionLock.WaitAsync(cancellationToken);
         try
@@ -305,6 +305,7 @@ public class WebSocketConnectionManager : IDisposable
     /// 该方法会持续监听WebSocket消息，直到连接关闭或取消令牌被触发。
     /// 接收到的消息会通过提供的messageHandler回调函数处理。
     /// 如果接收到关闭消息，会自动调用<see cref="HandleCloseMessageAsync"/>处理关闭逻辑。
+    /// 初始缓冲区大小由<see cref="FeishuWebSocketOptions.InitialReceiveBufferSize"/>配置决定。
     /// </remarks>
     public async Task StartReceivingAsync(Func<ArraySegment<byte>, WebSocketReceiveResult, Task> messageHandler, CancellationToken cancellationToken = default)
     {
@@ -312,7 +313,7 @@ public class WebSocketConnectionManager : IDisposable
             throw new InvalidOperationException("WebSocket未初始化");
 
         // 复用缓冲区以减少GC压力
-        _receiveBuffer ??= new byte[_options.ReceiveBufferSize];
+        _receiveBuffer ??= new byte[_options.InitialReceiveBufferSize];
 
         try
         {
