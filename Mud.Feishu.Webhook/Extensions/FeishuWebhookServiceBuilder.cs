@@ -306,6 +306,9 @@ public class FeishuWebhookServiceBuilder
         // 注册事件处理器工厂
         RegisterEventHandlerFactory();
 
+        // 注册失败事件重试服务
+        RegisterRetryServices();
+
         // 注册健康检查支持
         if (_enableHealthChecks)
         {
@@ -402,13 +405,7 @@ public class FeishuWebhookServiceBuilder
 
             if (options.Value.EnableCircuitBreaker)
             {
-                var circuitBreakerOptions = new CircuitBreakerOptions
-                {
-                    ExceptionsAllowedBeforeBreaking = options.Value.CircuitBreaker.ExceptionsAllowedBeforeBreaking,
-                    DurationOfBreak = TimeSpan.FromSeconds(options.Value.CircuitBreaker.DurationOfBreakSeconds),
-                    SuccessThresholdToReset = options.Value.CircuitBreaker.SuccessThresholdToReset
-                };
-                return new CircuitBreakerService(circuitBreakerOptions, logger);
+                return new CircuitBreakerService(options.Value.CircuitBreaker, logger);
             }
 
             // 返回禁用的断路器（总是允许请求）
@@ -482,5 +479,4 @@ public class FeishuWebhookServiceBuilder
             }
         });
     }
-
 }

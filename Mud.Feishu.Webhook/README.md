@@ -111,17 +111,26 @@ app.Run();
     "EnablePerformanceMonitoring": false,
     "AllowedHttpMethods": [ "POST" ],
     "MaxRequestBodySize": 10485760,
-    "ValidateSourceIP": false,
     "AllowedSourceIPs": [],
     "EnforceHeaderSignatureValidation": true,
     "EnableBodySignatureValidation": true,
     "TimestampToleranceSeconds": 60,
     "EnableBackgroundProcessing": false,
-    "MultiAppEncryptKeys": {
-      "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
-      "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
+    "EnableCircuitBreaker": true,
+    "CircuitBreaker": {
+      "ExceptionsAllowedBeforeBreaking": 5,
+      "DurationOfBreak": "00:00:30",
+      "SuccessThresholdToReset": 3
     },
-    "DefaultAppId": "cli_a1b2c3d4e5f6g7h8",
+    "Retry": {
+      "EnableRetry": false,
+      "MaxRetryCount": 3,
+      "InitialRetryDelaySeconds": 10,
+      "RetryDelayMultiplier": 2.0,
+      "MaxRetryDelaySeconds": 300,
+      "RetryPollIntervalSeconds": 30,
+      "MaxRetryPerPoll": 10
+    },
     "RateLimit": {
       "EnableRateLimit": false,
       "WindowSizeSeconds": 60,
@@ -131,10 +140,18 @@ app.Run();
       "TooManyRequestsMessage": "请求过于频繁，请稍后再试",
       "WhitelistIPs": [ "127.0.0.1", "::1" ]
     },
-    "MaxRetryCount": 3,
-    "CircuitBreakerEnabled": true,
-    "MaxDepth": 64,
-    "MaxIpEntries": 100000
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_a1b2c3d4e5f6g7h8",
+        "VerificationToken": "your_app1_verification_token",
+        "EncryptKey": "your_app1_encrypt_key_32_bytes_long"
+      },
+      "app2": {
+        "AppKey": "cli_h8g7f6e5d4c3b2a1",
+        "VerificationToken": "your_app2_verification_token",
+        "EncryptKey": "your_app2_encrypt_key_32_bytes_long"
+      }
+    }
   }
 }
 ```
@@ -371,24 +388,22 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 | `EncryptKey` | string | - | 飞书事件加密密钥（32字节） |
 | `RoutePrefix` | string | "feishu/Webhook" | Webhook 路由前缀 |
 | `AutoRegisterEndpoint` | bool | true | 是否自动注册端点 |
-| `MaxRetryCount` | int | 3 | 失败事件最大重试次数 |
-| `CircuitBreakerEnabled` | bool | true | 是否启用断路器模式 |
-| `MaxDepth` | int | 64 | JSON 反序列化最大深度 |
-| `MaxIpEntries` | int | 100000 | 限流中间件最大 IP 条目数（LRU 淘汰）|
 
-### 多机器人配置
+### 多应用配置
 
 | 选项 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `MultiAppEncryptKeys` | Dictionary\<string, string\> | - | 多机器人密钥配置（AppId -> EncryptKey） |
-| `DefaultAppId` | string | - | 默认应用 ID（多机器人场景回退） |
+| `Apps` | Dictionary\<string, FeishuAppWebhookOptions\> | {} | 应用配置集合（AppKey -> 应用配置） |
+| `Apps.{AppKey}.AppKey` | string | - | 应用键（用于标识应用） |
+| `Apps.{AppKey}.VerificationToken` | string | - | 应用验证 Token |
+| `Apps.{AppKey}.EncryptKey` | string | - | 应用加密 Key（32字节） |
+| `GlobalRoutePrefix` | string | "feishu" | 全局路由前缀（所有应用共享的基础路径） |
 
 ### 安全配置
 
 | 选项 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `ValidateSourceIP` | bool | false | 是否验证来源 IP |
-| `AllowedSourceIPs` | HashSet\<string\> | - | 允许的源 IP 地址列表 |
+| `AllowedSourceIPs` | HashSet\<string\> | [] | 允许的源 IP 地址列表（非空时自动启用 IP 验证） |
 | `AllowedHttpMethods` | HashSet\<string\> | ["POST"] | 允许的 HTTP 方法 |
 | `MaxRequestBodySize` | long | 10MB | 最大请求体大小 |
 | `EnforceHeaderSignatureValidation` | bool | true | 是否强制验证请求头签名 |
@@ -411,6 +426,27 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 | `EnableRequestLogging` | bool | true | 是否启用请求日志记录 |
 | `EnableExceptionHandling` | bool | true | 是否启用异常处理 |
 
+### 断路器配置
+
+| 选项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `EnableCircuitBreaker` | bool | true | 是否启用断路器模式 |
+| `CircuitBreaker.ExceptionsAllowedBeforeBreaking` | int | 5 | 断路器断开前的连续失败次数 |
+| `CircuitBreaker.DurationOfBreak` | TimeSpan | 30s | 断路器保持开启状态的持续时间 |
+| `CircuitBreaker.SuccessThresholdToReset` | int | 3 | 断路器进入半开状态后的成功次数阈值 |
+
+### 失败事件重试配置
+
+| 选项 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `Retry.EnableRetry` | bool | false | 是否启用失败事件重试 |
+| `Retry.MaxRetryCount` | int | 3 | 最大重试次数 |
+| `Retry.InitialRetryDelaySeconds` | int | 10 | 初始重试延迟（秒） |
+| `Retry.RetryDelayMultiplier` | double | 2.0 | 重试延迟倍数（指数退避） |
+| `Retry.MaxRetryDelaySeconds` | int | 300 | 最大重试延迟（秒） |
+| `Retry.RetryPollIntervalSeconds` | int | 30 | 重试轮询间隔（秒） |
+| `Retry.MaxRetryPerPoll` | int | 10 | 每次轮询处理的最大失败事件数 |
+
 ### 请求频率限制配置
 
 | 选项 | 类型 | 默认值 | 说明 |
@@ -422,25 +458,37 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 | `RateLimit.TooManyRequestsStatusCode` | int | 429 | 超出限制时的响应状态码 |
 | `RateLimit.TooManyRequestsMessage` | string | "请求过于频繁，请稍后再试" | 超出限制时的响应消息 |
 | `RateLimit.WhitelistIPs` | HashSet\<string\> | [] | 白名单 IP 列表（不参与限流） |
-| `RateLimit.MaxIpEntries` | int | 100000 | 限流中间件最大 IP 条目数（LRU 淘汰）|
 
 ## 高级功能
 
-### 多机器人支持
+### 多应用支持
 
-支持多个飞书机器人共享同一个 Webhook 端点：
+支持多个飞书应用共享同一个 Webhook 端点：
 
 ```json
 {
   "FeishuWebhook": {
-    "MultiAppEncryptKeys": {
-      "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
-      "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
-    },
-    "DefaultAppId": "cli_a1b2c3d4e5f6g7h8"
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_a1b2c3d4e5f6g7h8",
+        "VerificationToken": "your_app1_verification_token",
+        "EncryptKey": "your_app1_encrypt_key_32_bytes_long"
+      },
+      "app2": {
+        "AppKey": "cli_h8g7f6e5d4c3b2a1",
+        "VerificationToken": "your_app2_verification_token",
+        "EncryptKey": "your_app2_encrypt_key_32_bytes_long"
+      }
+    }
   }
 }
 ```
+
+每个应用的路由将自动注册为 `/feishu/{AppKey}`。
+
+### 断路器模式
+
+使用 Polly 实现熔断机制，防止级联故障：
 
 ### 请求频率限制
 
@@ -987,10 +1035,10 @@ app.MapDiagnostics();          // 诊断端点
    - 确认客户端 IP 是否在白名单中
    - 调整 `MaxRequestsPerWindow` 和 `WindowSizeSeconds` 参数
 
-8. **多机器人配置问题**
-   - 检查 `MultiAppEncryptKeys` 配置是否正确
-   - 确认 AppId 与密钥的映射关系
-   - 验证 `DefaultAppId` 配置
+8. **多应用配置问题**
+   - 检查 `Apps` 配置是否正确
+   - 确认各应用的 AppKey、VerificationToken 和 EncryptKey 配置
+   - 验证应用路由是否正确（`/feishu/{AppKey}`）
 
 ### 调试技巧
 

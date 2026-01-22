@@ -28,26 +28,32 @@ public class FeishuWebhookOptions
     public string EncryptKey { get; set; } = string.Empty;
 
     /// <summary>
+    /// Webhook 路由前缀
+    /// </summary>
+    public string RoutePrefix { get; set; } = "feishu/Webhook";
+
+    /// <summary>
     /// 多机器人密钥配置（AppId -> EncryptKey 映射）
     /// 支持多个飞书机器人共享同一个 Webhook 端点
+    /// 已废弃：请使用 Apps 配置进行多应用管理
     /// </summary>
+    [Obsolete("请使用 Apps 配置进行多应用管理")]
     public Dictionary<string, string> MultiAppEncryptKeys { get; set; } = new();
 
     /// <summary>
     /// 多机器人验证令牌配置（AppId -> VerificationToken 映射）
     /// 支持多个飞书机器人共享同一个 Webhook 端点
+    /// 已废弃：请使用 Apps 配置进行多应用管理
     /// </summary>
+    [Obsolete("请使用 Apps 配置进行多应用管理")]
     public Dictionary<string, string> MultiAppVerificationTokens { get; set; } = new();
 
     /// <summary>
     /// 默认应用 ID（用于多机器人场景下的回退）
+    /// 已废弃：请使用 Apps 配置进行多应用管理
     /// </summary>
+    [Obsolete("请使用 Apps 配置进行多应用管理")]
     public string DefaultAppId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Webhook 路由前缀
-    /// </summary>
-    public string RoutePrefix { get; set; } = "feishu/Webhook";
 
     /// <summary>
     /// 是否自动注册 Webhook 端点
@@ -91,12 +97,9 @@ public class FeishuWebhookOptions
     public long MaxRequestBodySize { get; set; } = 10 * 1024 * 1024; // 10MB
 
     /// <summary>
-    /// 是否验证请求来源 IP
-    /// </summary>
-    public bool ValidateSourceIP { get; set; } = false;
-
-    /// <summary>
-    /// 允许的源 IP 地址列表
+    /// 允许的源 IP 地址列表（白名单）
+    /// 当此列表非空时，将自动启用 IP 验证
+    /// 支持 CIDR 格式（如 192.168.1.0/24）和单个 IP 地址
     /// </summary>
     public HashSet<string> AllowedSourceIPs { get; set; } = [];
 
@@ -143,27 +146,6 @@ public class FeishuWebhookOptions
     public bool EnableBackgroundProcessing { get; set; } = false;
 
     /// <summary>
-    /// 健康检查失败率阈值（不健康）
-    /// 当失败率超过此值时，健康检查返回 Unhealthy 状态
-    /// 范围：0.0 - 1.0，默认 0.1 (10%)
-    /// </summary>
-    public double HealthCheckUnhealthyFailureRateThreshold { get; set; } = 0.1;
-
-    /// <summary>
-    /// 健康检查失败率阈值（降级）
-    /// 当失败率超过此值时，健康检查返回 Degraded 状态
-    /// 范围：0.0 - 1.0，默认 0.05 (5%)
-    /// </summary>
-    public double HealthCheckDegradedFailureRateThreshold { get; set; } = 0.05;
-
-    /// <summary>
-    /// 健康检查最小事件数阈值
-    /// 达到此事件数后才开始计算失败率，避免早期数据不准确
-    /// 默认 10 个事件
-    /// </summary>
-    public int HealthCheckMinEventsThreshold { get; set; } = 10;
-
-    /// <summary>
     /// 是否启用断路器模式
     /// 启用后，当连续失败次数达到阈值时，断路器将开启并拒绝新请求
     /// 这可以防止级联故障，保护下游服务
@@ -173,7 +155,7 @@ public class FeishuWebhookOptions
     /// <summary>
     /// 断路器配置
     /// </summary>
-    public CircuitBreakerConfiguration CircuitBreaker { get; set; } = new();
+    public CircuitBreakerOptions CircuitBreaker { get; set; } = new();
 
     /// <summary>
     /// 失败事件重试配置
@@ -182,7 +164,9 @@ public class FeishuWebhookOptions
 
     /// <summary>
     /// 是否启用事件拦截器
+    /// 注意：拦截器通过 FeishuWebhookServiceBuilder 的 AddInterceptor 方法添加
     /// </summary>
+    [Obsolete("此配置已废弃。拦截器通过 FeishuWebhookServiceBuilder 的 AddInterceptor 方法注册，不再需要此开关。")]
     public bool EnableEventInterceptors { get; set; } = false;
 
     /// <summary>
@@ -222,7 +206,14 @@ public class FeishuWebhookOptions
             throw new InvalidOperationException("TimestampToleranceSeconds 不能为负数");
 
         // 验证断路器配置
-        CircuitBreaker.Validate();
+        if (CircuitBreaker.ExceptionsAllowedBeforeBreaking < 1)
+            throw new InvalidOperationException("CircuitBreaker.ExceptionsAllowedBeforeBreaking 必须至少为 1");
+
+        if (CircuitBreaker.DurationOfBreak.TotalSeconds < 1)
+            throw new InvalidOperationException("CircuitBreaker.DurationOfBreak 必须至少为 1 秒");
+
+        if (CircuitBreaker.SuccessThresholdToReset < 1)
+            throw new InvalidOperationException("CircuitBreaker.SuccessThresholdToReset 必须至少为 1");
 
         // 验证重试配置
         Retry.Validate();
@@ -273,7 +264,7 @@ public class FeishuWebhookOptions
 
     private static string MaskSensitiveData(string? data)
     {
-        if (string.IsNullOrEmpty(data) || data.Length <= 4)
+        if (string.IsNullOrEmpty(data) || data!.Length <= 4)
             return "****";
         return $"{data.Substring(0, 2)}****{data.Substring(data.Length - 2)}";
     }

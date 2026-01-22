@@ -101,17 +101,26 @@ app.Run();
     "EnablePerformanceMonitoring": false,
     "AllowedHttpMethods": [ "POST" ],
     "MaxRequestBodySize": 10485760,
-    "ValidateSourceIP": false,
     "AllowedSourceIPs": [],
     "EnforceHeaderSignatureValidation": true,
     "EnableBodySignatureValidation": true,
     "TimestampToleranceSeconds": 60,
     "EnableBackgroundProcessing": false,
-    "MultiAppEncryptKeys": {
-      "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
-      "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
+    "EnableCircuitBreaker": true,
+    "CircuitBreaker": {
+      "ExceptionsAllowedBeforeBreaking": 5,
+      "DurationOfBreak": "00:00:30",
+      "SuccessThresholdToReset": 3
     },
-    "DefaultAppId": "cli_a1b2c3d4e5f6g7h8",
+    "Retry": {
+      "EnableRetry": false,
+      "MaxRetryCount": 3,
+      "InitialRetryDelaySeconds": 10,
+      "RetryDelayMultiplier": 2.0,
+      "MaxRetryDelaySeconds": 300,
+      "RetryPollIntervalSeconds": 30,
+      "MaxRetryPerPoll": 10
+    },
     "RateLimit": {
       "EnableRateLimit": false,
       "WindowSizeSeconds": 60,
@@ -120,6 +129,18 @@ app.Run();
       "TooManyRequestsStatusCode": 429,
       "TooManyRequestsMessage": "Too many requests, please try again later",
       "WhitelistIPs": [ "127.0.0.1", "::1" ]
+    },
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_a1b2c3d4e5f6g7h8",
+        "VerificationToken": "your_app1_verification_token",
+        "EncryptKey": "your_app1_encrypt_key_32_bytes_long"
+      },
+      "app2": {
+        "AppKey": "cli_h8g7f6e5d4c3b2a1",
+        "VerificationToken": "your_app2_verification_token",
+        "EncryptKey": "your_app2_encrypt_key_32_bytes_long"
+      }
     }
   }
 }
@@ -358,19 +379,21 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 | `RoutePrefix` | string | "feishu/Webhook" | Webhook route prefix |
 | `AutoRegisterEndpoint` | bool | true | Whether to auto-register endpoint |
 
-### Multi-Bot Configuration
+### Multi-App Configuration
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `MultiAppEncryptKeys` | Dictionary\<string, string\> | - | Multi-bot encryption keys (AppId -> EncryptKey) |
-| `DefaultAppId` | string | - | Default app ID (fallback for multi-bot scenarios) |
+| `Apps` | Dictionary\<string, FeishuAppWebhookOptions\> | {} | App configurations (AppKey -> AppConfig) |
+| `Apps.{AppKey}.AppKey` | string | - | Application key (used to identify app) |
+| `Apps.{AppKey}.VerificationToken` | string | - | App verification token |
+| `Apps.{AppKey}.EncryptKey` | string | - | App encryption key (32 bytes) |
+| `GlobalRoutePrefix` | string | "feishu" | Global route prefix (base path shared by all apps) |
 
 ### Security Configuration
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `ValidateSourceIP` | bool | false | Whether to validate source IP |
-| `AllowedSourceIPs` | HashSet\<string\> | - | Allowed source IP addresses |
+| `AllowedSourceIPs` | HashSet\<string\> | [] | Allowed source IP addresses (IP validation enabled when non-empty) |
 | `AllowedHttpMethods` | HashSet\<string\> | ["POST"] | Allowed HTTP methods |
 | `MaxRequestBodySize` | long | 10MB | Max request body size |
 | `EnforceHeaderSignatureValidation` | bool | true | Whether to enforce header signature validation |
@@ -407,21 +430,30 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 
 ## Advanced Features
 
-### Multi-Bot Support
+### Multi-App Support
 
-Support multiple Feishu bots sharing the same Webhook endpoint:
+Support multiple Feishu apps sharing the same Webhook endpoint:
 
 ```json
 {
   "FeishuWebhook": {
-    "MultiAppEncryptKeys": {
-      "cli_a1b2c3d4e5f6g7h8": "your_app1_encrypt_key_32_bytes_long",
-      "cli_h8g7f6e5d4c3b2a1": "your_app2_encrypt_key_32_bytes_long"
-    },
-    "DefaultAppId": "cli_a1b2c3d4e5f6g7h8"
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_a1b2c3d4e5f6g7h8",
+        "VerificationToken": "your_app1_verification_token",
+        "EncryptKey": "your_app1_encrypt_key_32_bytes_long"
+      },
+      "app2": {
+        "AppKey": "cli_h8g7f6e5d4c3b2a1",
+        "VerificationToken": "your_app2_verification_token",
+        "EncryptKey": "your_app2_encrypt_key_32_bytes_long"
+      }
+    }
   }
 }
 ```
+
+Each app's route will be automatically registered as `/feishu/{AppKey}`.
 
 ### Rate Limiting
 
@@ -982,10 +1014,10 @@ app.MapDiagnostics();          // Diagnostics endpoints
    - Confirm client IP is in whitelist
    - Adjust `MaxRequestsPerWindow` and `WindowSizeSeconds` parameters
 
-8. **Multi-Bot Configuration Issues**
-   - Check if `MultiAppEncryptKeys` configuration is correct
-   - Confirm AppId to encryption key mapping
-   - Verify `DefaultAppId` configuration
+8. **Multi-App Configuration Issues**
+   - Check if `Apps` configuration is correct
+   - Confirm AppKey, VerificationToken, and EncryptKey for each app
+   - Verify app routes are correct (`/feishu/{AppKey}`)
 
 ### Debugging Tips
 

@@ -27,8 +27,6 @@ public class FeishuWebhookMiddleware
     {
         public static readonly ActivitySource Source = new ActivitySource("Mud.Feishu.Webhook");
     }
-
-
     private readonly RequestDelegate _next;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<FeishuWebhookMiddleware> _logger;
@@ -137,8 +135,8 @@ public class FeishuWebhookMiddleware
                     requestId: requestId);
             }
 
-            // 验证来源 IP（如果启用）
-            if (_options.ValidateSourceIP && !ValidateSourceIP(context.Connection.RemoteIpAddress?.ToString()))
+            // 验证来源 IP（如果配置了白名单）
+            if (_options.AllowedSourceIPs.Count > 0 && !ValidateSourceIP(context.Connection.RemoteIpAddress?.ToString()))
             {
                 throw new FeishuWebhookSecurityException(
                     $"IP地址不在白名单中: {clientIp}",
@@ -305,17 +303,10 @@ public class FeishuWebhookMiddleware
     /// </summary>
     private bool ValidateSourceIP(string? remoteIpAddress)
     {
-        // 如果未启用 IP 验证，直接通过
-        if (!_options.ValidateSourceIP)
-        {
-            return true;
-        }
-
-        // 如果启用 IP 验证但没有配置允许列表，拒绝请求（安全加固）
+        // 如果白名单为空，直接通过
         if (_options.AllowedSourceIPs.Count == 0)
         {
-            _logger.LogWarning("已启用 IP 验证但未配置允许列表，拒绝请求");
-            return false;
+            return true;
         }
 
         // 如果无法获取真实 IP，拒绝请求（安全加固）
@@ -778,61 +769,27 @@ public class FeishuWebhookMiddleware
     }
 
     /// <summary>
-    /// 获取正确的加密密钥（支持多密钥场景）
+    /// 获取正确的加密密钥（支持多应用场景）
     /// </summary>
     private string GetEncryptKey(FeishuWebhookRequest request)
     {
-        // 如果已配置了多密钥且请求中有 AppId，使用对应密钥
-        if (_options.MultiAppEncryptKeys.Any() && !string.IsNullOrEmpty(request.AppId))
+        // 如果配置了 Apps 且请求中有 AppId，使用对应应用的密钥
+        if (_options.Apps.Any() && !string.IsNullOrEmpty(request.AppId))
         {
-            if (_options.MultiAppEncryptKeys.TryGetValue(request.AppId, out var key))
+            // 查找匹配的应用配置（通过 AppId 或 AppKey）
+            var appConfig = _options.Apps.Values.FirstOrDefault(app =>
+                app.AppKey == request.AppId || request.AppId.Contains(app.AppKey));
+
+            if (appConfig != null && !string.IsNullOrEmpty(appConfig.EncryptKey))
             {
-                _logger.LogDebug("使用多密钥配置，AppId: {AppId}", request.AppId);
-                return key;
+                _logger.LogDebug("使用应用配置，AppKey: {AppKey}", appConfig.AppKey);
+                return appConfig.EncryptKey;
             }
 
-            // 如果找不到对应密钥，使用默认密钥
-            if (!string.IsNullOrEmpty(_options.DefaultAppId) &&
-                _options.MultiAppEncryptKeys.TryGetValue(_options.DefaultAppId, out var defaultKey))
-            {
-                _logger.LogWarning("未找到 AppId {AppId} 对应的密钥，使用默认密钥", request.AppId);
-                return defaultKey;
-            }
-
-            // 回退到主密钥
-            _logger.LogWarning("未找到 AppId {AppId} 对应的密钥，使用主密钥", request.AppId);
+            _logger.LogWarning("未找到 AppId {AppId} 对应的应用配置，使用主密钥", request.AppId);
         }
 
         return _options.EncryptKey;
-    }
-
-    /// <summary>
-    /// 获取正确的验证令牌（用于签名验证，支持多应用场景）
-    /// </summary>
-    private string GetVerificationToken(FeishuWebhookRequest request)
-    {
-        // 如果已配置了多应用且请求中有 AppId，使用对应的 VerificationToken
-        if (_options.MultiAppVerificationTokens.Any() && !string.IsNullOrEmpty(request.AppId))
-        {
-            if (_options.MultiAppVerificationTokens.TryGetValue(request.AppId, out var token))
-            {
-                _logger.LogDebug("使用多应用验证令牌配置，AppId: {AppId}", request.AppId);
-                return token;
-            }
-
-            // 如果找不到对应令牌，使用默认令牌
-            if (!string.IsNullOrEmpty(_options.DefaultAppId) &&
-                _options.MultiAppVerificationTokens.TryGetValue(_options.DefaultAppId, out var defaultToken))
-            {
-                _logger.LogWarning("未找到 AppId {AppId} 对应的验证令牌，使用默认令牌", request.AppId);
-                return defaultToken;
-            }
-
-            // 回退到主令牌
-            _logger.LogWarning("未找到 AppId {AppId} 对应的验证令牌，使用主令牌", request.AppId);
-        }
-
-        return _options.VerificationToken;
     }
 
     /// <summary>
