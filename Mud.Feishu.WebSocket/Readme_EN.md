@@ -603,6 +603,7 @@ public class ServiceManager
 
 ### WebSocket Configuration
 
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `AutoReconnect` | bool | true | Auto reconnect |
@@ -611,18 +612,58 @@ public class ServiceManager
 | `MaxReconnectDelayMs` | int | 30000 | Max reconnect delay (ms) |
 | `HeartbeatIntervalMs` | int | 30000 | Heartbeat interval (ms) |
 | `ConnectionTimeoutMs` | int | 10000 | Connection timeout (ms) |
-| `ReceiveBufferSize` | int | 4096 | Receive buffer size |
-| `MaxMessageSize` | int | 1048576 | Max message size (characters) |
+| `InitialReceiveBufferSize` | int | 4096 | Initial receive buffer size (bytes) |
 | `EnableLogging` | bool | true | Enable logging |
 | `EnableMessageQueue` | bool | true | Enable message queue |
 | `MessageQueueCapacity` | int | 1000 | Message queue capacity |
 | `EmptyQueueCheckIntervalMs` | int | 100 | Empty queue check interval (ms) |
-| `MaxBinaryMessageSize` | long | 10485760 | Max binary message size (bytes) |
 | `HealthCheckIntervalMs` | int | 60000 | Health check interval (ms) |
-| `ParallelMultiHandlers` | bool | true | Parallel execution for multiple handlers *Not currently used* |
-| `EnableDetailedErrorTracking` | bool | false | Enable detailed error tracking |
-| `MaxAuthenticationFailureCount` | int | 5 | Max authentication failure count |
-| `AuthenticationFailureWindowMinutes` | int | 10 | Authentication failure statistics window (minutes) |
+| `MaxConcurrentMessageProcessing` | int | 10 | Max concurrent message processing |
+
+### Message Size Limits (`MessageSizeLimits`)
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `MaxTextMessageSize` | int | 1048576 | Max text message size (characters) |
+| `MaxBinaryMessageSize` | long | 10485760 | Max binary message size (bytes) |
+
+**Configuration Example:**
+```json
+{
+  "FeishuWebSocket": {
+    "MessageSizeLimits": {
+      "MaxTextMessageSize": 1048576,
+      "MaxBinaryMessageSize": 10485760
+    }
+  }
+}
+```
+
+### Event Deduplication (`EventDeduplication`)
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `Mode` | `EventDeduplicationMode` | `InMemory` | Deduplication mode (None/InMemory/Distributed) |
+| `CacheExpirationMs` | int | 86400000 | Cache expiration time (ms), default 24 hours |
+| `CleanupIntervalMs` | int | 300000 | Cache cleanup interval (ms), default 5 minutes |
+
+**Deduplication Modes:**
+- `None` - Disable deduplication (not recommended, for special scenarios only)
+- `InMemory` - In-memory deduplication (single instance, default)
+- `Distributed` - Distributed deduplication (requires `IFeishuEventDistributedDeduplicator`)
+
+**Configuration Example:**
+```json
+{
+  "FeishuWebSocket": {
+    "EventDeduplication": {
+      "Mode": "InMemory",
+      "CacheExpirationMs": 86400000,
+      "CleanupIntervalMs": 300000
+    }
+  }
+}
+```
 
 ## 🎯 Advanced Usage
 

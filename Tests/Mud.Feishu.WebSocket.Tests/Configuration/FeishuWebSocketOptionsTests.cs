@@ -25,19 +25,19 @@ public class FeishuWebSocketOptionsTests
         options.MaxReconnectAttempts.Should().Be(5);
         options.ReconnectDelayMs.Should().Be(5000);
         options.MaxReconnectDelayMs.Should().Be(30000);
-        options.ReceiveBufferSize.Should().Be(4096);
+        options.InitialReceiveBufferSize.Should().Be(4096);
         options.HeartbeatIntervalMs.Should().Be(30000);
         options.ConnectionTimeoutMs.Should().Be(10000);
         options.EnableLogging.Should().BeTrue();
-        options.MaxMessageSize.Should().Be(1024 * 1024); // 1MB
-        options.ParallelMultiHandlers.Should().BeTrue();
+        options.MessageSizeLimits.MaxTextMessageSize.Should().Be(1024 * 1024); // 1MB
         options.EnableMessageQueue.Should().BeTrue();
         options.MessageQueueCapacity.Should().Be(1000);
         options.EmptyQueueCheckIntervalMs.Should().Be(100);
-        options.MaxBinaryMessageSize.Should().Be(10 * 1024 * 1024); // 10MB
+        options.MessageSizeLimits.MaxBinaryMessageSize.Should().Be(10 * 1024 * 1024); // 10MB
         options.HealthCheckIntervalMs.Should().Be(60000);
-        options.EnableEventDeduplication.Should().BeTrue();
-        options.EnableDistributedDeduplication.Should().BeFalse();
+        options.EventDeduplication.Mode.Should().Be(Mud.Feishu.WebSocket.EventDeduplicationMode.InMemory);
+        options.EventDeduplication.CacheExpirationMs.Should().Be(24 * 60 * 60 * 1000);
+        options.EventDeduplication.CleanupIntervalMs.Should().Be(5 * 60 * 1000);
         options.MaxConcurrentMessageProcessing.Should().Be(10);
     }
 
@@ -211,10 +211,10 @@ public class FeishuWebSocketOptionsTests
         var options = new Mud.Feishu.WebSocket.FeishuWebSocketOptions();
 
         // Act
-        options.EventDeduplicationCacheExpirationMs = 30000;
+        options.EventDeduplication.CacheExpirationMs = 30000;
 
         // Assert
-        options.EventDeduplicationCacheExpirationMs.Should().Be(60000, "minimum value should be enforced");
+        options.EventDeduplication.CacheExpirationMs.Should().Be(60000, "minimum value should be enforced");
     }
 
     [Fact]
@@ -225,10 +225,37 @@ public class FeishuWebSocketOptionsTests
         var expectedValue = 12 * 60 * 60 * 1000; // 12 hours
 
         // Act
-        options.EventDeduplicationCacheExpirationMs = expectedValue;
+        options.EventDeduplication.CacheExpirationMs = expectedValue;
 
         // Assert
-        options.EventDeduplicationCacheExpirationMs.Should().Be(expectedValue);
+        options.EventDeduplication.CacheExpirationMs.Should().Be(expectedValue);
+    }
+
+    [Fact]
+    public void EventDeduplicationCleanupIntervalMs_ShouldEnforceMinimumValue()
+    {
+        // Arrange
+        var options = new Mud.Feishu.WebSocket.FeishuWebSocketOptions();
+
+        // Act
+        options.EventDeduplication.CleanupIntervalMs = 30000;
+
+        // Assert
+        options.EventDeduplication.CleanupIntervalMs.Should().Be(60000, "minimum value should be enforced");
+    }
+
+    [Fact]
+    public void EventDeduplicationCleanupIntervalMs_ShouldAcceptValidValue()
+    {
+        // Arrange
+        var options = new Mud.Feishu.WebSocket.FeishuWebSocketOptions();
+        var expectedValue = 10 * 60 * 1000; // 10 minutes
+
+        // Act
+        options.EventDeduplication.CleanupIntervalMs = expectedValue;
+
+        // Assert
+        options.EventDeduplication.CleanupIntervalMs.Should().Be(expectedValue);
     }
 
     [Theory]
@@ -242,18 +269,28 @@ public class FeishuWebSocketOptionsTests
         // Act
         options.AutoReconnect = value;
         options.EnableLogging = value;
-        options.ParallelMultiHandlers = value;
         options.EnableMessageQueue = value;
-        options.EnableEventDeduplication = value;
-        options.EnableDistributedDeduplication = value;
 
         // Assert
         options.AutoReconnect.Should().Be(value);
         options.EnableLogging.Should().Be(value);
-        options.ParallelMultiHandlers.Should().Be(value);
         options.EnableMessageQueue.Should().Be(value);
-        options.EnableEventDeduplication.Should().Be(value);
-        options.EnableDistributedDeduplication.Should().Be(value);
+    }
+
+    [Theory]
+    [InlineData(Mud.Feishu.WebSocket.EventDeduplicationMode.None)]
+    [InlineData(Mud.Feishu.WebSocket.EventDeduplicationMode.InMemory)]
+    [InlineData(Mud.Feishu.WebSocket.EventDeduplicationMode.Distributed)]
+    public void EventDeduplicationMode_ShouldAcceptAllValues(Mud.Feishu.WebSocket.EventDeduplicationMode mode)
+    {
+        // Arrange
+        var options = new Mud.Feishu.WebSocket.FeishuWebSocketOptions();
+
+        // Act
+        options.EventDeduplication.Mode = mode;
+
+        // Assert
+        options.EventDeduplication.Mode.Should().Be(mode);
     }
 
     [Fact]
@@ -264,18 +301,18 @@ public class FeishuWebSocketOptionsTests
 
         // Act
         options.MaxReconnectAttempts = 10;
-        options.ReceiveBufferSize = 8192;
+        options.InitialReceiveBufferSize = 8192;
         options.ConnectionTimeoutMs = 20000;
-        options.MaxMessageSize = 2 * 1024 * 1024; // 2MB
+        options.MessageSizeLimits.MaxTextMessageSize = 2 * 1024 * 1024; // 2MB
         options.MessageQueueCapacity = 2000;
-        options.MaxBinaryMessageSize = 20 * 1024 * 1024; // 20MB
+        options.MessageSizeLimits.MaxBinaryMessageSize = 20 * 1024 * 1024; // 20MB
 
         // Assert
         options.MaxReconnectAttempts.Should().Be(10);
-        options.ReceiveBufferSize.Should().Be(8192);
+        options.InitialReceiveBufferSize.Should().Be(8192);
         options.ConnectionTimeoutMs.Should().Be(20000);
-        options.MaxMessageSize.Should().Be(2 * 1024 * 1024);
+        options.MessageSizeLimits.MaxTextMessageSize.Should().Be(2 * 1024 * 1024);
         options.MessageQueueCapacity.Should().Be(2000);
-        options.MaxBinaryMessageSize.Should().Be(20 * 1024 * 1024);
+        options.MessageSizeLimits.MaxBinaryMessageSize.Should().Be(20 * 1024 * 1024);
     }
 }

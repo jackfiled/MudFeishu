@@ -174,22 +174,27 @@ dotnet run
     "RetryCount": 3,
     "TokenRefreshThreshold": 300,
     "EnableLogging": true,
-    "WebSocket": {
-      "AutoReconnect": true,
-      "MaxReconnectAttempts": 5,
-      "ReconnectDelayMs": 5000,
-      "HeartbeatIntervalMs": 30000,
-      "ConnectionTimeoutMs": 10000,
-      "ReceiveBufferSize": 4096,
-      "EnableLogging": false,
-      "EnableMessageQueue": true,
-      "MessageQueueCapacity": 1000,
-      "ParallelMultiHandlers": true,
-      "EnableEventDeduplication": true,
-      "EventDeduplicationCacheExpirationMs": 1800000,
-      "EventDeduplicationCleanupIntervalMs": 300000,
-      "EnableDistributedDeduplication": true
-    },
+      "WebSocket": {
+        "AutoReconnect": true,
+        "MaxReconnectAttempts": 5,
+        "ReconnectDelayMs": 5000,
+        "HeartbeatIntervalMs": 30000,
+        "ConnectionTimeoutMs": 10000,
+        "InitialReceiveBufferSize": 4096,
+        "EnableLogging": false,
+        "EnableMessageQueue": true,
+        "MessageQueueCapacity": 1000,
+        "MaxConcurrentMessageProcessing": 10,
+        "MessageSizeLimits": {
+          "MaxTextMessageSize": 1048576,
+          "MaxBinaryMessageSize": 10485760
+        },
+        "EventDeduplication": {
+          "Mode": "Distributed",
+          "CacheExpirationMs": 1800000,
+          "CleanupIntervalMs": 300000
+        }
+      },
     "Redis": {
       "ServerAddress": "localhost:6379",
       "Password": "letmein",
@@ -213,6 +218,8 @@ dotnet run
 
 ### WebSocket 配置项
 
+#### 核心配置
+
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | `AutoReconnect` | bool | true | 连接断开时是否自动重连 |
@@ -220,13 +227,25 @@ dotnet run
 | `ReconnectDelayMs` | int | 5000 | 重连延迟（毫秒） |
 | `HeartbeatIntervalMs` | int | 30000 | 心跳间隔（毫秒） |
 | `ConnectionTimeoutMs` | int | 10000 | 连接超时（毫秒） |
-| `ReceiveBufferSize` | int | 4096 | 接收缓冲区大小 |
+| `InitialReceiveBufferSize` | int | 4096 | 初始接收缓冲区大小（字节） |
 | `EnableMessageQueue` | bool | true | 是否启用消息队列 |
 | `MessageQueueCapacity` | int | 1000 | 消息队列容量 |
-| `ParallelMultiHandlers` | bool | true | 是否并行处理多个处理器 |
-| `EnableEventDeduplication` | bool | true | 是否启用内存去重 |
-| `EventDeduplicationCacheExpirationMs` | int | 1800000 | 去重缓存过期时间（毫秒） |
-| `EnableDistributedDeduplication` | bool | true | 是否启用分布式去重 |
+| `MaxConcurrentMessageProcessing` | int | 10 | 最大并发消息处理数 |
+
+#### 消息大小限制 (`MessageSizeLimits`)
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `MaxTextMessageSize` | int | 1048576 | 最大文本消息大小（字符） |
+| `MaxBinaryMessageSize` | long | 10485760 | 最大二进制消息大小（字节） |
+
+#### 事件去重配置 (`EventDeduplication`)
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `Mode` | `EventDeduplicationMode` | `InMemory` | 去重模式（None/InMemory/Distributed） |
+| `CacheExpirationMs` | int | 86400000 | 缓存过期时间（毫秒），默认24小时 |
+| `CleanupIntervalMs` | int | 300000 | 缓存清理间隔（毫秒），默认5分钟 |
 
 ### Redis 配置项
 
@@ -652,10 +671,10 @@ protected override async Task<bool> ShouldProcessAsync(EventData eventData, Canc
 
 ```json
 {
-  "Feishu": {
-    "WebSocket": {
-      "EnableEventDeduplication": true,
-      "EventDeduplicationCacheExpirationMs": 1800000
+  "FeishuWebSocket": {
+    "EventDeduplication": {
+      "Mode": "InMemory",
+      "CacheExpirationMs": 1800000
     }
   }
 }
@@ -836,13 +855,13 @@ public class UserDeleteHandler : UserDeleteEventHandler
 
 ```json
 {
-  "Feishu": {
-    "Redis": {
-      "ServerAddress": "redis-cluster:6379",
-      "Password": "your-redis-password"
-    },
-    "WebSocket": {
-      "EnableDistributedDeduplication": true
+  "FeishuRedis": {
+    "ServerAddress": "redis-cluster:6379",
+    "Password": "your-redis-password"
+  },
+  "FeishuWebSocket": {
+    "EventDeduplication": {
+      "Mode": "Distributed"
     }
   }
 }
@@ -875,12 +894,12 @@ builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
 
 **A**: 优化方案：
 
-1. **启用并行处理**：
+1. **调整并发处理**：
 
 ```json
 {
-  "WebSocket": {
-    "ParallelMultiHandlers": true
+  "FeishuWebSocket": {
+    "MaxConcurrentMessageProcessing": 20
   }
 }
 ```
@@ -961,12 +980,14 @@ Console.WriteLine($"总事件: {total}, 失败: {failed}, 成功率: {successRat
 3. 防火墙是否允许连接
 4. SSL 配置是否正确
 
-禁用分布式去重（仅用于测试）：
+禁用去重（仅用于测试）：
 
 ```json
 {
-  "WebSocket": {
-    "EnableDistributedDeduplication": false
+  "FeishuWebSocket": {
+    "EventDeduplication": {
+      "Mode": "None"
+    }
   }
 }
 ```

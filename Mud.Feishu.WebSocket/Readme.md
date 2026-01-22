@@ -604,7 +604,7 @@ public class ServiceManager
 
 ## ⚙️ 配置选项
 
-### WebSocket配置
+### WebSocket核心配置
 
 | 选项 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
@@ -614,18 +614,58 @@ public class ServiceManager
 | `MaxReconnectDelayMs` | int | 30000 | 最大重连延迟(ms) |
 | `HeartbeatIntervalMs` | int | 30000 | 心跳间隔(ms) |
 | `ConnectionTimeoutMs` | int | 10000 | 连接超时(ms) |
-| `ReceiveBufferSize` | int | 4096 | 接收缓冲区大小 |
-| `MaxMessageSize` | int | 1048576 | 最大消息大小(字符) |
+| `InitialReceiveBufferSize` | int | 4096 | 初始接收缓冲区大小(字节) |
 | `EnableLogging` | bool | true | 启用日志 |
 | `EnableMessageQueue` | bool | true | 启用消息队列 |
 | `MessageQueueCapacity` | int | 1000 | 消息队列容量 |
 | `EmptyQueueCheckIntervalMs` | int | 100 | 空队列检查间隔(ms) |
-| `MaxBinaryMessageSize` | long | 10485760 | 最大二进制消息大小(字节) |
 | `HealthCheckIntervalMs` | int | 60000 | 健康检查间隔(ms) |
-| `ParallelMultiHandlers` | bool | true | 多处理器并行执行 *暂未使用* |
-| `EnableDetailedErrorTracking` | bool | false | 启用详细错误跟踪 |
-| `MaxAuthenticationFailureCount` | int | 5 | 最大认证失败次数 |
-| `AuthenticationFailureWindowMinutes` | int | 10 | 认证失败统计窗口(分钟) |
+| `MaxConcurrentMessageProcessing` | int | 10 | 最大并发消息处理数 |
+
+### 消息大小限制配置 (`MessageSizeLimits`)
+
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `MaxTextMessageSize` | int | 1048576 | 最大文本消息大小(字符) |
+| `MaxBinaryMessageSize` | long | 10485760 | 最大二进制消息大小(字节) |
+
+**配置示例：**
+```json
+{
+  "FeishuWebSocket": {
+    "MessageSizeLimits": {
+      "MaxTextMessageSize": 1048576,
+      "MaxBinaryMessageSize": 10485760
+    }
+  }
+}
+```
+
+### 事件去重配置 (`EventDeduplication`)
+
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `Mode` | `EventDeduplicationMode` | `InMemory` | 去重模式（None/InMemory/Distributed） |
+| `CacheExpirationMs` | int | 86400000 | 缓存过期时间(ms)，默认24小时 |
+| `CleanupIntervalMs` | int | 300000 | 缓存清理间隔(ms)，默认5分钟 |
+
+**去重模式说明：**
+- `None` - 禁用去重（不推荐，仅用于特殊场景）
+- `InMemory` - 内存去重（单实例，默认）
+- `Distributed` - 分布式去重（需配置 `IFeishuEventDistributedDeduplicator`）
+
+**配置示例：**
+```json
+{
+  "FeishuWebSocket": {
+    "EventDeduplication": {
+      "Mode": "InMemory",
+      "CacheExpirationMs": 86400000,
+      "CleanupIntervalMs": 300000
+    }
+  }
+}
+```
 
 ## 🎯 高级用法
 

@@ -417,10 +417,22 @@ builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
     "MaxReconnectAttempts": 5,
     "ReconnectDelayMs": 5000,
     "HeartbeatIntervalMs": 30000,
+    "InitialReceiveBufferSize": 4096,
+    "EnableLogging": true,
+    "EnableMessageQueue": true,
+    "MessageQueueCapacity": 1000,
+    "EmptyQueueCheckIntervalMs": 100,
+    "HealthCheckIntervalMs": 60000,
     "MaxConcurrentMessageProcessing": 10,
-    "EnableEventDeduplication": true,
-    "EnableDistributedDeduplication": true,
-    "EventDeduplicationCacheExpirationMs": 86400000
+    "MessageSizeLimits": {
+      "MaxTextMessageSize": 1048576,
+      "MaxBinaryMessageSize": 10485760
+    },
+    "EventDeduplication": {
+      "Mode": "Distributed",
+      "CacheExpirationMs": 86400000,
+      "CleanupIntervalMs": 300000
+    }
   }
 }
 ```
@@ -562,9 +574,9 @@ public class DepartmentCreatedEventHandler :
 | `EnableMessageQueue` | bool | true | 启用消息队列 |
 | `MessageQueueCapacity` | int | 1000 | 队列容量 |
 | **事件去重** | | | |
-| `EnableEventDeduplication` | bool | true | 启用事件去重 |
-| `EnableDistributedDeduplication` | bool | false | 启用分布式去重 |
-| `EventDeduplicationCacheExpirationMs` | int | 86400000 | 缓存过期时间（毫秒） |
+| `EventDeduplication.Mode` | `EventDeduplicationMode` | `InMemory` | 去重模式（None/InMemory/Distributed） |
+| `EventDeduplication.CacheExpirationMs` | int | 86400000 | 缓存过期时间（毫秒） |
+| `EventDeduplication.CleanupIntervalMs` | int | 300000 | 缓存清理间隔（毫秒） |
 
 ### FeishuWebhookOptions 配置项
 
