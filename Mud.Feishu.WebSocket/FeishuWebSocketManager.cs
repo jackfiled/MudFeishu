@@ -114,7 +114,8 @@ public class FeishuWebSocketManager : IFeishuWebSocketManager
             }
             catch (Exception ex) when (i < maxRetries)
             {
-                var delay = TimeSpan.FromMilliseconds(Math.Pow(2, i) * 1000); // 1s, 2s, 4s, 8s...
+                // 使用配置的 RetryDelayMs 进行指数退避
+                var delay = TimeSpan.FromMilliseconds(Math.Pow(2, i) * _appContext.Config.RetryDelayMs);
                 _logger.LogWarning(ex, "{OperationName}失败，将在{Delay}毫秒后重试 (尝试 {RetryCount}/{MaxRetries})",
                          operationName, delay.TotalMilliseconds, i + 1, maxRetries + 1);
 

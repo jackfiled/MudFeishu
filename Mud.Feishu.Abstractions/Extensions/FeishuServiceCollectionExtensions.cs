@@ -112,11 +112,13 @@ public static class FeishuServiceCollectionExtensions
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
             })
-            .AddTransientHttpErrorPolicy(builder =>
+            .AddTransientHttpErrorPolicy(policyBuilder =>
             {
-                return builder.WaitAndRetryAsync(
-                    3,
-                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+                int retryCount = config?.RetryCount ?? 3;
+                int retryDelayMs = config?.RetryDelayMs ?? 1000;
+                return policyBuilder.WaitAndRetryAsync(
+                    retryCount,
+                    retryAttempt => TimeSpan.FromMilliseconds(retryDelayMs * Math.Pow(2, retryAttempt - 1)));
             });
     }
 }

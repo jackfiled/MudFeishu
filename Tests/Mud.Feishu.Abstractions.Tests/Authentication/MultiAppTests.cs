@@ -35,7 +35,7 @@ public class MultiAppTests
     }
 
     [Fact]
-    public void MultiApp_DefaultAppKey_ShouldBeMarkedAsDefault()
+    public void MultiApp_DefaultAppKey_ShouldAutoSetIsDefault()
     {
         // Arrange
         var config = new FeishuAppConfig
@@ -43,12 +43,32 @@ public class MultiAppTests
             AppKey = "default",
             AppId = "cli_test_app_id_1234567890",
             AppSecret = "test_secret_12345678",
-            IsDefault = false  // 这应该导致验证失败
+            IsDefault = false  // 这应该被自动推断为 true
         };
 
-        // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => config.Validate());
-        Assert.Contains("AppKey为'default'的应用必须标记为IsDefault=true", ex.Message);
+        // Act
+        config.Validate();
+
+        // Assert - Validate() 方法应该自动将 IsDefault 设置为 true
+        Assert.True(config.IsDefault);
+    }
+
+    [Fact]
+    public void MultiApp_DefaultAppKey_AutoInference_ShouldWork()
+    {
+        // Arrange
+        var config = new FeishuAppConfig
+        {
+            AppKey = "default",
+            AppId = "cli_test_app_id_1234567890",
+            AppSecret = "test_secret_12345678"
+        };
+
+        // Act - Validate() 方法应该自动推断
+        config.Validate();
+
+        // Assert
+        Assert.True(config.IsDefault);
     }
 
     [Fact]
@@ -63,6 +83,7 @@ public class MultiAppTests
             BaseUrl = "https://open.feishu.cn",
             TimeOut = 30,
             RetryCount = 3,
+            RetryDelayMs = 1000,
             TokenRefreshThreshold = 300,
             EnableLogging = true,
             IsDefault = true
@@ -71,6 +92,23 @@ public class MultiAppTests
         // Act & Assert
         var exception = Record.Exception(() => validConfig.Validate());
         Assert.Null(exception);
+    }
+
+    [Fact]
+    public void MultiApp_InvalidRetryDelayMs_ShouldThrow()
+    {
+        // Arrange
+        var invalidConfig = new FeishuAppConfig
+        {
+            AppKey = "test-app",
+            AppId = "cli_test_app_id_1234567890",
+            AppSecret = "test_secret_12345678",
+            RetryDelayMs = 50  // 低于最小值 100
+        };
+
+        // Act & Assert
+        var ex = Assert.Throws<InvalidOperationException>(() => invalidConfig.Validate());
+        Assert.Contains("RetryDelayMs", ex.Message);
     }
 
     [Fact]

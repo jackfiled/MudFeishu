@@ -21,6 +21,14 @@
 
 ---
 
+> 📢 **配置系统重大更新 (v2.0.0)**
+> - ✅ 新增 `RetryDelayMs` 参数，统一 HTTP 和 Token 重试延迟
+> - ✅ `IsDefault` 参数支持自动推断，减少配置负担
+> - 📦 `FeishuOptions` 标记为过时，推荐使用 `FeishuAppConfig`
+> - 📖 详见 [配置迁移指南](docs/Configuration-Migration-Guide.md)
+
+---
+
 ## 📖 项目简介
 
 MudFeishu 是一套现代化的企业级 .NET 飞书 API 集成 SDK，提供完整的 HTTP API 调用、WebSocket 实时事件订阅和 Webhook 事件处理能力。SDK 采用策略模式和工厂模式设计，内置自动令牌管理、智能重试、高性能缓存等企业级特性，大幅简化飞书应用的开发难度。
@@ -155,8 +163,8 @@ dotnet add package Mud.Feishu.Redis
       "BaseUrl": "https://open.feishu.cn",
       "TimeOut": 30,
       "RetryCount": 3,
-      "EnableLogging": true,
-      "IsDefault": true
+      "RetryDelayMs": 1000,
+      "EnableLogging": true
     }
   ],
   "WebSocket": {
@@ -196,13 +204,14 @@ builder.Services.AddFeishuApp(configure =>
     {
         opt.TimeOut = 45;
         opt.RetryCount = 5;
+        opt.RetryDelayMs = 2000; // 新增：自定义重试延迟
     });
 });
 
 // 注册多应用模式（方式三：使用预构建的配置列表）
 var configs = new List<FeishuAppConfig>
 {
-    new FeishuAppConfig { AppKey = "default", AppId = "cli_xxx", AppSecret = "dsk_xxx", IsDefault = true },
+    new FeishuAppConfig { AppKey = "default", AppId = "cli_xxx", AppSecret = "dsk_xxx" }, // IsDefault 自动推断
     new FeishuAppConfig { AppKey = "hr-app", AppId = "cli_yyy", AppSecret = "dsk_yyy" }
 };
 builder.Services.AddFeishuApp(configs);

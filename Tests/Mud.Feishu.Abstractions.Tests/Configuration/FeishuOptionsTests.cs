@@ -166,6 +166,40 @@ public class FeishuOptionsTests
     }
 
     [Theory]
+    [InlineData(99)]
+    [InlineData(60001)]
+    public void Validate_WithInvalidRetryDelayMs_ShouldThrow(int retryDelayMs)
+    {
+        // Arrange
+        var options = new Abstractions.FeishuOptions
+        {
+            AppId = ValidAppId,
+            AppSecret = ValidAppSecret,
+            RetryDelayMs = retryDelayMs
+        };
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => options.Validate());
+        exception.Message.Should().Contain("RetryDelayMs");
+    }
+
+    [Fact]
+    public void RetryDelayMs_WithValidValue_ShouldNotThrow()
+    {
+        // Arrange
+        var options = new Abstractions.FeishuOptions
+        {
+            AppId = ValidAppId,
+            AppSecret = ValidAppSecret,
+            RetryDelayMs = 5000
+        };
+
+        // Act & Assert
+        var exception = Record.Exception(() => options.Validate());
+        exception.Should().BeNull();
+    }
+
+    [Theory]
     [InlineData("invalid-url")]
     [InlineData("ftp://invalid.com")]
     [InlineData("javascript:alert(1)")]

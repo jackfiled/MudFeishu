@@ -96,6 +96,17 @@ public class FeishuAppConfig
     public int RetryCount { get; set; } = 3;
 
     /// <summary>
+    /// 重试延迟时间（毫秒）
+    /// </summary>
+    /// <remarks>
+    /// 默认值: 1000毫秒（1秒）
+    /// 范围: 100-60000毫秒
+    /// 重试之间的基础延迟时间，实际延迟会采用指数退避策略。
+    /// </remarks>
+    [Range(100, 60000, ErrorMessage = "RetryDelayMs 必须在 100-60000 毫秒之间")]
+    public int RetryDelayMs { get; set; } = 1000;
+
+    /// <summary>
     /// 令牌刷新阈值（秒）
     /// </summary>
     /// <remarks>
@@ -123,6 +134,8 @@ public class FeishuAppConfig
     /// 默认值: false
     /// 当系统中配置了多个应用时，可以指定一个默认应用。
     /// 在未明确指定应用的情况下，将使用默认应用的配置。
+    /// <para>注意：当 AppKey 为 "default" 时，会自动设置为 IsDefault = true</para>
+    /// <para>当只配置一个应用时，会自动设置为 IsDefault = true</para>
     /// </remarks>
     public bool IsDefault { get; set; } = false;
 
@@ -161,6 +174,10 @@ public class FeishuAppConfig
         if (RetryCount < 0 || RetryCount > 10)
             throw new InvalidOperationException("RetryCount 必须在 0-10 次之间");
 
+        // 验证 RetryDelayMs
+        if (RetryDelayMs < 100 || RetryDelayMs > 60000)
+            throw new InvalidOperationException("RetryDelayMs 必须在 100-60000 毫秒之间");
+
         // 验证 TokenRefreshThreshold
         if (TokenRefreshThreshold < 60 || TokenRefreshThreshold > 3600)
             throw new InvalidOperationException("TokenRefreshThreshold 必须在 60-3600 秒之间");
@@ -176,10 +193,10 @@ public class FeishuAppConfig
                 throw new InvalidOperationException("BaseUrl 必须是 HTTP 或 HTTPS 协议");
         }
 
-        // 多应用模式验证: 检测 AppKey 为 "default" 的应用必须标记为默认
-        if (AppKey.Equals("default", StringComparison.OrdinalIgnoreCase) && !IsDefault)
+        // 自动推断 IsDefault：AppKey 为 "default" 时自动设置为默认应用
+        if (AppKey.Equals("default", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("AppKey为'default'的应用必须标记为IsDefault=true");
+            IsDefault = true;
         }
     }
 
@@ -189,7 +206,7 @@ public class FeishuAppConfig
     /// <returns>配置字符串</returns>
     public override string ToString()
     {
-        return $"FeishuAppConfig {{ AppKey: {AppKey}, AppId: {AppId}, AppSecret: {MaskSensitiveData(AppSecret)}, BaseUrl: {BaseUrl}, TimeOut: {TimeOut}s, RetryCount: {RetryCount}, TokenRefreshThreshold: {TokenRefreshThreshold}s, EnableLogging: {EnableLogging}, IsDefault: {IsDefault} }}";
+        return $"FeishuAppConfig {{ AppKey: {AppKey}, AppId: {AppId}, AppSecret: {MaskSensitiveData(AppSecret)}, BaseUrl: {BaseUrl}, TimeOut: {TimeOut}s, RetryCount: {RetryCount}, RetryDelayMs: {RetryDelayMs}ms, TokenRefreshThreshold: {TokenRefreshThreshold}s, EnableLogging: {EnableLogging}, IsDefault: {IsDefault} }}";
     }
 
     private static string MaskSensitiveData(string? data)

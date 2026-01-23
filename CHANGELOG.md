@@ -1,5 +1,121 @@
 ﻿# Mud.Feishu 更新日志
 
+## 2.0.0 (2026-01-22)
+
+**类型**: 重大更新、配置重构
+
+### ⚠️ 重大变更
+
+#### 配置系统重构
+
+- **新增 `RetryDelayMs` 配置参数**
+  - 文件: `FeishuAppConfig.cs`, `FeishuOptions.cs`
+  - 默认值: 1000毫秒（1秒）
+  - 范围: 100-60000毫秒
+  - 影响: 统一 HTTP 请求和 Token 获取的重试延迟策略
+
+- **修复 `RetryCount` 配置不一致问题**
+  - 文件: `FeishuServiceCollectionExtensions.cs`, `TokenManagerWithCache.cs`
+  - 变更: `RetryCount` 现在统一应用到 HttpClient 和 TokenManager
+  - 影响: 用户配置的重试次数现在实际生效
+
+- **实现 `IsDefault` 自动推断逻辑**
+  - 文件: `FeishuAppConfig.cs`, `FeishuMultiAppExtensions.cs`
+  - 变更:
+    - `AppKey == "default"` → 自动设置 `IsDefault = true`
+    - 只配置一个应用 → 自动设置 `IsDefault = true`
+    - 配置多个应用且未指定默认 → 第一个自动设置 `IsDefault = true`
+  - 影响: 减少用户配置负担
+
+- **标记 `FeishuOptions` 为过时**
+  - 文件: `FeishuOptions.cs`
+  - 变更: 添加 `[Obsolete]` 特性
+  - 影响: 引导新用户使用 `FeishuAppConfig` 和多应用配置
+
+### 📚 文档更新
+
+- **新增配置迁移指南**
+  - 文件: `docs/Configuration-Migration-Guide.md`
+  - 内容: 详细的配置变更说明和迁移步骤
+
+- **更新示例配置文件**
+  - 文件: `appsettings.example.json`, `Demos/**/*.appsettings.json`
+  - 变更: 添加 `RetryDelayMs` 参数，移除冗余的 `IsDefault` 设置
+
+### 🔧 代码优化
+
+- **重构 HttpClient 配置**
+  - 文件: `FeishuServiceCollectionExtensions.cs`
+  - 变更: Polly 重试策略使用配置参数
+  - 影响: 支持自定义重试次数和延迟
+
+- **重构 Token 重试逻辑**
+  - 文件: `TokenManagerWithCache.cs`
+  - 变更: 使用配置的 `RetryDelayMs` 替代硬编码值
+  - 影响: 支持自定义 Token 获取重试延迟
+
+- **修复 WebSocket 重试硬编码问题**
+  - 文件: `FeishuWebSocketManager.cs`
+  - 变更: 使用配置的 `RetryDelayMs` 替代硬编码的 1000ms
+  - 影响: WebSocket 模块也支持自定义重试延迟
+
+### 🧪 测试更新
+
+- **新增 `RetryDelayMs` 配置测试**
+  - 文件: `FeishuOptionsTests.cs`
+  - 新增: 验证 `RetryDelayMs` 范围验证
+  - 新增: 测试 `RetryDelayMs` 默认值
+
+- **更新 `IsDefault` 自动推断测试**
+  - 文件: `MultiAppTests.cs`
+  - 变更: 测试从验证异常改为验证自动推断逻辑
+  - 新增: 测试 `RetryDelayMs` 配置
+
+### 📖 使用示例
+
+**之前**:
+```json
+{
+  "FeishuApps": [
+    {
+      "AppKey": "default",
+      "AppId": "cli_xxx",
+      "AppSecret": "dsk_xxx",
+      "RetryCount": 3,
+      "IsDefault": true
+    }
+  ]
+}
+```
+
+**现在**:
+```json
+{
+  "FeishuApps": [
+    {
+      "AppKey": "default",
+      "AppId": "cli_xxx",
+      "AppSecret": "dsk_xxx",
+      "RetryCount": 3,
+      "RetryDelayMs": 1000
+    }
+  ]
+}
+```
+
+### 🔄 迁移路径
+
+- 从单应用模式 (`FeishuOptions`) 迁移到多应用模式 (`FeishuAppConfig`)
+- 配置文件中添加 `RetryDelayMs` 参数（可选）
+- 移除 `IsDefault` 的显式设置（自动推断）
+
+### 📖 参考文档
+
+- [配置迁移指南](docs/Configuration-Migration-Guide.md)
+- [多应用配置](https://github.com/mudtools/MudFeishu/wiki/Multi-App-Migration)
+
+---
+
 ## 1.2.2 (2026-01-19)
 
 **类型**: 功能增强、代码重构、文档完善、Bug修复

@@ -293,6 +293,7 @@ internal class FeishuAppManager : IFeishuAppManager
             AppSecret = config.AppSecret,
             BaseUrl = config.BaseUrl,
             TimeOut = config.TimeOut,
+            RetryDelayMs = config.RetryDelayMs,
             EnableLogging = config.EnableLogging
         });
 
@@ -312,6 +313,7 @@ internal class FeishuAppManager : IFeishuAppManager
             BaseUrl = internalOptions.BaseUrl,
             TimeOut = internalOptions.TimeOut,
             RetryCount = internalOptions.RetryCount,
+            RetryDelayMs = internalOptions.RetryDelayMs,
             TokenRefreshThreshold = internalOptions.TokenRefreshThreshold,
             EnableLogging = internalOptions.EnableLogging
         };

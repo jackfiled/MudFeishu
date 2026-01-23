@@ -231,16 +231,27 @@ public static class FeishuMultiAppExtensions
         if (duplicateAppKeys.Any())
             throw new InvalidOperationException($"检测到重复的AppKey: {string.Join(", ", duplicateAppKeys)}");
 
-        // 验证所有配置
+        // 验证所有配置（包含自动推断逻辑）
         foreach (var config in configs)
         {
             config.Validate();
         }
 
         // 如果没有指定默认应用，设置第一个为默认
-        if (!configs.Any(c => c.IsDefault))
+        // 注意：这里需要重新检查，因为 Validate() 中可能已经自动推断
+        var defaultAppCount = configs.Count(c => c.IsDefault);
+        if (defaultAppCount == 0)
         {
             configs[0].IsDefault = true;
+        }
+        else if (defaultAppCount > 1)
+        {
+            // 确保只有一个默认应用，只保留第一个
+            var defaultApps = configs.Where(c => c.IsDefault).ToList();
+            for (int i = 1; i < defaultApps.Count; i++)
+            {
+                defaultApps[i].IsDefault = false;
+            }
         }
     }
 }

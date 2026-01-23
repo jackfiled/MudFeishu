@@ -178,9 +178,9 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     {
         _logger.LogInformation("Acquiring new token for {TokenType}, AppId: {AppId}", _tokenType, _options.AppId);
 
-        // 实现重试机制
+        // 实现重试机制（使用配置参数）
         var retryCount = 0;
-        const int maxRetries = 2;
+        const int maxRetries = 2; // Token获取最多重试2次（独立于HTTP重试）
 
         while (true)
         {
@@ -204,10 +204,12 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
                 if (retryCount < maxRetries)
                 {
                     retryCount++;
-                    _logger.LogWarning(ex, "Failed to acquire token for {TokenType}, retry {RetryCount}/{MaxRetries}",
-                        _tokenType, retryCount, maxRetries);
+                    // 使用配置的 RetryDelayMs 进行指数退避
+                    var delayMs = _options.RetryDelayMs * Math.Pow(2, retryCount - 1);
+                    _logger.LogWarning(ex, "Failed to acquire token for {TokenType}, retry {RetryCount}/{MaxRetries} in {DelayMs}ms",
+                        _tokenType, retryCount, maxRetries, delayMs);
 
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)), cancellationToken);
+                    await Task.Delay(TimeSpan.FromMilliseconds(delayMs), cancellationToken);
                 }
                 else
                 {

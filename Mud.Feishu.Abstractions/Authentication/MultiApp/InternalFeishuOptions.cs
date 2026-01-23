@@ -50,6 +50,11 @@ internal class InternalFeishuOptions
     public int RetryCount { get; set; } = 3;
 
     /// <summary>
+    /// 重试延迟时间（毫秒）
+    /// </summary>
+    public int RetryDelayMs { get; set; } = 1000;
+
+    /// <summary>
     /// 令牌刷新阈值（秒）
     /// </summary>
     public int TokenRefreshThreshold { get; set; } = 300;
@@ -73,6 +78,7 @@ internal class InternalFeishuOptions
             BaseUrl = config.BaseUrl,
             TimeOut = config.TimeOut,
             RetryCount = config.RetryCount,
+            RetryDelayMs = config.RetryDelayMs,
             TokenRefreshThreshold = config.TokenRefreshThreshold,
             EnableLogging = config.EnableLogging
         };

@@ -34,8 +34,10 @@ namespace Mud.Feishu.Abstractions;
 /// <item><description>AppId 和 AppSecret 是飞书应用的身份凭证，请妥善保管，不要在代码中硬编码</description></item>
 /// <item><description>建议使用环境变量或安全的配置管理系统来存储敏感信息</description></item>
 /// <item><description>在生产环境中，建议使用 HTTPS 协议以确保通信安全</description></item>
+/// <item><description><strong>已废弃：</strong>请使用 <see cref="FeishuAppConfig"/> 和多应用配置（FeishuApps）</description></item>
 /// </list>
 /// </remarks>
+[Obsolete("请使用 FeishuAppConfig 和多应用配置（FeishuApps）。参考文档: https://github.com/mudtools/MudFeishu/wiki/Multi-App-Migration", false)]
 public class FeishuOptions
 {
     /// <summary>
@@ -108,6 +110,14 @@ public class FeishuOptions
     }
 
     /// <summary>
+    /// 重试延迟时间（毫秒）。
+    /// <para>默认值：1000毫秒（1秒）</para>
+    /// <para>范围：100-60000毫秒</para>
+    /// <para>重试之间的基础延迟时间，实际延迟会采用指数退避策略</para>
+    /// </summary>
+    public int RetryDelayMs { get; set; } = 1000;
+
+    /// <summary>
     /// 令牌刷新阈值时间（秒）。
     /// <para>默认值：300秒（5分钟）</para>
     /// <para>范围：60-3600秒</para>
@@ -149,6 +159,9 @@ public class FeishuOptions
         if (RetryCount < 0 || RetryCount > 10)
             throw new InvalidOperationException("RetryCount必须在0-10次之间");
 
+        if (RetryDelayMs < 100 || RetryDelayMs > 60000)
+            throw new InvalidOperationException("RetryDelayMs必须在100-60000毫秒之间");
+
         if (TokenRefreshThreshold < 60 || TokenRefreshThreshold > 3600)
             throw new InvalidOperationException("TokenRefreshThreshold必须在60-3600秒之间");
 
@@ -168,7 +181,7 @@ public class FeishuOptions
     /// </summary>
     public override string ToString()
     {
-        return $"FeishuOptions {{ AppId: {AppId}, AppSecret: {MaskSensitiveData(AppSecret)}, BaseUrl: {BaseUrl ?? "默认"}, TimeOut: {TimeOut}s, RetryCount: {RetryCount}, TokenRefreshThreshold: {TokenRefreshThreshold}s, EnableLogging: {EnableLogging} }}";
+        return $"FeishuOptions {{ AppId: {AppId}, AppSecret: {MaskSensitiveData(AppSecret)}, BaseUrl: {BaseUrl ?? "默认"}, TimeOut: {TimeOut}s, RetryCount: {RetryCount}, RetryDelayMs: {RetryDelayMs}ms, TokenRefreshThreshold: {TokenRefreshThreshold}s, EnableLogging: {EnableLogging} }}";
     }
 
     private static string MaskSensitiveData(string? data)
