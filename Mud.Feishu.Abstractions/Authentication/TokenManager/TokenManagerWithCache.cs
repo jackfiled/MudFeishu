@@ -28,7 +28,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// <remarks>
     /// 包含应用ID、应用密钥等飞书API访问所需的基本配置信息。
     /// </remarks>
-    protected readonly FeishuOptions _options;
+    protected readonly FeishuAppConfig _options;
 
     /// <summary>
     /// 飞书V3认证API接口
@@ -91,7 +91,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// <exception cref="ArgumentNullException">当任何必需参数为null时抛出</exception>
     public TokenManagerWithCache(
         IFeishuAuthentication authenticationApi,
-        IOptions<FeishuOptions> options,
+        IOptions<FeishuAppConfig> options,
         ILogger<TokenManagerWithCache> logger,
         ITokenCache tokenCache,
         TokenType tokenType)

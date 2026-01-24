@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Mud.Feishu.TokenManager;
 using System.Text.Json;
-using ConfigurationFeishuOptions = Mud.Feishu.Abstractions.FeishuOptions;
 
 namespace Mud.Feishu.Abstractions;
 
@@ -215,8 +214,7 @@ internal class FeishuAppManager : IFeishuAppManager
         var logger = _serviceProvider.GetRequiredService<ILogger<TokenManagerWithCache>>();
 
         // 创建配置选项并验证
-        var options = CreateOptions(config);
-        ValidateConfigurationMatch(options.Value, config);
+        var options = Options.Create(config);
 
         // 创建TokenManager
         var tenantTokenManager = new TenantTokenManager(
@@ -256,23 +254,6 @@ internal class FeishuAppManager : IFeishuAppManager
     }
 
     /// <summary>
-    /// 验证配置选项与应用配置匹配
-    /// </summary>
-    private void ValidateConfigurationMatch(FeishuOptions options, FeishuAppConfig config)
-    {
-        if (options.AppId != config.AppId)
-        {
-            throw new InvalidOperationException(
-                $"TokenManager配置不匹配: 配置中的AppId={options.AppId}, 应用的AppId={config.AppId}. 应用键: {config.AppKey}");
-        }
-
-        if (options.AppSecret != config.AppSecret)
-        {
-            _logger.LogWarning("应用 {AppKey} 的AppSecret与配置不完全一致", config.AppKey);
-        }
-    }
-
-    /// <summary>
     /// 创建独立的HttpClient实例
     /// </summary>
     private IEnhancedHttpClient CreateHttpClient(FeishuAppConfig config, IOptionsMonitor<JsonSerializerOptions> jsonSerializerOptions)
@@ -287,24 +268,5 @@ internal class FeishuAppManager : IFeishuAppManager
         httpClient.Timeout = TimeSpan.FromSeconds(config.TimeOut);
 
         return new FeishuHttpClient(httpClient, logger, config.EnableLogging, jsonSerializerOptions);
-    }
-
-    /// <summary>
-    /// 创建配置选项
-    /// </summary>
-    private IOptions<ConfigurationFeishuOptions> CreateOptions(FeishuAppConfig config)
-    {
-        var options = new ConfigurationFeishuOptions
-        {
-            AppId = config.AppId,
-            AppSecret = config.AppSecret,
-            BaseUrl = config.BaseUrl,
-            TimeOut = config.TimeOut,
-            RetryCount = config.RetryCount,
-            RetryDelayMs = config.RetryDelayMs,
-            TokenRefreshThreshold = config.TokenRefreshThreshold,
-            EnableLogging = config.EnableLogging
-        };
-        return Options.Create(options);
     }
 }
