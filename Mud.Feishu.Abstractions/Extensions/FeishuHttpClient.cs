@@ -15,19 +15,19 @@ internal class FeishuHttpClient : IEnhancedHttpClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<FeishuHttpClient> _logger;
-    private readonly FeishuOptions _feishuOptions;
+    private readonly bool _enableLogging;
     private readonly IOptionsMonitor<JsonSerializerOptions> _jsonSerializerOptionsMonitor;
 
     public FeishuHttpClient(
         HttpClient httpClient,
         ILogger<FeishuHttpClient> logger,
-        IOptions<FeishuOptions> options,
+        bool? enableLogging,
         IOptionsMonitor<JsonSerializerOptions> serializerOptions)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        _feishuOptions = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _enableLogging = enableLogging ?? true;
         _jsonSerializerOptionsMonitor = serializerOptions ?? throw new ArgumentNullException(nameof(serializerOptions));
 
     }
@@ -47,7 +47,7 @@ internal class FeishuHttpClient : IEnhancedHttpClient
             var result = await _httpClient.SendRequestAsync<TResult>(
                 request,
                 jsonSerializerOptions: _jsonSerializerOptionsMonitor.CurrentValue,
-                logger: _feishuOptions.EnableLogging ? _logger : null,
+                logger: _enableLogging ? _logger : null,
                 cancellationToken: cancellationToken);
 
             LogRequestComplete("请求完成", uri);
@@ -73,7 +73,7 @@ internal class FeishuHttpClient : IEnhancedHttpClient
 
             var result = await _httpClient.DownloadFileAsync(
                 request,
-                logger: _feishuOptions.EnableLogging ? _logger : null,
+                logger: _enableLogging ? _logger : null,
                 cancellationToken: cancellationToken);
 
             LogRequestComplete("文件下载完成", uri);
@@ -106,7 +106,7 @@ internal class FeishuHttpClient : IEnhancedHttpClient
                 request,
                 filePath,
                 overwrite: overwrite,
-                logger: _feishuOptions.EnableLogging ? _logger : null,
+                logger: _enableLogging ? _logger : null,
                 cancellationToken: cancellationToken);
 
             LogRequestComplete($"大文件下载完成: {filePath}", uri);
@@ -122,7 +122,7 @@ internal class FeishuHttpClient : IEnhancedHttpClient
 
     private void LogRequestStart(string operation, string uri)
     {
-        if (_feishuOptions.EnableLogging && _logger.IsEnabled(LogLevel.Debug))
+        if (_enableLogging && _logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogDebug("[Feishu] {Operation}: {Uri}", operation, uri);
         }
@@ -130,7 +130,7 @@ internal class FeishuHttpClient : IEnhancedHttpClient
 
     private void LogRequestComplete(string operation, string uri)
     {
-        if (_feishuOptions.EnableLogging && _logger.IsEnabled(LogLevel.Debug))
+        if (_enableLogging && _logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogDebug("[Feishu] {Operation}: {Uri}", operation, uri);
         }
@@ -138,7 +138,7 @@ internal class FeishuHttpClient : IEnhancedHttpClient
 
     private bool LogRequestError(string errorMessage, string uri, Exception ex)
     {
-        if (_feishuOptions.EnableLogging && _logger.IsEnabled(LogLevel.Error))
+        if (_enableLogging && _logger.IsEnabled(LogLevel.Error))
         {
             _logger.LogError(ex, "[Feishu] {ErrorMessage}: {Uri}", errorMessage, uri);
         }

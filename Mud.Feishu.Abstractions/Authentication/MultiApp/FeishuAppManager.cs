@@ -286,18 +286,7 @@ internal class FeishuAppManager : IFeishuAppManager
         httpClient.DefaultRequestHeaders.Add("User-Agent", "MudFeishuClient/1.0");
         httpClient.Timeout = TimeSpan.FromSeconds(config.TimeOut);
 
-        // 创建FeishuHttpClient包装器
-        var options = Options.Create(new ConfigurationFeishuOptions
-        {
-            AppId = config.AppId,
-            AppSecret = config.AppSecret,
-            BaseUrl = config.BaseUrl,
-            TimeOut = config.TimeOut,
-            RetryDelayMs = config.RetryDelayMs,
-            EnableLogging = config.EnableLogging
-        });
-
-        return new FeishuHttpClient(httpClient, logger, options, jsonSerializerOptions);
+        return new FeishuHttpClient(httpClient, logger, config.EnableLogging, jsonSerializerOptions);
     }
 
     /// <summary>
