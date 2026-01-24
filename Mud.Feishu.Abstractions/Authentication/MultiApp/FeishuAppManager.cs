@@ -305,17 +305,16 @@ internal class FeishuAppManager : IFeishuAppManager
     /// </summary>
     private IOptions<ConfigurationFeishuOptions> CreateOptions(FeishuAppConfig config)
     {
-        var internalOptions = InternalFeishuOptions.FromAppConfig(config);
         var options = new ConfigurationFeishuOptions
         {
-            AppId = internalOptions.AppId,
-            AppSecret = internalOptions.AppSecret,
-            BaseUrl = internalOptions.BaseUrl,
-            TimeOut = internalOptions.TimeOut,
-            RetryCount = internalOptions.RetryCount,
-            RetryDelayMs = internalOptions.RetryDelayMs,
-            TokenRefreshThreshold = internalOptions.TokenRefreshThreshold,
-            EnableLogging = internalOptions.EnableLogging
+            AppId = config.AppId,
+            AppSecret = config.AppSecret,
+            BaseUrl = config.BaseUrl,
+            TimeOut = config.TimeOut,
+            RetryCount = config.RetryCount,
+            RetryDelayMs = config.RetryDelayMs,
+            TokenRefreshThreshold = config.TokenRefreshThreshold,
+            EnableLogging = config.EnableLogging
         };
         return Options.Create(options);
     }
