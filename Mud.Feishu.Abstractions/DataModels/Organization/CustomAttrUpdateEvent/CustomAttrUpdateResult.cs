@@ -15,7 +15,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Organization;
 /// <para>使用时请继承：<see cref="CustomAttrUpdateEventHandler"/></para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/server-docs/contact-v3/custom_attr/events/updated"/></para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.CustomAttrUpdated, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.CustomAttrUpdated, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class CustomAttrUpdateResult : IEventResult
 {

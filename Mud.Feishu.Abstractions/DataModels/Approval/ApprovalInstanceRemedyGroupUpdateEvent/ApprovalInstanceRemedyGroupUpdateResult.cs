@@ -15,7 +15,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Approval;
 /// <para>使用时请继承：<see cref="ApprovalInstanceRemedyGroupUpdateEventHandler"/></para>
 /// <para>文档地址：https://open.feishu.cn/document/server-docs/approval-v4/event/common-event/approval-task-event</para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.ApprovalInstanceRemedyGroupUpdate, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.ApprovalInstanceRemedyGroupUpdate, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class ApprovalInstanceRemedyGroupUpdateResult : IEventResult
 {

@@ -15,7 +15,7 @@ namespace Mud.Feishu.Abstractions.DataModels.IM;
 /// <para>使用时请继承：<see cref="ChatMemberBotAddedEventHandler"/></para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/server-docs/group/chat-member/event/added-2"/> </para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.ChatMemberBotAdded, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.ChatMemberBotAdded, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class ChatMemberBotAddedResult : ChatMemberBaseInfo, IEventResult
 {

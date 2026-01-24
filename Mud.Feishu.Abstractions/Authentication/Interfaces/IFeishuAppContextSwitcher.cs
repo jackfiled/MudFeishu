@@ -32,7 +32,7 @@ public interface IFeishuAppContextSwitcher
     /// </remarks>
     /// <exception cref="KeyNotFoundException">当指定的应用键不存在时抛出</exception>
     /// <exception cref="InvalidOperationException">当应用上下文切换失败时抛出</exception>
-    [IgnoreGenerator]
+    [IgnoreImplement]
     IMudAppContext UseApp(string appKey);
 
     /// <summary>
@@ -48,6 +48,6 @@ public interface IFeishuAppContextSwitcher
     /// </remarks>
     /// <exception cref="KeyNotFoundException">当指定的应用键不存在时抛出</exception>
     /// <exception cref="InvalidOperationException">当应用上下文切换失败时抛出</exception>
-    [IgnoreGenerator]
+    [IgnoreImplement]
     IMudAppContext UseDefaultApp();
 }

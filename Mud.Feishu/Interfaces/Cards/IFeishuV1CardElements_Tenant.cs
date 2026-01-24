@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.DataModels.CardElements;
+using Mud.HttpUtils.Attributes;
 
 namespace Mud.Feishu;
 

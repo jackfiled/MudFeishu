@@ -14,7 +14,7 @@ namespace Mud.Feishu.Abstractions.DataModels.IM;
 /// <para>使用时请继承：<see cref="MessageRecalledEventHandler"/></para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/server-docs/im-v1/message/events/recalled"/></para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.MessageRecalled, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.MessageRecalled, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class MessageRecalledResult : IEventResult
 {

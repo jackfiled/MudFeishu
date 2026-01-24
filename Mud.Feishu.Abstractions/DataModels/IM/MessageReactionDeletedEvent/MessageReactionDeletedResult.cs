@@ -15,7 +15,7 @@ namespace Mud.Feishu.Abstractions.DataModels.IM;
 /// <para>使用时请继承：<see cref="MessageReactionDeletedEventHandler"/></para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/server-docs/im-v1/message-reaction/event/deleted"/> </para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.MessageReactionDeleted, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.MessageReactionDeleted, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class MessageReactionDeletedResult : MessageReactionInfo, IEventResult
 {

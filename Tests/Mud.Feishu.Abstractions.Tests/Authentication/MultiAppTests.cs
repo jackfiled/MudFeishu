@@ -6,11 +6,9 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.Utilities;
 using Mud.Feishu.TokenManager;
+using Mud.HttpUtils.Attributes;
 
 namespace Mud.Feishu.Abstractions.Tests;
 
@@ -434,9 +432,9 @@ public class MultiAppTests
         var hrApp = appManager.GetApp("hr-app");
 
         // Assert
-        Assert.NotNull(defaultApp.GetTokenManager(Mud.CodeGenerator.TokenType.TenantAccessToken));
-        Assert.NotNull(defaultApp.GetTokenManager(Mud.CodeGenerator.TokenType.AppAccessToken));
-        Assert.NotNull(defaultApp.GetTokenManager(Mud.CodeGenerator.TokenType.UserAccessToken));
+        Assert.NotNull(defaultApp.GetTokenManager(TokenType.TenantAccessToken));
+        Assert.NotNull(defaultApp.GetTokenManager(TokenType.AppAccessToken));
+        Assert.NotNull(defaultApp.GetTokenManager(TokenType.UserAccessToken));
         Assert.NotNull(defaultApp.Authentication);
         Assert.NotNull(defaultApp.HttpClient);
 

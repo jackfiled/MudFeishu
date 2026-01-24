@@ -15,7 +15,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Approval;
 /// <para>使用时请继承：<see cref="LeaveApprovalEventHandler"/></para>
 /// <para>文档地址：https://open.feishu.cn/document/server-docs/approval-v4/event/special-event/leave</para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.LeaveApproval, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.LeaveApproval, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class LeaveApprovalResult : IEventResult
 {

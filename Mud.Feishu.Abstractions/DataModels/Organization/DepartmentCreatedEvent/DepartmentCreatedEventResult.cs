@@ -14,7 +14,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Organization;
 /// <para>使用时请继承：<see cref="DepartmentCreatedEventHandler"/></para>
 /// <para>订阅该事件详细文档：<see href="https://open.feishu.cn/document/server-docs/contact-v3/user/events/created"/></para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.DepartmentCreated, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.DepartmentCreated, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class DepartmentCreatedResult : DepartmentResultInfo, IEventResult
 {

@@ -14,7 +14,7 @@ namespace Mud.Feishu.Abstractions.DataModels.IM;
 /// <para>使用时请继承：<see cref="ChatDisbandedEventHandler"/></para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/server-docs/group/chat/events/disbanded"/> </para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.ChatDisbanded, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.ChatDisbanded, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class ChatDisbandedResult : IEventResult
 {

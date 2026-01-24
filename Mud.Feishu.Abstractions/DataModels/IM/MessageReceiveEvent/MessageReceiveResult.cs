@@ -22,7 +22,7 @@ namespace Mud.Feishu.Abstractions.DataModels.IM;
 /// <para>使用时请继承：<see cref="MessageReceiveEventHandler"/></para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/server-docs/im-v1/message/events/receive"/></para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.ReceiveMessage, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.ReceiveMessage, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class MessageReceiveResult : IEventResult
 {

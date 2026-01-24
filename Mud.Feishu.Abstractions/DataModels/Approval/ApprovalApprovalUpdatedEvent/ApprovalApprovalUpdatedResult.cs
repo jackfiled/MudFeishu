@@ -15,7 +15,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Approval;
 /// <para>使用时请继承：<see cref="ApprovalApprovalUpdatedEventHandler"/></para>
 /// <para>文档地址：https://open.feishu.cn/document/server-docs/approval-v4/event/common-event/custom-approval-event</para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.ApprovalApprovalUpdated, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.ApprovalApprovalUpdated, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class ApprovalApprovalUpdatedResult : IEventResult
 {

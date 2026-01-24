@@ -15,7 +15,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Approval;
 /// <para>使用时请继承：<see cref="OutApprovalEventHandler"/></para>
 /// <para>文档地址：https://open.feishu.cn/document/server-docs/approval-v4/event/special-event/out-of-office</para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.OutApproval, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.OutApproval, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class OutApprovalResult : IEventResult
 {

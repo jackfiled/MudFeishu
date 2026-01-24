@@ -14,7 +14,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Organization;
 /// <para>使用时请继承：<see cref="UserDeleteEventHandler"/></para>
 /// <para>文档地址：https://open.feishu.cn/document/server-docs/contact-v3/user/events/deleted</para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.UserDeleted, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.UserDeleted, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class UserDeleteResult : IEventResult
 {

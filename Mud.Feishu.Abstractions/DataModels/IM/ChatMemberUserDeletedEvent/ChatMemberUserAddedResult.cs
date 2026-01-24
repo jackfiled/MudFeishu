@@ -14,7 +14,7 @@ namespace Mud.Feishu.Abstractions.DataModels.IM;
 /// <para>使用时请继承：<see cref="ChatMemberUserDeletedEventHandler"/></para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/server-docs/group/chat-member/event/deleted-2"/> </para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.ChatMemberUserDelete, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.ChatMemberUserDelete, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class ChatMemberUserDeletedResult : ChatMemberUserInfo, IEventResult
 {

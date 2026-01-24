@@ -14,7 +14,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Organization;
 /// <para>使用时请继承：<see cref="EmployeeTypeEnumDeActivedEventHandler"/></para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/server-docs/contact-v3/employee_type_enum/events/deactivated"/> </para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.EmployeeTypeEnumDeActived, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.EmployeeTypeEnumDeActived, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class EmployeeTypeEnumDeActivedResult : IEventResult
 {

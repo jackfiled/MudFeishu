@@ -15,7 +15,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Organization;
 /// <para>使用时请继承：<see cref="UserUpdateEventHandler"/></para>
 /// <para>文档地址：https://open.feishu.cn/document/server-docs/contact-v3/user/events/updated</para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.UserUpdated, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.UserUpdated, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class UserUpdateResult : IEventResult
 {

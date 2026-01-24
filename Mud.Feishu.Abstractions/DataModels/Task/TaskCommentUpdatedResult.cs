@@ -14,7 +14,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Task;
 /// <para>使用时请继承：<see cref="TaskCommentUpdatedEventHandler"/></para>
 /// <para>文档地址：https://open.feishu.cn/document/server-docs/task-v1/task-comment/events/updated</para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.TaskCommentUpdated, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.TaskCommentUpdated, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class TaskCommentUpdatedResult : IEventResult
 {

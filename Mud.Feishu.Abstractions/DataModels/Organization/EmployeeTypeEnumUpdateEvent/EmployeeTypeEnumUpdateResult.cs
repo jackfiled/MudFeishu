@@ -14,7 +14,7 @@ namespace Mud.Feishu.Abstractions.DataModels.Organization;
 /// <para>使用时请继承：<see cref="EmployeeTypeEnumUpdateEventHandler"/></para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/employee_type_enum/events/updated"/> </para>
 /// </summary>
-[EventHandler(EventType = FeishuEventTypes.EmployeeTypeEnumUpdated, HandlerNamespace = Consts.HandlerNamespace,
+[GenerateEventHandler(EventType = FeishuEventTypes.EmployeeTypeEnumUpdated, HandlerNamespace = Consts.HandlerNamespace,
               InheritedFrom = Consts.InheritedFrom)]
 public class EmployeeTypeEnumUpdateResult : IEventResult
 {
