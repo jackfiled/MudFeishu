@@ -516,24 +516,32 @@ app.Run();
 
 ## ⚙️ Configuration Options
 
-### FeishuOptions Configuration Items
+### FeishuAppConfig Configuration Items
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `AppKey` | string | - | Application unique identifier (required), used to reference this app in code |
 | `AppId` | string | - | Feishu application unique identifier (required) |
 | `AppSecret` | string | - | Feishu application secret (required) |
 | `BaseUrl` | string | "https://open.feishu.cn" | Feishu API base URL |
 | `TimeOut` | int | 30 | HTTP request timeout (seconds), range: 1-300 |
 | `RetryCount` | int | 3 | Retry count on failure, range: 0-10 |
+| `RetryDelayMs` | int | 1000 | Retry delay (milliseconds), range: 100-60000 |
+| `TokenRefreshThreshold` | int | 300 | Token refresh threshold (seconds), range: 60-3600 |
 | `EnableLogging` | bool | true | Enable logging |
+| `IsDefault` | bool | false | Whether it's the default app (supports auto-inference) |
 
 ### Configuration Validation
 
-`FeishuOptions` provides a `Validate()` method for validating configuration items:
+`FeishuAppConfig` provides a `Validate()` method for validating configuration items:
 
 - `TimeOut` must be between 1-300 seconds
 - `RetryCount` must be between 0-10 times
+- `RetryDelayMs` must be between 100-60000 milliseconds
+- `TokenRefreshThreshold` must be between 60-3600 seconds
 - `BaseUrl` must be a valid HTTP/HTTPS URL format
+- `AppId` must start with `cli_` or `app_` and be at least 20 characters
+- `AppSecret` must be at least 16 characters
 
 ### Security Recommendations
 

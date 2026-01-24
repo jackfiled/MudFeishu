@@ -24,7 +24,8 @@
 > 📢 **配置系统重大更新 (v2.0.0)**
 > - ✅ 新增 `RetryDelayMs` 参数，统一 HTTP 和 Token 重试延迟
 > - ✅ `IsDefault` 参数支持自动推断，减少配置负担
-> - 📦 `FeishuOptions` 标记为过时，推荐使用 `FeishuAppConfig`
+> - ✅ 移除 `FeishuOptions`，全面使用 `FeishuAppConfig` 多应用架构
+> - ✅ `TokenRefreshThreshold` 支持应用级配置
 > - 📖 详见 [配置迁移指南](docs/Configuration-Migration-Guide.md)
 
 ---

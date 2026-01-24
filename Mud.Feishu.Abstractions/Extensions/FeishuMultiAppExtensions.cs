@@ -84,8 +84,7 @@ public static class FeishuMultiAppExtensions
             options.AddRange(configs);
         });
 
-        // 注册令牌缓存和应用管理器
-        services.TryAddSingleton<ITokenCache, MemoryTokenCache>();
+        // 注册应用管理器
         services.AddSingleton<IFeishuAppManager, FeishuAppManager>(sp => new FeishuAppManager(
             sp,
             configs,
@@ -163,8 +162,6 @@ public static class FeishuMultiAppExtensions
             configs,
             sp.GetRequiredService<ILogger<FeishuAppManager>>()));
 
-        services.TryAddSingleton<ITokenCache, MemoryTokenCache>();
-
         return services;
     }
 
@@ -207,8 +204,6 @@ public static class FeishuMultiAppExtensions
             sp,
             configs,
             sp.GetRequiredService<ILogger<FeishuAppManager>>()));
-
-        services.TryAddSingleton<ITokenCache, MemoryTokenCache>();
 
         return services;
     }

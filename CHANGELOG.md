@@ -9,7 +9,7 @@
 #### 配置系统重构
 
 - **新增 `RetryDelayMs` 配置参数**
-  - 文件: `FeishuAppConfig.cs`, `FeishuOptions.cs`
+  - 文件: `FeishuAppConfig.cs`
   - 默认值: 1000毫秒（1秒）
   - 范围: 100-60000毫秒
   - 影响: 统一 HTTP 请求和 Token 获取的重试延迟策略
@@ -27,10 +27,18 @@
     - 配置多个应用且未指定默认 → 第一个自动设置 `IsDefault = true`
   - 影响: 减少用户配置负担
 
-- **标记 `FeishuOptions` 为过时**
-  - 文件: `FeishuOptions.cs`
-  - 变更: 添加 `[Obsolete]` 特性
-  - 影响: 引导新用户使用 `FeishuAppConfig` 和多应用配置
+- **移除 `FeishuOptions` 类**
+  - 文件: `FeishuOptions.cs` (已删除)
+  - 变更: 完全移除旧的配置类,所有场景统一使用 `FeishuAppConfig`
+  - 影响: 多应用配置成为唯一支持的配置方式
+
+- **应用级 TokenRefreshThreshold 配置**
+  - 文件: `FeishuAppConfig.cs`, `MemoryTokenCache.cs`, `FeishuAppManager.cs`
+  - 变更:
+    - `FeishuAppConfig.TokenRefreshThreshold` 属性(默认300秒,范围60-3600秒)
+    - 每个应用拥有独立的令牌刷新阈值配置
+    - 移除 `MemoryTokenCache` 的硬编码刷新阈值
+  - 影响: 不同应用可以配置不同的令牌刷新策略
 
 ### 📚 文档更新
 
@@ -61,10 +69,10 @@
 
 ### 🧪 测试更新
 
-- **新增 `RetryDelayMs` 配置测试**
-  - 文件: `FeishuOptionsTests.cs`
-  - 新增: 验证 `RetryDelayMs` 范围验证
-  - 新增: 测试 `RetryDelayMs` 默认值
+- **更新配置测试**
+  - 文件: `FeishuAppConfigTests.cs`
+  - 新增: 验证 `RetryDelayMs` 和 `TokenRefreshThreshold` 范围验证
+  - 新增: 测试默认值和自动推断逻辑
 
 - **更新 `IsDefault` 自动推断测试**
   - 文件: `MultiAppTests.cs`
@@ -105,9 +113,10 @@
 
 ### 🔄 迁移路径
 
-- 从单应用模式 (`FeishuOptions`) 迁移到多应用模式 (`FeishuAppConfig`)
-- 配置文件中添加 `RetryDelayMs` 参数（可选）
+- 从旧的 `FeishuOptions` 迁移到 `FeishuAppConfig` 多应用模式
+- 配置文件中添加 `RetryDelayMs` 和 `TokenRefreshThreshold` 参数（可选）
 - 移除 `IsDefault` 的显式设置（自动推断）
+- 注意: `FeishuOptions` 类已被完全移除
 
 ### 📖 参考文档
 
@@ -255,8 +264,8 @@
 
 #### 必填字段验证强化
 
-- **FeishuOptions 配置验证**
-  - 文件: `Mud.Feishu.Abstractions/Configuration/FeishuOptions.cs`
+- **FeishuAppConfig 配置验证**
+  - 文件: `Mud.Feishu.Abstractions/Configuration/FeishuAppConfig.cs`
   - 新增: AppId 格式验证（必须以 `cli_` 或 `app_` 开头）
   - 新增: AppId 长度验证（至少 20 字符）
   - 新增: AppSecret 长度验证（至少 16 字符）
@@ -273,7 +282,7 @@
 
 - **配置类敏感信息掩码**
   - 文件:
-    - `Mud.Feishu.Abstractions/Configuration/FeishuOptions.cs`
+    - `Mud.Feishu.Abstractions/Configuration/FeishuAppConfig.cs`
     - `Mud.Feishu.Webhook/Configuration/FeishuWebhookOptions.cs`
     - `Mud.Feishu.Redis/Configuration/RedisOptions.cs`
   - 新增: `ToString()` 方法重写，自动掩码敏感信息
@@ -301,13 +310,15 @@
 
 #### 配置单元测试
 
-- **FeishuOptions 测试**
-  - 文件: `Tests/Mud.Feishu.Abstractions.Tests/Configuration/FeishuOptionsTests.cs` (新增)
-  - 覆盖: AppId/AppSecret 验证、范围限制、敏感信息掩码
+- **FeishuAppConfig 测试**
+  - 文件: `Tests/Mud.Feishu.Abstractions.Tests/Configuration/FeishuAppConfigTests.cs`
+  - 覆盖: AppId/AppSecret 验证、范围限制、敏感信息掩码、自动推断逻辑
   - 测试用例:
     - 有效配置验证
     - AppId 格式验证（cli*/app* 前缀）
     - AppId/AppSecret 空值验证
+    - IsDefault 自动推断逻辑
+    - TokenRefreshThreshold 配置验证
     - AppId/AppSecret 长度验证
     - TimeOut/RetryCount 范围限制
     - BaseUrl 格式验证
@@ -326,7 +337,7 @@
 
 ### 🔨 Breaking Changes
 
-- 修改了 `FeishuOptions.Validate()` 方法，现在会验证 AppId/AppSecret 格式
+- 修改了 `FeishuAppConfig.Validate()` 方法，现在会验证 AppId/AppSecret 格式
 - 添加了 `FeishuWebhookOptions.EncryptKey` 长度验证（32 字符）
 - 添加了 `RedisOptions.Validate()` 方法，验证连接参数
 

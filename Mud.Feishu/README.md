@@ -546,16 +546,20 @@ public class DepartmentCreatedEventHandler :
 
 ## ⚙️ 配置选项
 
-### FeishuOptions 配置项
+### FeishuAppConfig 配置项
 
 | 选项 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
+| `AppKey` | string | - | 应用唯一标识（必填），用于在代码中引用此应用 |
 | `AppId` | string | - | 飞书应用唯一标识（必填） |
 | `AppSecret` | string | - | 飞书应用秘钥（必填） |
 | `BaseUrl` | string | "https://open.feishu.cn" | 飞书 API 基础地址 |
 | `TimeOut` | int | 30 | HTTP 请求超时时间（秒），范围：1-300 |
 | `RetryCount` | int | 3 | 失败重试次数，范围：0-10 |
+| `RetryDelayMs` | int | 1000 | 重试延迟（毫秒），范围：100-60000 |
+| `TokenRefreshThreshold` | int | 300 | 令牌刷新阈值（秒），范围：60-3600 |
 | `EnableLogging` | bool | true | 是否启用日志记录 |
+| `IsDefault` | bool | false | 是否为默认应用（支持自动推断） |
 
 ### FeishuWebSocketOptions 配置项
 
@@ -597,9 +601,14 @@ public class DepartmentCreatedEventHandler :
 
 ### 配置验证
 
-`FeishuOptions` 提供了 `Validate()` 方法用于验证配置项的有效性：
+`FeishuAppConfig` 提供了 `Validate()` 方法用于验证配置项的有效性：
 
 - `TimeOut` 必须在 1-300 秒之间
+- `RetryCount` 必须在 0-10 次之间
+- `RetryDelayMs` 必须在 100-60000 毫秒之间
+- `TokenRefreshThreshold` 必须在 60-3600 秒之间
+- `AppId` 必须以 `cli_` 或 `app_` 开头，且长度至少为 20 字符
+- `AppSecret` 长度至少为 16 字符
 - `RetryCount` 必须在 0-10 次之间
 - `BaseUrl` 必须是有效的 HTTP/HTTPS URL 格式
 

@@ -199,9 +199,12 @@ internal class FeishuAppManager : IFeishuAppManager
     {
         config.Validate();
 
+        // 创建Logger
+        var logger = _serviceProvider.GetRequiredService<ILogger<TokenManager.MemoryTokenCache>>();
+
         // 创建带应用键前缀的缓存
-        var baseCache = _serviceProvider.GetRequiredService<ITokenCache>();
-        var appCache = new PrefixedTokenCache(baseCache, config.AppKey);
+        var appCache = new TokenManager.MemoryTokenCache(logger, config.TokenRefreshThreshold);
+        var prefixedCache = new PrefixedTokenCache(appCache, config.AppKey);
         var jsonSerializerOptions = _serviceProvider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>();
 
         // 为每个应用创建独立的HttpClient
@@ -210,8 +213,8 @@ internal class FeishuAppManager : IFeishuAppManager
         // 创建认证API
         var authenticationApi = new FeishuV3Authentication(httpClient, jsonSerializerOptions);
 
-        // 创建Logger
-        var logger = _serviceProvider.GetRequiredService<ILogger<TokenManagerWithCache>>();
+        // 创建Logger (用于TokenManager)
+        var tokenManagerLogger = _serviceProvider.GetRequiredService<ILogger<TokenManagerWithCache>>();
 
         // 创建配置选项并验证
         var options = Options.Create(config);
@@ -220,20 +223,20 @@ internal class FeishuAppManager : IFeishuAppManager
         var tenantTokenManager = new TenantTokenManager(
             authenticationApi,
             options,
-            logger,
-            appCache);
+            tokenManagerLogger,
+            prefixedCache);
 
         var appTokenManager = new AppTokenManager(
             authenticationApi,
             options,
-            logger,
-            appCache);
+            tokenManagerLogger,
+            prefixedCache);
 
         var userTokenManager = new UserTokenManager(
             authenticationApi,
             options,
-            logger,
-            appCache);
+            tokenManagerLogger,
+            prefixedCache);
 
 
         var context = new FeishuAppContext(
@@ -242,7 +245,7 @@ internal class FeishuAppManager : IFeishuAppManager
             appTokenManager,
             userTokenManager,
             authenticationApi,
-            appCache,
+            prefixedCache,
             httpClient);
 
         _apps[config.AppKey] = context;

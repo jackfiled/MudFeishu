@@ -51,16 +51,18 @@ public class MemoryTokenCache : ITokenCache
     /// <remarks>
     /// 在令牌过期前5分钟（300秒）开始刷新，避免因网络延迟等原因导致令牌失效。
     /// </remarks>
-    private const int DefaultRefreshThresholdSeconds = 300;
+    private readonly int _refreshThresholdSeconds;
 
     /// <summary>
     /// 初始化 MemoryTokenCache 实例
     /// </summary>
     /// <param name="logger">日志记录器</param>
+    /// <param name="refreshThresholdSeconds">令牌刷新阈值(秒),默认300秒</param>
     /// <exception cref="ArgumentNullException">当任何必需参数为null时抛出</exception>
-    public MemoryTokenCache(ILogger<MemoryTokenCache> logger)
+    public MemoryTokenCache(ILogger<MemoryTokenCache> logger, int refreshThresholdSeconds = 300)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _refreshThresholdSeconds = refreshThresholdSeconds > 0 ? refreshThresholdSeconds : 300;
     }
 
     /// <summary>
@@ -177,7 +179,7 @@ public class MemoryTokenCache : ITokenCache
     private bool IsExpired(CacheEntry entry)
     {
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var refreshThresholdMs = TimeSpan.FromSeconds(DefaultRefreshThresholdSeconds).TotalMilliseconds;
+        var refreshThresholdMs = TimeSpan.FromSeconds(_refreshThresholdSeconds).TotalMilliseconds;
         // 令牌过期时间 < (当前时间 + 刷新阈值) 表示即将过期
         return entry.ExpirationTime < (currentTime + (long)refreshThresholdMs);
     }

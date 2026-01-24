@@ -1,6 +1,91 @@
 # Mud.Feishu Change Log
 
-## 1.2.2 (2026-01-19)
+## 2.0.0 (2026-01-22)
+
+**Type**: Major Update, Configuration Refactoring
+
+### ⚠️ Major Changes
+
+#### Configuration System Refactoring
+
+- **Added `RetryDelayMs` Configuration Parameter**
+  - File: `FeishuAppConfig.cs`
+  - Default: 1000 milliseconds (1 second)
+  - Range: 100-60000 milliseconds
+  - Impact: Unifies retry delay strategy for both HTTP requests and Token fetching
+
+- **Fixed `RetryCount` Configuration Inconsistency**
+  - File: `FeishuServiceCollectionExtensions.cs`, `TokenManagerWithCache.cs`
+  - Change: `RetryCount` is now uniformly applied to HttpClient and TokenManager
+  - Impact: User-configured retry count now takes effect
+
+- **Implemented `IsDefault` Auto-inference Logic**
+  - File: `FeishuAppConfig.cs`, `FeishuMultiAppExtensions.cs`
+  - Changes:
+    - `AppKey == "default"` → Auto-set `IsDefault = true`
+    - Only one app configured → Auto-set `IsDefault = true`
+    - Multiple apps configured without default → First app auto-set `IsDefault = true`
+  - Impact: Reduces user configuration burden
+
+- **Removed `FeishuOptions` Class**
+  - File: `FeishuOptions.cs` (deleted)
+  - Change: Completely removed old configuration class, all scenarios now use `FeishuAppConfig`
+  - Impact: Multi-app configuration is the only supported configuration method
+
+- **App-level TokenRefreshThreshold Configuration**
+  - File: `FeishuAppConfig.cs`, `MemoryTokenCache.cs`, `FeishuAppManager.cs`
+  - Changes:
+    - `FeishuAppConfig.TokenRefreshThreshold` property (default 300s, range 60-3600s)
+    - Each app has independent token refresh threshold configuration
+    - Removed hardcoded refresh threshold from `MemoryTokenCache`
+  - Impact: Different apps can configure different token refresh strategies
+
+### 📚 Documentation Updates
+
+- **Added Configuration Migration Guide**
+  - File: `docs/Configuration-Migration-Guide.md`
+  - Content: Detailed configuration change descriptions and migration steps
+
+- **Updated Example Configuration Files**
+  - File: `appsettings.example.json`, `Demos/**/*.appsettings.json`
+  - Change: Added `RetryDelayMs` parameter, removed redundant `IsDefault` settings
+
+### 🔧 Code Optimization
+
+- **Refactored HttpClient Configuration**
+  - File: `FeishuServiceCollectionExtensions.cs`
+  - Change: Polly retry strategy uses configuration parameters
+  - Impact: Supports custom retry count and delay
+
+- **Refactored Token Retry Logic**
+  - File: `TokenManagerWithCache.cs`
+  - Change: Uses configured `RetryDelayMs` instead of hardcoded values
+  - Impact: Supports custom Token fetching retry delay
+
+- **Fixed WebSocket Retry Hardcoding Issue**
+  - File: `FeishuWebSocketManager.cs`
+  - Change: Uses configured `RetryDelayMs` instead of hardcoded 1000ms
+  - Impact: WebSocket module also supports custom retry delay
+
+### 🧪 Test Updates
+
+- **Updated Configuration Tests**
+  - File: `FeishuAppConfigTests.cs`
+  - Added: Validates `RetryDelayMs` and `TokenRefreshThreshold` range validation
+  - Added: Tests default values and auto-inference logic
+
+- **Updated `IsDefault` Auto-inference Tests**
+  - File: `MultiAppTests.cs`
+  - Change: Tests changed from validation exceptions to auto-inference logic
+  - Added: Tests `RetryDelayMs` and `TokenRefreshThreshold` configuration
+
+### 📖 Usage Examples
+
+**Before**:
+```json
+{
+  "FeishuApps": [
+    {
 
 **Type**: Feature enhancement, code refactoring, documentation improvement, bug fixes
 
@@ -139,8 +224,8 @@
 
 #### Required Field Validation Strengthening
 
-- **FeishuOptions Configuration Validation**
-  - File: `Mud.Feishu.Abstractions/Configuration/FeishuOptions.cs`
+- **FeishuAppConfig Configuration Validation**
+  - File: `Mud.Feishu.Abstractions/Configuration/FeishuAppConfig.cs`
   - Added: AppId format validation (must start with `cli_` or `app_`)
   - Added: AppId length validation (minimum 20 characters)
   - Added: AppSecret length validation (minimum 16 characters)
@@ -157,7 +242,7 @@
 
 - **Configuration Class Sensitive Information Masking**
   - Files:
-    - `Mud.Feishu.Abstractions/Configuration/FeishuOptions.cs`
+    - `Mud.Feishu.Abstractions/Configuration/FeishuAppConfig.cs`
     - `Mud.Feishu.Webhook/Configuration/FeishuWebhookOptions.cs`
     - `Mud.Feishu.Redis/Configuration/RedisOptions.cs`
   - Added: `ToString()` method override, automatically masks sensitive information
@@ -185,9 +270,9 @@
 
 #### Configuration Unit Tests
 
-- **FeishuOptions Tests**
-  - File: `Tests/Mud.Feishu.Abstractions.Tests/Configuration/FeishuOptionsTests.cs` (new)
-  - Coverage: AppId/AppSecret validation, range restrictions, sensitive information masking
+- **FeishuAppConfig Tests**
+  - File: `Tests/Mud.Feishu.Abstractions.Tests/Configuration/FeishuAppConfigTests.cs`
+  - Coverage: AppId/AppSecret validation, range restrictions, sensitive information masking, auto-inference logic
   - Test cases:
     - Valid configuration validation
     - AppId format validation (cli_/app_ prefix)
@@ -210,7 +295,7 @@
 
 ### 🔨 Breaking Changes
 
-- Modified `FeishuOptions.Validate()` method, now validates AppId/AppSecret format
+- Modified `FeishuAppConfig.Validate()` method, now validates AppId/AppSecret format
 - Added `FeishuWebhookOptions.EncryptKey` length validation (32 characters)
 - Added `RedisOptions.Validate()` method, validates connection parameters
 
