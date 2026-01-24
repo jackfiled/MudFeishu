@@ -46,18 +46,11 @@ public abstract class TokenManagerTestsBase : IDisposable
             TokenRefreshThreshold = 300
         };
 
-        // 创建 Mock 的 FeishuOptions
-        var feishuOptions = new FeishuOptions
-        {
-            AppId = Config.AppId,
-            AppSecret = Config.AppSecret,
-            TokenRefreshThreshold = Config.TokenRefreshThreshold
-        };
-        var optionsMock = new Mock<IOptions<FeishuOptions>>();
-        optionsMock.Setup(x => x.Value).Returns(feishuOptions);
-
         // 创建 Mock 的 TokenManager 实例
         var loggerMock = new Mock<ILogger<TokenManagerWithCache>>();
+        var optionsMock = new Mock<IOptions<FeishuAppConfig>>();
+        optionsMock.Setup(x => x.Value).Returns(Config);
+
         var tenantTokenManager = new TenantTokenManager(
             _authenticationApiMock.Object,
             optionsMock.Object,

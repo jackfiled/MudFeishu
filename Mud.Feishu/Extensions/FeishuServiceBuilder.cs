@@ -25,20 +25,6 @@ public class FeishuServiceBuilder
     }
 
     /// <summary>
-    /// 使用代码配置
-    /// </summary>
-    /// <param name="configureOptions">配置选项的委托</param>
-    /// <returns>建造者实例，支持链式调用</returns>
-    public FeishuServiceBuilder ConfigureOptions(Action<FeishuOptions> configureOptions)
-    {
-        if (configureOptions == null)
-            throw new ArgumentNullException(nameof(configureOptions));
-
-        _services.Configure(configureOptions);
-        return this;
-    }
-
-    /// <summary>
     /// 添加组织管理 API 服务
     /// </summary>
     /// <returns>建造者实例，支持链式调用</returns>

@@ -5,7 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.Extensions.Options;
+
 using Mud.Feishu.Abstractions;
 using System.Collections.Concurrent;
 
@@ -46,12 +46,7 @@ public class MemoryTokenCache : ITokenCache
     private readonly ILogger<MemoryTokenCache> _logger;
 
     /// <summary>
-    /// 飞书配置选项（包含令牌刷新阈值）
-    /// </summary>
-    private readonly FeishuOptions _options;
-
-    /// <summary>
-    /// 默认刷新阈值时间（秒）
+    /// 令牌刷新阈值时间（秒）
     /// </summary>
     /// <remarks>
     /// 在令牌过期前5分钟（300秒）开始刷新，避免因网络延迟等原因导致令牌失效。
@@ -61,12 +56,10 @@ public class MemoryTokenCache : ITokenCache
     /// <summary>
     /// 初始化 MemoryTokenCache 实例
     /// </summary>
-    /// <param name="options">飞书配置选项</param>
     /// <param name="logger">日志记录器</param>
     /// <exception cref="ArgumentNullException">当任何必需参数为null时抛出</exception>
-    public MemoryTokenCache(IOptions<FeishuOptions> options, ILogger<MemoryTokenCache> logger)
+    public MemoryTokenCache(ILogger<MemoryTokenCache> logger)
     {
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -184,9 +177,7 @@ public class MemoryTokenCache : ITokenCache
     private bool IsExpired(CacheEntry entry)
     {
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var refreshThresholdMs = TimeSpan.FromSeconds(_options.TokenRefreshThreshold > 0
-            ? _options.TokenRefreshThreshold
-            : DefaultRefreshThresholdSeconds).TotalMilliseconds;
+        var refreshThresholdMs = TimeSpan.FromSeconds(DefaultRefreshThresholdSeconds).TotalMilliseconds;
         // 令牌过期时间 < (当前时间 + 刷新阈值) 表示即将过期
         return entry.ExpirationTime < (currentTime + (long)refreshThresholdMs);
     }

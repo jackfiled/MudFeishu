@@ -29,27 +29,27 @@ namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
 public class TokenManagerWithCacheTests
 {
     private readonly Mock<IFeishuAuthentication> _authenticationApiMock;
-    private readonly Mock<IOptions<FeishuOptions>> _optionsMock;
+    private readonly Mock<IOptions<FeishuAppConfig>> _optionsMock;
     private readonly Mock<ILogger<TokenManagerWithCache>> _loggerMock;
     private readonly Mock<ITokenCache> _tokenCacheMock;
-    private readonly FeishuOptions _feishuOptions;
     private readonly TestTokenManager _testTokenManager;
 
     public TokenManagerWithCacheTests()
     {
         _authenticationApiMock = new Mock<IFeishuAuthentication>();
-        _optionsMock = new Mock<IOptions<FeishuOptions>>();
         _loggerMock = new Mock<ILogger<TokenManagerWithCache>>();
         _tokenCacheMock = new Mock<ITokenCache>();
 
-        _feishuOptions = new FeishuOptions
+        // 创建测试用的 FeishuAppConfig
+        var config = new FeishuAppConfig
         {
-            AppId = "test-app-id",
-            AppSecret = "test-app-secret",
+            AppKey = "test",
+            AppId = "test_app_id_1234567890",
+            AppSecret = "test_app_secret_123456",
             TokenRefreshThreshold = 300
         };
-
-        _optionsMock.Setup(x => x.Value).Returns(_feishuOptions);
+        _optionsMock = new Mock<IOptions<FeishuAppConfig>>();
+        _optionsMock.Setup(x => x.Value).Returns(config);
         _tokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
         _tokenCacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
@@ -69,7 +69,7 @@ public class TokenManagerWithCacheTests
     {
         public TestTokenManager(
             IFeishuAuthentication authenticationApi,
-            IOptions<FeishuOptions> options,
+            IOptions<FeishuAppConfig> options,
             ILogger<TokenManagerWithCache> logger,
             ITokenCache tokenCache)
             : base(authenticationApi, options, logger, tokenCache, Mud.CodeGenerator.TokenType.AppAccessToken)
@@ -159,7 +159,7 @@ public class TokenManagerWithCacheTests
 
         public FailingTestTokenManager(
             IFeishuAuthentication authenticationApi,
-            IOptions<FeishuOptions> options,
+            IOptions<FeishuAppConfig> options,
             ILogger<TokenManagerWithCache> logger,
             ITokenCache tokenCache)
             : base(authenticationApi, options, logger, tokenCache, Mud.CodeGenerator.TokenType.AppAccessToken)

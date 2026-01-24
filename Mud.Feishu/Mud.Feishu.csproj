@@ -12,13 +12,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Description>飞书服务端 SDK 的 .NET 适配版，支持.NET4.6+、.NET 5 至 .NET 10 平台。提供类型安全的 API 封装，让开发者能够在 .NET 应用程序中便捷、高效地集成飞书服务端功能。</Description>
 		<PackageTags>Feishu;Lark;飞书;ByteDance;字节跳动;Feishu-SDK;Lark-SDK;Feishu-API;Lark-API;Open-Platform;开放平台;Enterprise;企业应用;Collaboration;协同办公;IM;即时通讯;Messaging;消息;Bot;机器人;Webhook;WebSocket;Event-Subscription;事件订阅;Organization;组织架构;Approval;审批;Task;任务;Card;卡片;dotnet;csharp;netstandard;net6;net8;aspnetcore;MudFeishu</PackageTags>
-		<!-- HttpClient配置选项类名称 -->
-		<HttpClientOptionsName>FeishuOptions</HttpClientOptionsName>
 		<BaseOutputPath>..\bin</BaseOutputPath>
 	</PropertyGroup>
-	<ItemGroup>
-		<CompilerVisibleProperty Include="HttpClientOptionsName" />
-	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Mud.ServiceCodeGenerator" PrivateAssets="all" Version="1.4.8" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<None Include=".\README.md" Pack="true" PackagePath="\" />
