@@ -66,3 +66,4 @@ node_modules
 /Demos/FeishuOAuthDemo/backend/Properties/PublishProfiles
 /Demos/Mud.Feishu.Demo/bin/Release/net8.0
 /Demos/Mud.Feishu.WebSocket.Demo/bin/Release/net8.0
+/test-reports
