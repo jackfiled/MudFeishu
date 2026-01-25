@@ -2,9 +2,78 @@
 
 ## 2.0.0 (2026-01-24)
 
-**类型**: 重大更新、配置重构
+**类型**: 重大更新、配置重构、支飞书多应用、基础设施升级
 
 ### ⚠️ 重大变更
+
+#### 多应用架构支持
+
+- **全面支持飞书多应用**
+  - 文件: `FeishuAppConfig.cs`, `FeishuAppManager.cs`, `FeishuMultiAppExtensions.cs`
+  - 新增: `FeishuAppConfig` 配置类，支持配置多个飞书应用
+  - 新增: `IFeishuAppContext` 接口，提供应用级别的上下文访问
+  - 新增: `IFeishuAppContextSwitcher` 接口，支持运行时切换应用上下文
+  - 新增: `IFeishuMultiAppService` 多应用服务接口，管理多个应用实例
+  - 影响: 单个应用实例可以同时管理和操作多个飞书应用
+  - 核心特性:
+    - 每个应用拥有独立的配置（AppId、AppSecret、TokenRefreshThreshold 等）
+    - 每个应用拥有独立的 Token 缓存和 Token 刷新策略
+    - 支持默认应用自动推断机制
+    - 支持运行时动态切换应用上下文
+    - 完全隔离的多应用环境，互不干扰
+
+- **应用级 Token 缓存隔离**
+  - 文件: `MemoryTokenCache.cs`, `PrefixedTokenCache.cs`, `FeishuAppManager.cs`
+  - 新增: 每个应用创建独立的 `MemoryTokenCache` 实例
+  - 新增: `PrefixedTokenCache` 包装器，为缓存键添加应用前缀确保隔离
+  - 实现: 在 `FeishuAppManager.CreateAppContext()` 中为每个应用创建独立缓存
+  - 影响: 不同应用的 Token 完全隔离，避免相互干扰
+  - 示例代码:
+    ```csharp
+    // 为每个应用创建独立的 TokenCache 实例
+    var tokenCache = new TokenManager.MemoryTokenCache(logger, config.TokenRefreshThreshold);
+    var prefixedCache = new TokenManager.PrefixedTokenCache(tokenCache, config.AppKey);
+    ```
+
+- **应用上下文切换机制**
+  - 文件: `FeishuAppContextSwitcher.cs`
+  - 新增: 使用 `AsyncLocal<IFeishuAppContext>` 实现应用上下文隔离
+  - 新增: `UseAppContext()` 方法，支持在代码块中临时切换应用
+  - 新增: `GetAppContext()` 方法，获取当前应用上下文
+  - 影响: 支持在单个请求中操作多个飞书应用
+  - 使用示例:
+
+    ```csharp
+    // 获取应用上下文切换器
+    var switcher = serviceProvider.GetRequiredService<IFeishuAppContextSwitcher>();
+
+    // 切换到指定应用
+    await switcher.UseAppContext("app1", async () => {
+        // 在此代码块中，所有操作都是针对 app1 应用
+        var context = switcher.GetAppContext();
+        await context.Auth.GetTenantAccessTokenAsync();
+    });
+
+    // 切换到另一个应用
+    await switcher.UseAppContext("app2", async () => {
+        // 在此代码块中，所有操作都是针对 app2 应用
+        var context = switcher.GetAppContext();
+        await context.Message.SendMessageAsync(...);
+    });
+    ```
+
+- **默认应用自动推断**
+  - 文件: `FeishuAppConfig.cs`, `FeishuMultiAppExtensions.cs`
+  - 新增: 三种自动推断规则
+    1. `AppKey == "default"` → 自动标记为默认应用
+    2. 只配置一个应用 → 自动标记为默认应用
+    3. 配置多个应用且未指定默认 → 第一个应用自动标记为默认应用
+  - 影响: 减少用户配置负担，向后兼容单应用场景
+
+- **移除 FeishuOptions 类**
+  - 文件: `FeishuOptions.cs` (已删除)
+  - 变更: 完全移除旧的配置类，所有场景统一使用 `FeishuAppConfig`
+  - 影响: 多应用配置成为唯一支持的配置方式
 
 #### 配置系统重构
 
@@ -50,7 +119,13 @@
   - 文件: `appsettings.example.json`, `Demos/**/*.appsettings.json`
   - 变更: 添加 `RetryDelayMs` 参数，移除冗余的 `IsDefault` 设置
 
+- **新增多应用配置文档**
+  - 文件: `Mud.Feishu/README.md`, `README.md`
+  - 内容: 多应用配置说明、应用上下文切换示例、最佳实践
+
 ### 🔧 代码优化
+
+#### 配置架构优化
 
 - **重构 HttpClient 配置**
   - 文件: `FeishuServiceCollectionExtensions.cs`
@@ -67,10 +142,16 @@
   - 变更: 使用配置的 `RetryDelayMs` 替代硬编码的 1000ms
   - 影响: WebSocket 模块也支持自定义重试延迟
 
+#### 依赖和注解优化
+
 - **替换代码生成器为HttpUtils**
-  - 文件: 相关模块
-  - 变更: 替换代码生成器为HttpUtils并更新相关注解
-  - 影响: 提高代码的可维护性和可读性
+  - 文件: 全项目范围
+  - 变更:
+    - 替换 `Mud.ServiceCodeGenerator` 为 `Mud.HttpUtils`
+    - 更新所有 `EventHandler` 注解为 `GenerateEventHandler`
+    - 移除对 `Mud.CodeGenerator` 的依赖
+    - 修改 `IFeishuAppContextSwitcher` 接口中的 `IgnoreGenerator` 注解为 `IgnoreImplement`
+  - 影响: 提高代码的可维护性和可读性,统一HTTP客户端生成机制
 
 ### 🧪 测试更新
 
@@ -85,6 +166,8 @@
   - 新增: 测试 `RetryDelayMs` 配置
 
 ### 📖 使用示例
+
+#### 单应用配置（自动默认）
 
 **之前**:
 
@@ -112,18 +195,165 @@
       "AppId": "cli_xxx",
       "AppSecret": "dsk_xxx",
       "RetryCount": 3,
-      "RetryDelayMs": 1000
+      "RetryDelayMs": 1000,
+      "TokenRefreshThreshold": 300
     }
   ]
 }
 ```
 
+#### 多应用配置
+
+**配置多个飞书应用**:
+
+```json
+{
+  "FeishuApps": [
+    {
+      "AppKey": "app1",
+      "AppId": "cli_aaa",
+      "AppSecret": "dsk_aaa",
+      "RetryCount": 3,
+      "RetryDelayMs": 1000,
+      "TokenRefreshThreshold": 300
+    },
+    {
+      "AppKey": "app2",
+      "AppId": "cli_bbb",
+      "AppSecret": "dsk_bbb",
+      "RetryCount": 5,
+      "RetryDelayMs": 2000,
+      "TokenRefreshThreshold": 600
+    },
+    {
+      "AppKey": "app3",
+      "AppId": "cli_ccc",
+      "AppSecret": "dsk_ccc",
+      "IsDefault": true
+    }
+  ]
+}
+```
+
+#### 代码中使用多应用
+
+```csharp
+// 获取多应用服务
+var multiAppService = serviceProvider.GetRequiredService<IFeishuMultiAppService>();
+
+// 获取应用上下文切换器
+var switcher = serviceProvider.GetRequiredService<IFeishuAppContextSwitcher>();
+
+// 方式1: 使用默认应用
+var defaultContext = multiAppService.GetDefaultAppContext();
+await defaultContext.Message.SendMessageAsync(...);
+
+// 方式2: 切换到指定应用上下文
+await switcher.UseAppContext("app1", async () => {
+    var context = switcher.GetAppContext();
+    // 所有操作都针对 app1
+    await context.Auth.GetTenantAccessTokenAsync();
+    await context.Message.SendMessageAsync(...);
+});
+
+// 方式3: 直接获取指定应用上下文
+var app2Context = multiAppService.GetAppContext("app2");
+await app2Context.Message.SendMessageAsync(...);
+
+// 方式4: 遍历所有应用
+foreach (var appKey in multiAppService.GetAvailableAppKeys()) {
+    var context = multiAppService.GetAppContext(appKey);
+    // 对每个应用执行操作
+    await context.Auth.GetTenantAccessTokenAsync();
+}
+```
+
 ### 🔄 迁移路径
 
-- 从旧的 `FeishuOptions` 迁移到 `FeishuAppConfig` 多应用模式
-- 配置文件中添加 `RetryDelayMs` 和 `TokenRefreshThreshold` 参数（可选）
-- 移除 `IsDefault` 的显式设置（自动推断）
-- 注意: `FeishuOptions` 类已被完全移除
+#### 从单应用到多应用
+
+如果之前使用的是单应用模式（`FeishuOptions`），请按以下步骤迁移:
+
+**步骤1: 更新配置文件**
+
+将原有的 `FeishuOptions` 配置改为 `FeishuApps` 数组:
+
+```json
+// 旧配置 (已废弃)
+{
+  "FeishuOptions": {
+    "AppId": "cli_xxx",
+    "AppSecret": "dsk_xxx",
+    "RetryCount": 3
+  }
+}
+
+// 新配置 (推荐)
+{
+  "FeishuApps": [
+    {
+      "AppKey": "default",
+      "AppId": "cli_xxx",
+      "AppSecret": "dsk_xxx",
+      "RetryCount": 3,
+      "RetryDelayMs": 1000,
+      "TokenRefreshThreshold": 300
+    }
+  ]
+}
+```
+
+**步骤2: 更新服务注册代码**
+
+```csharp
+// 旧注册方式 (已废弃)
+services.AddFeishuApiService<FeishuOptions>(options => {
+    builder.Configuration.Bind("FeishuOptions", options);
+});
+
+// 新注册方式 (推荐)
+services.AddFeishuMultiAppServices(options => {
+    builder.Configuration.Bind("FeishuApps", options);
+});
+```
+
+**步骤3: 更新代码中的使用方式**
+
+```csharp
+// 旧使用方式 (已废弃)
+var authService = serviceProvider.GetRequiredService<IFeishuV3Authentication>();
+var token = await authService.GetTenantAccessTokenAsync();
+
+// 新使用方式 - 默认应用 (推荐)
+var multiAppService = serviceProvider.GetRequiredService<IFeishuMultiAppService>();
+var defaultContext = multiAppService.GetDefaultAppContext();
+var token = await defaultContext.Auth.GetTenantAccessTokenAsync();
+
+// 新使用方式 - 指定应用
+var appContext = multiAppService.GetAppContext("app1");
+var token = await appContext.Auth.GetTenantAccessTokenAsync();
+
+// 新使用方式 - 应用上下文切换
+var switcher = serviceProvider.GetRequiredService<IFeishuAppContextSwitcher>();
+await switcher.UseAppContext("app1", async () => {
+    var context = switcher.GetAppContext();
+    var token = await context.Auth.GetTenantAccessTokenAsync();
+});
+```
+
+**步骤4: 添加新配置参数（可选）**
+
+配置文件中添加 `RetryDelayMs` 和 `TokenRefreshThreshold` 参数（可选）
+
+**步骤5: 移除 `IsDefault` 的显式设置**
+
+系统会自动推断默认应用，无需显式设置 `IsDefault`
+
+**重要提示**:
+
+- `FeishuOptions` 类已被完全移除，必须迁移到 `FeishuAppConfig` 多应用模式
+- 单个应用场景下，迁移后行为完全兼容
+- 每个应用现在拥有独立的 Token 缓存和刷新策略
 
 ### 📖 参考文档
 

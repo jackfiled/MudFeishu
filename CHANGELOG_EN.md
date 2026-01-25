@@ -1,10 +1,78 @@
 # Mud.Feishu Change Log
 
-## 2.0.0 (2026-01-22)
+## 2.0.0 (2026-01-24)
 
-**Type**: Major Update, Configuration Refactoring
+**Type**: Major Update, Configuration Refactoring, Infrastructure Upgrade
 
 ### ⚠️ Major Changes
+
+#### Multi-Application Architecture Support
+
+- **Full Support for Multiple Feishu Apps**
+  - Files: `FeishuAppConfig.cs`, `FeishuAppManager.cs`, `FeishuMultiAppExtensions.cs`
+  - Added: `FeishuAppConfig` configuration class, supports configuring multiple Feishu apps
+  - Added: `IFeishuAppContext` interface, provides app-level context access
+  - Added: `IFeishuAppContextSwitcher` interface, supports runtime app context switching
+  - Added: `IFeishuMultiAppService` multi-app service interface, manages multiple app instances
+  - Impact: A single app instance can manage and operate multiple Feishu apps simultaneously
+  - Core Features:
+    - Each app has independent configuration (AppId, AppSecret, TokenRefreshThreshold, etc.)
+    - Each app has independent Token cache and Token refresh strategy
+    - Supports default app auto-inference mechanism
+    - Supports runtime dynamic app context switching
+    - Fully isolated multi-app environment, no interference between apps
+
+- **App-Level Token Cache Isolation**
+  - Files: `MemoryTokenCache.cs`, `PrefixedTokenCache.cs`, `FeishuAppManager.cs`
+  - Added: Each app creates its own independent `MemoryTokenCache` instance
+  - Added: `PrefixedTokenCache` wrapper, adds app prefix to cache keys for isolation
+  - Implementation: Creates independent cache for each app in `FeishuAppManager.CreateAppContext()`
+  - Impact: Tokens from different apps are completely isolated, avoiding mutual interference
+  - Example Code:
+    ```csharp
+    // Create independent TokenCache instance for each app
+    var tokenCache = new TokenManager.MemoryTokenCache(logger, config.TokenRefreshThreshold);
+    var prefixedCache = new TokenManager.PrefixedTokenCache(tokenCache, config.AppKey);
+    ```
+
+- **App Context Switching Mechanism**
+  - File: `FeishuAppContextSwitcher.cs`
+  - Added: Uses `AsyncLocal<IFeishuAppContext>` to implement app context isolation
+  - Added: `UseAppContext()` method, supports temporary app switching in code blocks
+  - Added: `GetAppContext()` method, retrieves current app context
+  - Impact: Supports operating multiple Feishu apps in a single request
+  - Usage Example:
+    ```csharp
+    // Get app context switcher
+    var switcher = serviceProvider.GetRequiredService<IFeishuAppContextSwitcher>();
+
+    // Switch to specified app
+    await switcher.UseAppContext("app1", async () => {
+        // In this code block, all operations are for app1
+        var context = switcher.GetAppContext();
+        await context.Auth.GetTenantAccessTokenAsync();
+    });
+
+    // Switch to another app
+    await switcher.UseAppContext("app2", async () => {
+        // In this code block, all operations are for app2
+        var context = switcher.GetAppContext();
+        await context.Message.SendMessageAsync(...);
+    });
+    ```
+
+- **Default App Auto-Inference**
+  - Files: `FeishuAppConfig.cs`, `FeishuMultiAppExtensions.cs`
+  - Added: Three auto-inference rules
+    1. `AppKey == "default"` → Auto-mark as default app
+    2. Only one app configured → Auto-mark as default app
+    3. Multiple apps configured without default → First app auto-marked as default app
+  - Impact: Reduces user configuration burden, backward compatible with single-app scenarios
+
+- **Removed FeishuOptions Class**
+  - File: `FeishuOptions.cs` (deleted)
+  - Change: Completely removed old configuration class, all scenarios now use `FeishuAppConfig`
+  - Impact: Multi-app configuration is the only supported configuration method
 
 #### Configuration System Refactoring
 
@@ -50,7 +118,13 @@
   - File: `appsettings.example.json`, `Demos/**/*.appsettings.json`
   - Change: Added `RetryDelayMs` parameter, removed redundant `IsDefault` settings
 
+- **Added Multi-App Configuration Documentation**
+  - Files: `Mud.Feishu/README.md`, `README.md`
+  - Content: Multi-app configuration instructions, app context switching examples, best practices
+
 ### 🔧 Code Optimization
+
+#### Configuration Architecture Optimization
 
 - **Refactored HttpClient Configuration**
   - File: `FeishuServiceCollectionExtensions.cs`
@@ -67,6 +141,17 @@
   - Change: Uses configured `RetryDelayMs` instead of hardcoded 1000ms
   - Impact: WebSocket module also supports custom retry delay
 
+#### Dependency and Annotation Optimization
+
+- **Replaced Code Generator with HttpUtils**
+  - Files: Project-wide
+  - Changes:
+    - Replaced `Mud.ServiceCodeGenerator` with `Mud.HttpUtils`
+    - Updated all `EventHandler` annotations to `GenerateEventHandler`
+    - Removed dependency on `Mud.CodeGenerator`
+    - Changed `IgnoreGenerator` annotation in `IFeishuAppContextSwitcher` interface to `IgnoreImplement`
+  - Impact: Improves code maintainability and readability, unifies HTTP client generation mechanism
+
 ### 🧪 Test Updates
 
 - **Updated Configuration Tests**
@@ -81,13 +166,201 @@
 
 ### 📖 Usage Examples
 
+#### Single App Configuration (Auto-Default)
+
 **Before**:
+
 ```json
 {
   "FeishuApps": [
     {
+      "AppKey": "default",
+      "AppId": "cli_xxx",
+      "AppSecret": "dsk_xxx",
+      "RetryCount": 3,
+      "IsDefault": true
+    }
+  ]
+}
+```
 
-**Type**: Feature enhancement, code refactoring, documentation improvement, bug fixes
+**Now**:
+
+```json
+{
+  "FeishuApps": [
+    {
+      "AppKey": "default",
+      "AppId": "cli_xxx",
+      "AppSecret": "dsk_xxx",
+      "RetryCount": 3,
+      "RetryDelayMs": 1000,
+      "TokenRefreshThreshold": 300
+    }
+  ]
+}
+```
+
+#### Multi-App Configuration
+
+**Configure multiple Feishu apps**:
+
+```json
+{
+  "FeishuApps": [
+    {
+      "AppKey": "app1",
+      "AppId": "cli_aaa",
+      "AppSecret": "dsk_aaa",
+      "RetryCount": 3,
+      "RetryDelayMs": 1000,
+      "TokenRefreshThreshold": 300
+    },
+    {
+      "AppKey": "app2",
+      "AppId": "cli_bbb",
+      "AppSecret": "dsk_bbb",
+      "RetryCount": 5,
+      "RetryDelayMs": 2000,
+      "TokenRefreshThreshold": 600
+    },
+    {
+      "AppKey": "app3",
+      "AppId": "cli_ccc",
+      "AppSecret": "dsk_ccc",
+      "IsDefault": true
+    }
+  ]
+}
+```
+
+#### Using Multiple Apps in Code
+
+```csharp
+// Get multi-app service
+var multiAppService = serviceProvider.GetRequiredService<IFeishuMultiAppService>();
+
+// Get app context switcher
+var switcher = serviceProvider.GetRequiredService<IFeishuAppContextSwitcher>();
+
+// Method 1: Use default app
+var defaultContext = multiAppService.GetDefaultAppContext();
+await defaultContext.Message.SendMessageAsync(...);
+
+// Method 2: Switch to specified app context
+await switcher.UseAppContext("app1", async () => {
+    var context = switcher.GetAppContext();
+    // All operations target app1
+    await context.Auth.GetTenantAccessTokenAsync();
+    await context.Message.SendMessageAsync(...);
+});
+
+// Method 3: Get specified app context directly
+var app2Context = multiAppService.GetAppContext("app2");
+await app2Context.Message.SendMessageAsync(...);
+
+// Method 4: Iterate through all apps
+foreach (var appKey in multiAppService.GetAvailableAppKeys()) {
+    var context = multiAppService.GetAppContext(appKey);
+    // Execute operations on each app
+    await context.Auth.GetTenantAccessTokenAsync();
+}
+```
+
+### 🔄 Migration Path
+
+#### From Single-App to Multi-App
+
+If you were previously using single-app mode (`FeishuOptions`), follow these steps to migrate:
+
+**Step 1: Update Configuration File**
+
+Change existing `FeishuOptions` configuration to `FeishuApps` array:
+
+```json
+// Old configuration (deprecated)
+{
+  "FeishuOptions": {
+    "AppId": "cli_xxx",
+    "AppSecret": "dsk_xxx",
+    "RetryCount": 3
+  }
+}
+
+// New configuration (recommended)
+{
+  "FeishuApps": [
+    {
+      "AppKey": "default",
+      "AppId": "cli_xxx",
+      "AppSecret": "dsk_xxx",
+      "RetryCount": 3,
+      "RetryDelayMs": 1000,
+      "TokenRefreshThreshold": 300
+    }
+  ]
+}
+```
+
+**Step 2: Update Service Registration Code**
+
+```csharp
+// Old registration (deprecated)
+services.AddFeishuApiService<FeishuOptions>(options => {
+    builder.Configuration.Bind("FeishuOptions", options);
+});
+
+// New registration (recommended)
+services.AddFeishuMultiAppServices(options => {
+    builder.Configuration.Bind("FeishuApps", options);
+});
+```
+
+**Step 3: Update Code Usage**
+
+```csharp
+// Old usage (deprecated)
+var authService = serviceProvider.GetRequiredService<IFeishuV3Authentication>();
+var token = await authService.GetTenantAccessTokenAsync();
+
+// New usage - Default app (recommended)
+var multiAppService = serviceProvider.GetRequiredService<IFeishuMultiAppService>();
+var defaultContext = multiAppService.GetDefaultAppContext();
+var token = await defaultContext.Auth.GetTenantAccessTokenAsync();
+
+// New usage - Specified app
+var appContext = multiAppService.GetAppContext("app1");
+var token = await appContext.Auth.GetTenantAccessTokenAsync();
+
+// New usage - App context switching
+var switcher = serviceProvider.GetRequiredService<IFeishuAppContextSwitcher>();
+await switcher.UseAppContext("app1", async () => {
+    var context = switcher.GetAppContext();
+    var token = await context.Auth.GetTenantAccessTokenAsync();
+});
+```
+
+**Step 4: Add New Configuration Parameters (Optional)**
+
+Add `RetryDelayMs` and `TokenRefreshThreshold` parameters to configuration file (optional)
+
+**Step 5: Remove Explicit `IsDefault` Settings**
+
+The system will auto-infer the default app, no need to explicitly set `IsDefault`
+
+**Important Notes**:
+- `FeishuOptions` class has been completely removed, must migrate to `FeishuAppConfig` multi-app mode
+- For single-app scenarios, behavior is fully compatible after migration
+- Each app now has independent Token cache and refresh strategy
+
+### 📖 Reference Documentation
+
+- [Configuration Migration Guide](docs/Configuration-Migration-Guide.md)
+- [Multi-app Configuration](https://github.com/mudtools/MudFeishu/wiki/Multi-App-Migration)
+
+---
+
+## 1.2.2 (2026-01-19)
 
 ### 🚀 Feature Enhancements
 
