@@ -40,6 +40,14 @@ echo.
 echo 2. Building core projects...
 echo ===============================================================
 
+echo Building Mud.Feishu...
+dotnet build Mud.Feishu --configuration Release
+if %errorlevel% neq 0 (
+    echo Error: Failed to build Mud.Feishu
+    pause
+    exit /b 1
+)
+
 echo Building Mud.Feishu.Abstractions...
 dotnet build Mud.Feishu.Abstractions --configuration Release
 if %errorlevel% neq 0 (
@@ -101,6 +109,15 @@ set OUTPUT_DIR=artifacts
 REM Create output directory
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
 
+echo Publishing Mud.Feishu...
+dotnet pack Mud.Feishu --configuration Release --output "%OUTPUT_DIR%" --version-suffix %VERSION_SUFFIX%
+if %errorlevel% neq 0 (
+    echo Error: Failed to publish Mud.Feishu
+    pause
+    exit /b 1
+)
+
+echo.
 echo Publishing Mud.Feishu.Abstractions...
 dotnet pack Mud.Feishu.Abstractions --configuration Release --output "%OUTPUT_DIR%" --version-suffix %VERSION_SUFFIX%
 if %errorlevel% neq 0 (
