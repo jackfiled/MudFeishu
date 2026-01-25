@@ -268,7 +268,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
         if (string.IsNullOrEmpty(token))
             return token;
 
-        return token.StartsWith("Bearer ") ? token[7..] : token;
+        return token.StartsWith("Bearer ") ? token.Substring(7) : token;
     }
 
     /// <summary>
