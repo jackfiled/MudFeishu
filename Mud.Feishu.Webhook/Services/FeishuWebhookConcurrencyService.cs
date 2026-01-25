@@ -36,11 +36,13 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable, IHostedService
         _logger = logger;
 
         var options = _optionsMonitor.CurrentValue;
+        // 处理并发限制值：0 或负数视为无限制
         _currentMaxConcurrentEvents = options.MaxConcurrentEvents;
-        _semaphore = new SemaphoreSlim(_currentMaxConcurrentEvents, _currentMaxConcurrentEvents);
+        int actualMaxConcurrent = _currentMaxConcurrentEvents > 0 ? _currentMaxConcurrentEvents : int.MaxValue;
+        _semaphore = new SemaphoreSlim(actualMaxConcurrent, actualMaxConcurrent);
 
-        _logger.LogInformation("飞书 Webhook 并发控制服务初始化完成，最大并发数: {MaxConcurrentEvents}",
-            _currentMaxConcurrentEvents);
+        _logger.LogInformation("飞书 Webhook 并发控制服务初始化完成，最大并发数: {MaxConcurrentEvents} (实际: {ActualMaxConcurrent})",
+            _currentMaxConcurrentEvents, actualMaxConcurrent);
 
         // 监听配置变更，支持热更新
         _optionsMonitor.OnChange(newOptions =>
@@ -102,16 +104,19 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable, IHostedService
             var oldMax = _currentMaxConcurrentEvents;
             _currentMaxConcurrentEvents = newMaxConcurrent;
 
-            _logger.LogInformation("并发控制配置已更新，最大并发数: {OldMax} -> {NewMax}",
-                oldMax, newMaxConcurrent);
+            // 处理并发限制值：0 或负数视为无限制
+            int actualMaxConcurrent = _currentMaxConcurrentEvents > 0 ? _currentMaxConcurrentEvents : int.MaxValue;
+
+            _logger.LogInformation("并发控制配置已更新，最大并发数: {OldMax} -> {NewMax} (实际: {ActualMaxConcurrent})",
+                oldMax, newMaxConcurrent, actualMaxConcurrent);
 
             if (_semaphoreUpgraded)
             {
                 // 已经升级过，清理旧信号量
                 var oldSemaphore = Interlocked.Exchange(ref _semaphore,
-                    new SemaphoreSlim(_currentMaxConcurrentEvents, _currentMaxConcurrentEvents));
+                    new SemaphoreSlim(actualMaxConcurrent, actualMaxConcurrent));
 
-                _logger.LogInformation("信号量已重新创建，新的最大并发数: {NewMax}", newMaxConcurrent);
+                _logger.LogInformation("信号量已重新创建，新的最大并发数: {NewMax} (实际: {ActualMaxConcurrent})", newMaxConcurrent, actualMaxConcurrent);
 
                 // 延迟释放旧信号量，等待可能正在使用的请求完成
                 Task.Run(async () =>
@@ -123,9 +128,9 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable, IHostedService
             else
             {
                 // 首次升级，替换但不立即释放旧信号量（保持向后兼容）
-                _semaphore = new SemaphoreSlim(_currentMaxConcurrentEvents, _currentMaxConcurrentEvents);
+                _semaphore = new SemaphoreSlim(actualMaxConcurrent, actualMaxConcurrent);
                 _semaphoreUpgraded = true;
-                _logger.LogInformation("信号量首次创建，最大并发数: {NewMax}", newMaxConcurrent);
+                _logger.LogInformation("信号量首次创建，最大并发数: {NewMax} (实际: {ActualMaxConcurrent})", newMaxConcurrent, actualMaxConcurrent);
             }
         }
         finally

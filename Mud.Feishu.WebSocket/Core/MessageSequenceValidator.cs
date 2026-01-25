@@ -79,11 +79,13 @@ public class MessageSequenceValidator
             // 检查序号是否连续（检测消息丢失）
             if (sequenceNumber != _lastProcessedSequenceNumber + 1)
             {
-                var gap = sequenceNumber - _lastProcessedSequenceNumber.Value;
+                // 使用有符号整数比较来检测序号回退
+                bool isRollback = sequenceNumber < _lastProcessedSequenceNumber.Value;
 
                 // 如果序号回退，可能是重放攻击
-                if (gap < 0)
+                if (isRollback)
                 {
+                    long gap = (long)sequenceNumber - (long)_lastProcessedSequenceNumber.Value;
                     _logger.LogWarning("检测到序号回退（可能的攻击）: Last={LastSequence}, Current={CurrentSequence}, Gap={Gap}",
                         _lastProcessedSequenceNumber, sequenceNumber, gap);
 
@@ -97,17 +99,20 @@ public class MessageSequenceValidator
                     return SequenceValidationResult.Rollback;
                 }
 
+                // 计算序号跳跃的间隙
+                ulong sequenceGap = sequenceNumber - _lastProcessedSequenceNumber.Value;
+
                 // 如果序号跳跃较大，可能有消息丢失
-                if (gap > 10) // 阈值可配置
+                if (sequenceGap > 10) // 阈值可配置
                 {
                     _logger.LogWarning("检测到消息丢失: Last={LastSequence}, Current={CurrentSequence}, LostCount={LostCount}",
-                        _lastProcessedSequenceNumber, sequenceNumber, gap - 1);
+                        _lastProcessedSequenceNumber, sequenceNumber, sequenceGap - 1);
 
                     ValidationFailed?.Invoke(this, new SequenceValidationEventArgs
                     {
                         SequenceNumber = sequenceNumber,
                         MessageType = SequenceValidationType.MessageLoss,
-                        Message = $"可能丢失 {gap - 1} 条消息: 上一次序号 {_lastProcessedSequenceNumber}, 当前序号 {sequenceNumber}"
+                        Message = $"可能丢失 {sequenceGap - 1} 条消息: 上一次序号 {_lastProcessedSequenceNumber}, 当前序号 {sequenceNumber}"
                     });
                 }
                 // 允许序号小范围跳跃（正常网络情况）
@@ -130,8 +135,9 @@ public class MessageSequenceValidator
         if (_recentlyProcessedNumbers.Contains(sequenceNumber))
             return true;
 
-        // 检查序号是否小于等于上一次处理的序号（防止重放）
-        if (_lastProcessedSequenceNumber.HasValue && sequenceNumber <= _lastProcessedSequenceNumber.Value)
+        // 注意：序号小于上一次处理的序号的情况，会在 ValidateSequence 方法中单独处理为 Rollback
+        // 这里只检查是否完全相等（重复）
+        if (_lastProcessedSequenceNumber.HasValue && sequenceNumber == _lastProcessedSequenceNumber.Value)
             return true;
 
         return false;

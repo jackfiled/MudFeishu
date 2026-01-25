@@ -17,6 +17,16 @@ namespace Mud.Feishu.Abstractions.Tests;
 /// </summary>
 public class MultiAppTests
 {
+    // 测试常量
+    private const string TestEmptyAppSecret = "";
+    private const string TestAppSecret = "test_secret_12345678";
+    private const string TestVerySecretKey = "very_secret_key_12345";
+    private const string TestSecret1 = "secret1_12345678";
+    private const string TestSecret2 = "secret2_12345678";
+    private const string TestDefaultSecret = "default_secret_123456";
+    private const string TestHrSecret = "hr_secret_123456";
+    private const string TestFinanceSecret = "finance_secret_123456";
+
     [Fact]
     public void MultiApp_ConfigurationValidation_ShouldThrowOnInvalidConfig()
     {
@@ -25,7 +35,7 @@ public class MultiAppTests
         {
             AppKey = "",
             AppId = "",
-            AppSecret = ""
+            AppSecret = TestEmptyAppSecret
         };
 
         // Act & Assert
@@ -40,7 +50,7 @@ public class MultiAppTests
         {
             AppKey = "default",
             AppId = "cli_test_app_id_1234567890",
-            AppSecret = "test_secret_12345678",
+            AppSecret = TestAppSecret,
             IsDefault = false  // 这应该被自动推断为 true
         };
 
@@ -59,7 +69,7 @@ public class MultiAppTests
         {
             AppKey = "default",
             AppId = "cli_test_app_id_1234567890",
-            AppSecret = "test_secret_12345678"
+            AppSecret = TestAppSecret
         };
 
         // Act - Validate() 方法应该自动推断
@@ -77,7 +87,7 @@ public class MultiAppTests
         {
             AppKey = "test-app",
             AppId = "cli_test_app_id_1234567890",
-            AppSecret = "test_secret_12345678",
+            AppSecret = TestAppSecret,
             BaseUrl = "https://open.feishu.cn",
             TimeOut = 30,
             RetryCount = 3,
@@ -100,7 +110,7 @@ public class MultiAppTests
         {
             AppKey = "test-app",
             AppId = "cli_test_app_id_1234567890",
-            AppSecret = "test_secret_12345678",
+            AppSecret = TestAppSecret,
             RetryDelayMs = 50  // 低于最小值 100
         };
 
@@ -117,7 +127,7 @@ public class MultiAppTests
         {
             AppKey = "test-app",
             AppId = "cli_test_app_id_1234567890",
-            AppSecret = "very_secret_key_12345"
+            AppSecret = TestVerySecretKey
         };
 
         // Act
@@ -139,14 +149,14 @@ public class MultiAppTests
             {
                 AppKey = "app1",
                 AppId = "cli_app1_id_1234567890",
-                AppSecret = "secret1_12345678",
+                AppSecret = TestSecret1,
                 IsDefault = true
             },
             new FeishuAppConfig
             {
                 AppKey = "app1",  // 重复的AppKey
                 AppId = "cli_app2_id_1234567890",
-                AppSecret = "secret2_12345678"
+                AppSecret = TestSecret2
             }
         };
 
@@ -201,14 +211,14 @@ public class MultiAppTests
             {
                 AppKey = "default",
                 AppId = "cli_default_id_1234567890",
-                AppSecret = "default_secret_123456",
+                AppSecret = TestDefaultSecret,
                 IsDefault = true
             },
             new FeishuAppConfig
             {
                 AppKey = "hr-app",
                 AppId = "cli_hr_id_1234567890",
-                AppSecret = "hr_secret_123456"
+                AppSecret = TestHrSecret
             }
         };
 

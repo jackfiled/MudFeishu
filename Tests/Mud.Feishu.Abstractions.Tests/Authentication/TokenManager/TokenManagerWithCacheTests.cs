@@ -28,6 +28,12 @@ namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
 /// </remarks>
 public class TokenManagerWithCacheTests
 {
+    // 测试常量
+    private const string TestAppKey = "test";
+    private const string TestAppId = "test_app_id_1234567890";
+    private const string TestAppSecret = "test_app_secret_123456";
+    private const int TestTokenRefreshThreshold = 300;
+
     private readonly Mock<IFeishuAuthentication> _authenticationApiMock;
     private readonly Mock<IOptions<FeishuAppConfig>> _optionsMock;
     private readonly Mock<ILogger<TokenManagerWithCache>> _loggerMock;
@@ -43,10 +49,10 @@ public class TokenManagerWithCacheTests
         // 创建测试用的 FeishuAppConfig
         var config = new FeishuAppConfig
         {
-            AppKey = "test",
-            AppId = "test_app_id_1234567890",
-            AppSecret = "test_app_secret_123456",
-            TokenRefreshThreshold = 300
+            AppKey = TestAppKey,
+            AppId = TestAppId,
+            AppSecret = TestAppSecret,
+            TokenRefreshThreshold = TestTokenRefreshThreshold
         };
         _optionsMock = new Mock<IOptions<FeishuAppConfig>>();
         _optionsMock.Setup(x => x.Value).Returns(config);

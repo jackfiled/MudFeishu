@@ -18,6 +18,14 @@ namespace Mud.Feishu.Abstractions.Tests.EventHandlers;
 
 public class DefaultFeishuEventHandlerTests
 {
+    // 测试常量
+    private const string TestEventType = "test.event.type";
+    private const string TestEventId = "test-event-id";
+    private const string TestAppId = "test-app-id";
+    private const string TestTenantKey = "test-tenant-key";
+    private const string TestUserId = "test-user-id";
+    private const string TestDepartmentId = "test-dept-id";
+
     private readonly Mock<ILogger<DefaultFeishuEventHandler<TestEventData>>> _loggerMock;
     private readonly TestFeishuEventHandler _testEventHandler;
     private readonly Mock<ITestEventProcessor> _eventProcessorMock;
@@ -49,7 +57,7 @@ public class DefaultFeishuEventHandlerTests
             _eventProcessor = eventProcessor;
         }
 
-        public override string SupportedEventType => "test.event.type";
+        public override string SupportedEventType => TestEventType;
 
         protected override async Task ProcessBusinessLogicAsync(EventData eventData, TestEventData? eventEntity, CancellationToken cancellationToken = default)
         {
@@ -67,23 +75,18 @@ public class DefaultFeishuEventHandlerTests
     public async Task HandleAsync_ShouldCallProcessBusinessLogic_WhenEventDataIsValid()
     {
         // Arrange
-        var eventId = "test-event-id";
-        var eventType = "test.event.type";
-        var appId = "test-app-id";
-        var tenantKey = "test-tenant-key";
-
         var eventData = new EventData
         {
-            EventId = eventId,
-            EventType = eventType,
-            AppId = appId,
-            TenantKey = tenantKey,
+            EventId = TestEventId,
+            EventType = TestEventType,
+            AppId = TestAppId,
+            TenantKey = TestTenantKey,
             Event = JsonDocument.Parse(JsonSerializer.Serialize(new TestEventData
             {
-                EventId = eventId,
-                EventType = eventType,
-                UserId = "test-user-id",
-                DepartmentId = "test-dept-id"
+                EventId = TestEventId,
+                EventType = TestEventType,
+                UserId = TestUserId,
+                DepartmentId = TestDepartmentId
             }))
         };
 
@@ -92,8 +95,8 @@ public class DefaultFeishuEventHandlerTests
 
         // Assert
         _eventProcessorMock.Verify(x => x.ProcessBusinessLogicAsync(
-            It.Is<EventData>(e => e.EventId == eventId),
-            It.Is<TestEventData>(e => e.EventId == eventId && e.UserId == "test-user-id"),
+            It.Is<EventData>(e => e.EventId == TestEventId),
+            It.Is<TestEventData>(e => e.EventId == TestEventId && e.UserId == TestUserId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -110,8 +113,8 @@ public class DefaultFeishuEventHandlerTests
         // Arrange
         var eventData = new EventData
         {
-            EventId = "test-event-id",
-            EventType = "test.event.type",
+            EventId = TestEventId,
+            EventType = TestEventType,
             Event = JsonDocument.Parse("{\"eventId\":\"test-event-id\",\"invalidJson\":true}") // Valid JSON structure
         };
 
@@ -132,8 +135,8 @@ public class DefaultFeishuEventHandlerTests
 
         var eventData = new EventData
         {
-            EventId = "test-event-id",
-            EventType = "test.event.type",
+            EventId = TestEventId,
+            EventType = TestEventType,
             Event = null
         };
 
@@ -154,33 +157,28 @@ public class DefaultFeishuEventHandlerTests
         var result = _testEventHandler.SupportedEventType;
 
         // Assert
-        Assert.Equal("test.event.type", result);
+        Assert.Equal(TestEventType, result);
     }
 
     [Fact]
     public async Task HandleAsync_ShouldLogInformation_WhenProcessingStarts()
     {
         // Arrange
-        var eventId = "test-event-id";
-        var eventType = "test.event.type";
-        var appId = "test-app-id";
-        var tenantKey = "test-tenant-key";
-
         // 创建有效的JSON字符串
         var testEvent = new TestEventData
         {
-            EventId = eventId,
-            EventType = eventType
+            EventId = TestEventId,
+            EventType = TestEventType
         };
         var jsonString = JsonSerializer.Serialize(testEvent);
         var jsonDocument = JsonDocument.Parse(jsonString);
 
         var eventData = new EventData
         {
-            EventId = eventId,
-            EventType = eventType,
-            AppId = appId,
-            TenantKey = tenantKey,
+            EventId = TestEventId,
+            EventType = TestEventType,
+            AppId = TestAppId,
+            TenantKey = TestTenantKey,
             Event = jsonDocument
         };
 
@@ -203,22 +201,19 @@ public class DefaultFeishuEventHandlerTests
     public async Task HandleAsync_ShouldLogError_WhenBusinessLogicThrowsException()
     {
         // Arrange
-        var eventId = "test-event-id";
-        var eventType = "test.event.type";
-
         // 创建有效的JSON字符串
         var testEvent = new TestEventData
         {
-            EventId = eventId,
-            EventType = eventType
+            EventId = TestEventId,
+            EventType = TestEventType
         };
         var jsonString = JsonSerializer.Serialize(testEvent);
         var jsonDocument = JsonDocument.Parse(jsonString);
 
         var eventData = new EventData
         {
-            EventId = eventId,
-            EventType = eventType,
+            EventId = TestEventId,
+            EventType = TestEventType,
             Event = jsonDocument
         };
 
@@ -234,12 +229,12 @@ public class DefaultFeishuEventHandlerTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _testEventHandler.HandleAsync(eventData, CancellationToken.None));
         Assert.Equal(expectedException.Message, exception.Message);
 
-        // 暂时移除日志验证，因为Moq的匹配器存在一些问题
-        // _loggerMock.Verify(logger => logger.Log(
-        //     It.Is<LogLevel>(level => level == LogLevel.Error),
-        //     It.IsAny<EventId>(),
-        //     It.IsAny<It.IsAnyType>(),
-        //     It.IsAny<Exception>(),
-        //     It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        // 验证错误日志是否被记录
+        _loggerMock.Verify(logger => logger.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            expectedException,
+            (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()), Times.Once);
     }
 }
