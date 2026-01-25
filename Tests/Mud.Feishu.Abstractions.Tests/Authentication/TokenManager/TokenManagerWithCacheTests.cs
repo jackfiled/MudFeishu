@@ -8,10 +8,10 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Mud.CodeGenerator;
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Exceptions;
 using Mud.Feishu.TokenManager;
+using Mud.HttpUtils.Attributes;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -72,7 +72,7 @@ public class TokenManagerWithCacheTests
             IOptions<FeishuAppConfig> options,
             ILogger<TokenManagerWithCache> logger,
             ITokenCache tokenCache)
-            : base(authenticationApi, options, logger, tokenCache, Mud.CodeGenerator.TokenType.AppAccessToken)
+            : base(authenticationApi, options, logger, tokenCache, Mud.HttpUtils.Attributes.TokenType.AppAccessToken)
         { }
 
         protected override async Task<CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)
@@ -81,7 +81,7 @@ public class TokenManagerWithCacheTests
             return new CredentialToken
             {
                 AccessToken = "test-access-token",
-                Expire = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 7200000, // 2小时后过期
+                Expire = 7200, // 2小时后过期（相对时间，秒）
                 Code = 0,
                 Msg = "ok"
             };
@@ -124,15 +124,15 @@ public class TokenManagerWithCacheTests
     public async Task GetTokenAsync_ShouldReturnCachedToken_WhenCacheHasValidToken()
     {
         // Arrange
-        var cachedToken = "Bearer cached-token";
+        var cachedToken = "cached-token"; // 缓存中存储不带前缀的原始token
         _tokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(cachedToken);
 
         // Act
         var token = await _testTokenManager.GetTokenAsync(CancellationToken.None);
 
-        // Assert
-        Assert.Equal(cachedToken, token);
+        // Assert - 返回时应带有 Bearer 前缀
+        Assert.Equal($"Bearer {cachedToken}", token);
         _tokenCacheMock.Verify(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -146,10 +146,11 @@ public class TokenManagerWithCacheTests
         // Act
         var token = await _testTokenManager.GetTokenAsync(CancellationToken.None);
 
-        // Assert
+        // Assert - 返回时应带有 Bearer 前缀，缓存存储不带前缀
         Assert.NotNull(token);
+        Assert.StartsWith("Bearer ", token);
         Assert.Contains("test-access-token", token);
-        _tokenCacheMock.Verify(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
+        _tokenCacheMock.Verify(x => x.SetAsync(It.IsAny<string>(), "test-access-token", It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // 用于测试重试机制的失败令牌管理器
@@ -162,7 +163,7 @@ public class TokenManagerWithCacheTests
             IOptions<FeishuAppConfig> options,
             ILogger<TokenManagerWithCache> logger,
             ITokenCache tokenCache)
-            : base(authenticationApi, options, logger, tokenCache, Mud.CodeGenerator.TokenType.AppAccessToken)
+            : base(authenticationApi, options, logger, tokenCache, Mud.HttpUtils.Attributes.TokenType.AppAccessToken)
         { }
 
         protected override async Task<CredentialToken?> AcquireNewTokenAsync(CancellationToken cancellationToken)

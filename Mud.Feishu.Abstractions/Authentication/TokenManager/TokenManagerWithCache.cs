@@ -125,16 +125,18 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// <remarks>
     /// 内部核心方法，实现缓存优先、懒加载、防止缓存击穿的令牌获取逻辑。
     /// 首先检查缓存中是否有有效令牌，如果没有则使用Lazy机制确保只有一个请求在获取新令牌。
+    /// 缓存中存储的是原始token（不带Bearer前缀），返回时统一添加前缀。
     /// </remarks>
     private async Task<string?> GetTokenInternalAsync(CancellationToken cancellationToken)
     {
         var cacheKey = GenerateCacheKey();
 
-        // 尝试从缓存获取有效令牌
+        // 尝试从缓存获取有效令牌（缓存中存储的是不带前缀的原始token）
         var cachedToken = await _tokenCache.GetAsync(cacheKey, cancellationToken);
         if (!string.IsNullOrEmpty(cachedToken))
         {
             _logger.LogDebug("Using cached token for {TokenType}, AppId: {AppId}", _tokenType, _options.AppId);
+            // 确保返回的token格式统一：Bearer {token}
             return FormatBearerToken(cachedToken);
         }
 
@@ -146,7 +148,9 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
                 LazyThreadSafetyMode.ExecutionAndPublication));
 
             var token = await lazyTask.Value;
-            return FormatBearerToken(token.AccessToken);
+            // UpdateTokenCacheAsync 已经处理了缓存存储（移除Bearer前缀）
+            // 这里需要从原始token中移除可能的前缀后格式化返回
+            return FormatBearerToken(RemoveBearerPrefix(token.AccessToken));
         }
         finally
         {
@@ -236,14 +240,35 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// <summary>
     /// 格式化 Bearer Token
     /// </summary>
-    /// <param name="token">原始访问令牌</param>
+    /// <param name="token">原始访问令牌（不带 Bearer 前缀）</param>
     /// <returns>格式化后的Bearer令牌字符串</returns>
     /// <remarks>
     /// 在令牌前添加"Bearer "前缀，符合HTTP认证标准格式。
+    /// 注意：输入参数应为原始token（不带Bearer前缀），本方法会统一添加前缀。
     /// </remarks>
     protected string FormatBearerToken(string? token)
     {
-        return $"Bearer {token}";
+        // 如果token已经包含Bearer前缀，则不再添加
+        if (string.IsNullOrEmpty(token))
+            return "Bearer ";
+
+        return token.StartsWith("Bearer ") ? token : $"Bearer {token}";
+    }
+
+    /// <summary>
+    /// 移除 Bearer 前缀
+    /// </summary>
+    /// <param name="token">可能包含Bearer前缀的令牌</param>
+    /// <returns>不包含Bearer前缀的原始令牌</returns>
+    /// <remarks>
+    /// 确保缓存中存储的是原始token值，不包含"Bearer "前缀。
+    /// </remarks>
+    protected static string? RemoveBearerPrefix(string? token)
+    {
+        if (string.IsNullOrEmpty(token))
+            return token;
+
+        return token.StartsWith("Bearer ") ? token[7..] : token;
     }
 
     /// <summary>
@@ -306,12 +331,16 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// <remarks>
     /// 将新获取的令牌更新到缓存中，使用异步操作确保线程安全。
     /// 如果缓存中已存在相同键的令牌，则替换为新令牌。
+    /// 注意：缓存中只存储原始token值（不带"Bearer "前缀），避免重复前缀。
     /// </remarks>
     protected virtual async Task UpdateTokenCacheAsync(CredentialToken newToken, CancellationToken cancellationToken)
     {
         var cacheKey = GenerateCacheKey();
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
-        await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
+
+        // 移除可能的 Bearer 前缀，只存储原始 token
+        var rawToken = RemoveBearerPrefix(newToken.AccessToken);
+        await _tokenCache.SetAsync(cacheKey, rawToken ?? string.Empty, expiresIn, cancellationToken);
     }
 
     /// <summary>

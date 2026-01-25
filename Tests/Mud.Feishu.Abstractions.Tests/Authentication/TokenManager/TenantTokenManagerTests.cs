@@ -58,6 +58,7 @@ public class TenantTokenManagerTests : TokenManagerTestsBase
         Assert.NotNull(result);
         Assert.Equal($"Bearer {expectedToken}", result);
         _authenticationApiMock.Verify(x => x.GetTenantAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()), Times.Once);
+        // 缓存应存储不带前缀的原始token
         _tokenCacheMock.Verify(x => x.SetAsync(It.IsAny<string>(), expectedToken, It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -65,15 +66,15 @@ public class TenantTokenManagerTests : TokenManagerTestsBase
     public async Task GetTokenAsync_ShouldReturnCachedToken_WhenCacheHasValidToken()
     {
         // Arrange
-        var cachedToken = "Bearer cached-token";
+        var cachedToken = "cached-token"; // 缓存中存储不带前缀的原始token
         _tokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(cachedToken);
 
         // Act
         var result = await _tenantTokenManager.GetTokenAsync(CancellationToken.None);
 
-        // Assert
-        Assert.Equal(cachedToken, result);
+        // Assert - 返回时应带有 Bearer 前缀
+        Assert.Equal($"Bearer {cachedToken}", result);
         _authenticationApiMock.Verify(x => x.GetTenantAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -137,7 +138,7 @@ public class TenantTokenManagerTests : TokenManagerTestsBase
         _tokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() =>
             {
-                return callCount == 0 ? (string?)null : $"Bearer {expectedToken}";
+                return callCount == 0 ? (string?)null : expectedToken; // 缓存返回不带前缀的原始token
             });
 
         // Act - First call should get new token
