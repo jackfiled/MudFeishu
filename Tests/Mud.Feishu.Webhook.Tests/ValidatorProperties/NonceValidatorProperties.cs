@@ -7,12 +7,10 @@
 
 using FsCheck;
 using FsCheck.Xunit;
-using Microsoft.Extensions.Logging;
-using Moq;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook.Services;
 
-namespace Mud.Feishu.Webhook.Tests.Properties;
+namespace Mud.Feishu.Webhook.Tests.ValidatorProperties;
 
 /// <summary>
 /// Nonce验证器属性测试

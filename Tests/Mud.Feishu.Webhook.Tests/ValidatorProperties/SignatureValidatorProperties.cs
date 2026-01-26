@@ -7,17 +7,12 @@
 
 using FsCheck;
 using FsCheck.Xunit;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Moq;
-using Mud.Feishu.Webhook;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Services;
 using System.Security.Cryptography;
 using System.Text;
-using Xunit;
 
-namespace Mud.Feishu.Webhook.Tests.Properties;
+namespace Mud.Feishu.Webhook.Tests.ValidatorProperties;
 
 /// <summary>
 /// 签名验证器属性测试

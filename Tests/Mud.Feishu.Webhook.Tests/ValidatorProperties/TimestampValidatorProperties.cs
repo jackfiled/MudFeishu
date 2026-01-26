@@ -7,12 +7,10 @@
 
 using FsCheck;
 using FsCheck.Xunit;
-using Microsoft.Extensions.Logging;
-using Moq;
 using Mud.Feishu.Webhook.Services;
 using SystemRandom = System.Random;
 
-namespace Mud.Feishu.Webhook.Tests.Properties;
+namespace Mud.Feishu.Webhook.Tests.ValidatorProperties;
 
 /// <summary>
 /// 时间戳验证器属性测试

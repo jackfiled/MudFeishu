@@ -7,13 +7,10 @@
 
 using FsCheck;
 using FsCheck.Xunit;
-using Microsoft.Extensions.Logging;
-using Moq;
 using Mud.Feishu.Webhook.Models;
 using Mud.Feishu.Webhook.Services;
-using Xunit;
 
-namespace Mud.Feishu.Webhook.Tests.Properties;
+namespace Mud.Feishu.Webhook.Tests.ValidatorProperties;
 
 /// <summary>
 /// 订阅验证器属性测试

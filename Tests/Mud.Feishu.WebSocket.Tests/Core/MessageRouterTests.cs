@@ -8,7 +8,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Mud.Feishu.WebSocket.Handlers;
 
 namespace Mud.Feishu.WebSocket.Tests.Core;
 
@@ -18,13 +17,13 @@ namespace Mud.Feishu.WebSocket.Tests.Core;
 public class MessageRouterTests
 {
     private readonly Mock<ILogger<MessageRouter>> _loggerMock;
-    private readonly Mud.Feishu.WebSocket.FeishuWebSocketOptions _options;
+    private readonly FeishuWebSocketOptions _options;
     private readonly MessageRouter _router;
 
     public MessageRouterTests()
     {
         _loggerMock = new Mock<ILogger<MessageRouter>>();
-        _options = new Mud.Feishu.WebSocket.FeishuWebSocketOptions();
+        _options = new FeishuWebSocketOptions();
         _router = new MessageRouter(_loggerMock.Object, _options);
     }
 
