@@ -47,18 +47,14 @@ public class CircuitBreakerServiceTests
         // Act - 触发3次失败
         for (int i = 0; i < 3; i++)
         {
-            try
+            await Assert.ThrowsAsync<Exception>(async () =>
             {
                 await service.ExecuteAsync<string>(async () =>
                 {
                     await Task.Delay(10);
                     throw new Exception("Test failure");
                 });
-            }
-            catch
-            {
-                // 预期的异常
-            }
+            });
         }
 
         // Assert
@@ -80,11 +76,8 @@ public class CircuitBreakerServiceTests
         // 触发失败打开断路器
         for (int i = 0; i < 2; i++)
         {
-            try
-            {
-                await service.ExecuteAsync<string>(async () => throw new Exception("Test"));
-            }
-            catch { }
+            await Assert.ThrowsAsync<Exception>(async () =>
+                await service.ExecuteAsync<string>(async () => throw new Exception("Test")));
         }
 
         // Act & Assert
@@ -107,11 +100,8 @@ public class CircuitBreakerServiceTests
         // 打开断路器
         for (int i = 0; i < 2; i++)
         {
-            try
-            {
-                await service.ExecuteAsync<string>(async () => throw new Exception("Test"));
-            }
-            catch { }
+            await Assert.ThrowsAsync<Exception>(async () =>
+                await service.ExecuteAsync<string>(async () => throw new Exception("Test")));
         }
 
         // 等待进入半开状态
@@ -144,11 +134,8 @@ public class CircuitBreakerServiceTests
         // 打开断路器
         for (int i = 0; i < 2; i++)
         {
-            try
-            {
-                await service.ExecuteAsync<string>(async () => throw new Exception("Test"));
-            }
-            catch { }
+            await Assert.ThrowsAsync<Exception>(async () =>
+                await service.ExecuteAsync<string>(async () => throw new Exception("Test")));
         }
 
         // 等待进入半开状态
@@ -179,22 +166,16 @@ public class CircuitBreakerServiceTests
         // 打开断路器
         for (int i = 0; i < 2; i++)
         {
-            try
-            {
-                await service.ExecuteAsync<string>(async () => throw new Exception("Test"));
-            }
-            catch { }
+            await Assert.ThrowsAsync<Exception>(async () =>
+                await service.ExecuteAsync<string>(async () => throw new Exception("Test")));
         }
 
         // 等待进入半开状态
         await Task.Delay(150);
 
         // Act - 半开状态下再次失败
-        try
-        {
-            await service.ExecuteAsync<string>(async () => throw new Exception("Test"));
-        }
-        catch { }
+        await Assert.ThrowsAsync<Exception>(async () =>
+            await service.ExecuteAsync<string>(async () => throw new Exception("Test")));
 
         // Assert
         Assert.Equal(CircuitState.Open, service.State);
@@ -211,11 +192,8 @@ public class CircuitBreakerServiceTests
         var service = new CircuitBreakerService(options);
 
         // 打开断路器
-        try
-        {
-            await service.ExecuteAsync<string>(async () => throw new Exception("Test"));
-        }
-        catch { }
+        await Assert.ThrowsAsync<Exception>(async () =>
+            await service.ExecuteAsync<string>(async () => throw new Exception("Test")));
 
         // Act
         service.Reset();

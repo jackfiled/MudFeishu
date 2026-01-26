@@ -11,9 +11,6 @@ using Mud.CodeGenerator;
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.DataModels;
 using Mud.Feishu.Exceptions;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
@@ -137,7 +134,7 @@ public class AppTokenManagerTests : TokenManagerTestsBase
         _tokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() =>
             {
-                return callCount == 0 ? (string?)null : expectedToken; // 缓存返回不带前缀的原始token
+                return callCount == 0 ? null : expectedToken; // 缓存返回不带前缀的原始token
             });
 
         // Act - First call should get new token
@@ -164,11 +161,77 @@ public class AppTokenManagerTests : TokenManagerTestsBase
             .ReturnsAsync((5, 2));
 
         // Act
-        var stats = await _appTokenManager.GetCacheStatisticsAsync();
+        var (total, expired) = await _appTokenManager.GetCacheStatisticsAsync();
 
         // Assert
-        Assert.Equal(5, stats.Total);
-        Assert.Equal(2, stats.Expired);
+        Assert.Equal(5, total);
+        Assert.Equal(2, expired);
         _tokenCacheMock.Verify(x => x.GetStatisticsAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldThrowFeishuException_WhenNetworkTimeout()
+    {
+        // Arrange
+        _authenticationApiMock
+            .Setup(x => x.GetAppAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("Request timed out"));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<FeishuException>(() => _appTokenManager.GetTokenAsync(CancellationToken.None));
+        Assert.Contains("Failed to acquire AppAccessToken after", exception.Message);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldThrowFeishuException_WhenHttpRequestException()
+    {
+        // Arrange
+        _authenticationApiMock
+            .Setup(x => x.GetAppAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Network error"));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<FeishuException>(() => _appTokenManager.GetTokenAsync(CancellationToken.None));
+        Assert.Contains("Network error", exception.Message);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldThrowFeishuException_WhenHttp502()
+    {
+        // Arrange
+        var apiResult = new AppCredentialResult
+        {
+            Code = 502,
+            Msg = "Bad Gateway"
+        };
+
+        _authenticationApiMock
+            .Setup(x => x.GetAppAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(apiResult);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<FeishuException>(() => _appTokenManager.GetTokenAsync(CancellationToken.None));
+        Assert.Equal(502, exception.ErrorCode);
+        Assert.Contains("Bad Gateway", exception.Message);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldThrowFeishuException_WhenHttp503()
+    {
+        // Arrange
+        var apiResult = new AppCredentialResult
+        {
+            Code = 503,
+            Msg = "Service Unavailable"
+        };
+
+        _authenticationApiMock
+            .Setup(x => x.GetAppAccessTokenAsync(It.IsAny<AppCredentials>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(apiResult);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<FeishuException>(() => _appTokenManager.GetTokenAsync(CancellationToken.None));
+        Assert.Equal(503, exception.ErrorCode);
+        Assert.Contains("Service Unavailable", exception.Message);
     }
 }

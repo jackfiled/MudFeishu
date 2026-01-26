@@ -7,6 +7,7 @@
 
 using System.Security.Cryptography;
 using System.Text;
+using FluentAssertions;
 
 namespace Mud.Feishu.Webhook.Tests.Services;
 
@@ -36,9 +37,9 @@ public class FeishuEventDecryptorTests
         var result = await _decryptor.DecryptAsync(encryptedData, encryptKey);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("test_event", result.EventType);
-        Assert.Equal("test_123", result.EventId);
+        result.Should().NotBeNull();
+        result.EventType.Should().Be("test_event");
+        result.EventId.Should().Be("test_123");
     }
 
     [Fact]
@@ -54,7 +55,7 @@ public class FeishuEventDecryptorTests
         var result = await _decryptor.DecryptAsync(encryptedData, wrongKey);
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -68,7 +69,7 @@ public class FeishuEventDecryptorTests
         var result = await _decryptor.DecryptAsync(invalidBase64, encryptKey);
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -81,7 +82,7 @@ public class FeishuEventDecryptorTests
         var result = await _decryptor.DecryptAsync("", encryptKey);
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     /// <summary>

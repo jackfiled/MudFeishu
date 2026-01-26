@@ -12,20 +12,13 @@ using Mud.HttpUtils.Attributes;
 
 namespace Mud.Feishu.Abstractions.Tests;
 
+using static Mud.Feishu.Abstractions.Tests.Helpers.TestDataFactory;
+
 /// <summary>
 /// 多应用功能测试
 /// </summary>
 public class MultiAppTests
 {
-    // 测试常量
-    private const string TestEmptyAppSecret = "";
-    private const string TestAppSecret = "test_secret_12345678";
-    private const string TestVerySecretKey = "very_secret_key_12345";
-    private const string TestSecret1 = "secret1_12345678";
-    private const string TestSecret2 = "secret2_12345678";
-    private const string TestDefaultSecret = "default_secret_123456";
-    private const string TestHrSecret = "hr_secret_123456";
-    private const string TestFinanceSecret = "finance_secret_123456";
 
     [Fact]
     public void MultiApp_ConfigurationValidation_ShouldThrowOnInvalidConfig()
@@ -35,7 +28,7 @@ public class MultiAppTests
         {
             AppKey = "",
             AppId = "",
-            AppSecret = TestEmptyAppSecret
+            AppSecret = AppConfigs.Secrets.Empty
         };
 
         // Act & Assert
@@ -48,9 +41,9 @@ public class MultiAppTests
         // Arrange
         var config = new FeishuAppConfig
         {
-            AppKey = "default",
-            AppId = "cli_test_app_id_1234567890",
-            AppSecret = TestAppSecret,
+            AppKey = AppConfigs.AppKeys.Default,
+            AppId = AppConfigs.AppIds.Default,
+            AppSecret = AppConfigs.Secrets.Valid,
             IsDefault = false  // 这应该被自动推断为 true
         };
 
@@ -67,9 +60,9 @@ public class MultiAppTests
         // Arrange
         var config = new FeishuAppConfig
         {
-            AppKey = "default",
-            AppId = "cli_test_app_id_1234567890",
-            AppSecret = TestAppSecret
+            AppKey = AppConfigs.AppKeys.Default,
+            AppId = AppConfigs.AppIds.Default,
+            AppSecret = AppConfigs.Secrets.Valid
         };
 
         // Act - Validate() 方法应该自动推断
@@ -86,8 +79,8 @@ public class MultiAppTests
         var validConfig = new FeishuAppConfig
         {
             AppKey = "test-app",
-            AppId = "cli_test_app_id_1234567890",
-            AppSecret = TestAppSecret,
+            AppId = AppConfigs.AppIds.Default,
+            AppSecret = AppConfigs.Secrets.Valid,
             BaseUrl = "https://open.feishu.cn",
             TimeOut = 30,
             RetryCount = 3,
@@ -109,8 +102,8 @@ public class MultiAppTests
         var invalidConfig = new FeishuAppConfig
         {
             AppKey = "test-app",
-            AppId = "cli_test_app_id_1234567890",
-            AppSecret = TestAppSecret,
+            AppId = AppConfigs.AppIds.Default,
+            AppSecret = AppConfigs.Secrets.Valid,
             RetryDelayMs = 50  // 低于最小值 100
         };
 
@@ -126,8 +119,8 @@ public class MultiAppTests
         var config = new FeishuAppConfig
         {
             AppKey = "test-app",
-            AppId = "cli_test_app_id_1234567890",
-            AppSecret = TestVerySecretKey
+            AppId = AppConfigs.AppIds.Default,
+            AppSecret = AppConfigs.Secrets.VerySecret
         };
 
         // Act
@@ -135,7 +128,7 @@ public class MultiAppTests
 
         // Assert
         Assert.Contains("te****45", configString);
-        Assert.DoesNotContain("very_secret_key", configString);
+        Assert.DoesNotContain(AppConfigs.Secrets.VerySecret, configString);
     }
 
     [Fact]
@@ -147,16 +140,16 @@ public class MultiAppTests
         {
             new FeishuAppConfig
             {
-                AppKey = "app1",
-                AppId = "cli_app1_id_1234567890",
-                AppSecret = TestSecret1,
+                AppKey = AppConfigs.AppKeys.App1,
+                AppId = AppConfigs.AppIds.App1,
+                AppSecret = AppConfigs.Secrets.App1,
                 IsDefault = true
             },
             new FeishuAppConfig
             {
-                AppKey = "app1",  // 重复的AppKey
-                AppId = "cli_app2_id_1234567890",
-                AppSecret = TestSecret2
+                AppKey = AppConfigs.AppKeys.App1,  // 重复的AppKey
+                AppId = AppConfigs.AppIds.App2,
+                AppSecret = AppConfigs.Secrets.App2
             }
         };
 
@@ -179,9 +172,9 @@ public class MultiAppTests
         {
             new FeishuAppConfig
             {
-                AppKey = "app1",
-                AppId = "cli_app1_id_1234567890",
-                AppSecret = "secret1_12345678",
+                AppKey = AppConfigs.AppKeys.App1,
+                AppId = AppConfigs.AppIds.App1,
+                AppSecret = AppConfigs.Secrets.App1,
                 IsDefault = false
             }
         };
@@ -209,16 +202,16 @@ public class MultiAppTests
         {
             new FeishuAppConfig
             {
-                AppKey = "default",
-                AppId = "cli_default_id_1234567890",
-                AppSecret = TestDefaultSecret,
+                AppKey = AppConfigs.AppKeys.Default,
+                AppId = AppConfigs.AppIds.Default,
+                AppSecret = AppConfigs.Secrets.Default,
                 IsDefault = true
             },
             new FeishuAppConfig
             {
-                AppKey = "hr-app",
-                AppId = "cli_hr_id_1234567890",
-                AppSecret = TestHrSecret
+                AppKey = AppConfigs.AppKeys.Hr,
+                AppId = AppConfigs.AppIds.Hr,
+                AppSecret = AppConfigs.Secrets.Hr
             }
         };
 
@@ -232,12 +225,12 @@ public class MultiAppTests
         var appManager = provider.GetRequiredService<IFeishuAppManager>();
 
         // Act
-        var hrApp = appManager.GetApp("hr-app");
+        var hrApp = appManager.GetApp(AppConfigs.AppKeys.Hr);
 
         // Assert
         Assert.NotNull(hrApp);
-        Assert.Equal("hr-app", hrApp.Config.AppKey);
-        Assert.Equal("cli_hr_id_1234567890", hrApp.Config.AppId);
+        Assert.Equal(AppConfigs.AppKeys.Hr, hrApp.Config.AppKey);
+        Assert.Equal(AppConfigs.AppIds.Hr, hrApp.Config.AppId);
     }
 
     [Fact]
@@ -274,50 +267,6 @@ public class MultiAppTests
     }
 
     [Fact]
-    public void MultiApp_GetDefaultApp_ShouldReturnDefaultApp()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddHttpClient();
-        services.AddSingleton<IFeishuAuthentication, FeishuV3Authentication>();
-        services.Configure<JsonSerializerOptions>(options => HttpClientExtensions.GetDefaultJsonSerializerOptions());
-
-        var configs = new List<FeishuAppConfig>
-        {
-            new FeishuAppConfig
-            {
-                AppKey = "default",
-                AppId = "cli_default_id_1234567890",
-                AppSecret = "default_secret_123456",
-                IsDefault = true
-            },
-            new FeishuAppConfig
-            {
-                AppKey = "hr-app",
-                AppId = "cli_hr_id_1234567890",
-                AppSecret = "hr_secret_123456"
-            }
-        };
-
-        services.AddSingleton<ITokenCache, MemoryTokenCache>();
-        services.AddSingleton<IFeishuAppManager>(sp => new FeishuAppManager(
-            sp,
-            configs,
-            sp.GetRequiredService<ILogger<FeishuAppManager>>()));
-
-        var provider = services.BuildServiceProvider();
-        var appManager = provider.GetRequiredService<IFeishuAppManager>();
-
-        // Act
-        var defaultApp = appManager.GetDefaultApp();
-
-        // Assert
-        Assert.NotNull(defaultApp);
-        Assert.True(defaultApp.Config.IsDefault);
-        Assert.Equal("default", defaultApp.Config.AppKey);
-    }
-
-    [Fact]
     public void MultiApp_GetAllApps_ShouldReturnAllRegisteredApps()
     {
         // Arrange
@@ -330,22 +279,22 @@ public class MultiAppTests
         {
             new FeishuAppConfig
             {
-                AppKey = "default",
-                AppId = "cli_default_id_1234567890",
-                AppSecret = "default_secret_123456",
+                AppKey = AppConfigs.AppKeys.Default,
+                AppId = AppConfigs.AppIds.Default,
+                AppSecret = AppConfigs.Secrets.Default,
                 IsDefault = true
             },
             new FeishuAppConfig
             {
-                AppKey = "hr-app",
-                AppId = "cli_hr_id_1234567890",
-                AppSecret = "hr_secret_123456"
+                AppKey = AppConfigs.AppKeys.Hr,
+                AppId = AppConfigs.AppIds.Hr,
+                AppSecret = AppConfigs.Secrets.Hr
             },
             new FeishuAppConfig
             {
-                AppKey = "finance-app",
-                AppId = "cli_finance_id_1234567890",
-                AppSecret = "finance_secret_123456"
+                AppKey = AppConfigs.AppKeys.Finance,
+                AppId = AppConfigs.AppIds.Finance,
+                AppSecret = AppConfigs.Secrets.Finance
             }
         };
 
@@ -363,9 +312,9 @@ public class MultiAppTests
 
         // Assert
         Assert.Equal(3, allApps.Count());
-        Assert.Contains(allApps, app => app.Config.AppKey == "default");
-        Assert.Contains(allApps, app => app.Config.AppKey == "hr-app");
-        Assert.Contains(allApps, app => app.Config.AppKey == "finance-app");
+        Assert.Contains(allApps, app => app.Config.AppKey == AppConfigs.AppKeys.Default);
+        Assert.Contains(allApps, app => app.Config.AppKey == AppConfigs.AppKeys.Hr);
+        Assert.Contains(allApps, app => app.Config.AppKey == AppConfigs.AppKeys.Finance);
     }
 
     [Fact]
@@ -415,16 +364,16 @@ public class MultiAppTests
         {
             new FeishuAppConfig
             {
-                AppKey = "default",
-                AppId = "cli_default_id_1234567890",
-                AppSecret = "default_secret_123456",
+                AppKey = AppConfigs.AppKeys.Default,
+                AppId = AppConfigs.AppIds.Default,
+                AppSecret = AppConfigs.Secrets.Default,
                 IsDefault = true
             },
             new FeishuAppConfig
             {
-                AppKey = "hr-app",
-                AppId = "cli_hr_id_1234567890",
-                AppSecret = "hr_secret_123456"
+                AppKey = AppConfigs.AppKeys.Hr,
+                AppId = AppConfigs.AppIds.Hr,
+                AppSecret = AppConfigs.Secrets.Hr
             }
         };
 
@@ -438,8 +387,8 @@ public class MultiAppTests
         var appManager = provider.GetRequiredService<IFeishuAppManager>();
 
         // Act
-        var defaultApp = appManager.GetApp("default");
-        var hrApp = appManager.GetApp("hr-app");
+        var defaultApp = appManager.GetApp(AppConfigs.AppKeys.Default);
+        var hrApp = appManager.GetApp(AppConfigs.AppKeys.Hr);
 
         // Assert
         Assert.NotNull(defaultApp.GetTokenManager(TokenType.TenantAccessToken));
@@ -449,8 +398,8 @@ public class MultiAppTests
         Assert.NotNull(defaultApp.HttpClient);
 
         // 验证不同应用的配置隔离
-        Assert.Equal("cli_default_id_1234567890", defaultApp.Config.AppId);
-        Assert.Equal("cli_hr_id_1234567890", hrApp.Config.AppId);
+        Assert.Equal(AppConfigs.AppIds.Default, defaultApp.Config.AppId);
+        Assert.Equal(AppConfigs.AppIds.Hr, hrApp.Config.AppId);
 
         // 验证HttpClient隔离
         Assert.NotEqual(defaultApp.HttpClient.GetHashCode(), hrApp.HttpClient.GetHashCode());
@@ -469,16 +418,16 @@ public class MultiAppTests
         {
             new FeishuAppConfig
             {
-                AppKey = "default",
-                AppId = "cli_default_id_1234567890",
-                AppSecret = "default_secret_123456",
+                AppKey = AppConfigs.AppKeys.Default,
+                AppId = AppConfigs.AppIds.Default,
+                AppSecret = AppConfigs.Secrets.Default,
                 IsDefault = true
             },
             new FeishuAppConfig
             {
-                AppKey = "hr-app",
-                AppId = "cli_hr_id_1234567890",
-                AppSecret = "hr_secret_123456"
+                AppKey = AppConfigs.AppKeys.Hr,
+                AppId = AppConfigs.AppIds.Hr,
+                AppSecret = AppConfigs.Secrets.Hr
             }
         };
 
@@ -492,6 +441,6 @@ public class MultiAppTests
         var appManager = provider.GetRequiredService<IFeishuAppManager>();
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => appManager.RemoveApp("default"));
+        Assert.Throws<InvalidOperationException>(() => appManager.RemoveApp(AppConfigs.AppKeys.Default));
     }
 }

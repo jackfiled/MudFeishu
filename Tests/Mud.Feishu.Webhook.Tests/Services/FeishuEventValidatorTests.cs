@@ -99,7 +99,7 @@ public class FeishuEventValidatorTests
         Assert.False(result);
     }
 
-    [Fact(Skip = "Signature validation test needs investigation - mock setup may need adjustment")]
+    [Fact]
     public async Task ValidateSignatureAsync_WhenSignatureIsValid_ShouldReturnTrue()
     {
         // Arrange
@@ -119,7 +119,7 @@ public class FeishuEventValidatorTests
             .ReturnsAsync(false);
 
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var nonce = Guid.NewGuid().ToString(); // Use unique nonce
+        var nonce = Guid.NewGuid().ToString();
         var body = "{\"test\":\"data\"}";
         var encrypt = body;
 
@@ -292,6 +292,7 @@ public class FeishuEventValidatorTests
 
         // Act
         var result = validator.ValidateTimestamp(0, 60);
+
 
         // Assert
         Assert.True(result);

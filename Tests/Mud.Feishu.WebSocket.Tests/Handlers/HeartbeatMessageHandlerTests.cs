@@ -144,82 +144,44 @@ public class HeartbeatMessageHandlerTests
         await _handler.HandleAsync(jsonMessage, CancellationToken.None);
     }
 
-    [Fact]
-    public async Task HandleAsync_ShouldHandleDifferentStatusValues()
-    {
-        // Arrange
-        var statusValues = new[] { "active", "idle", "disconnected", "error" };
-
-        foreach (var status in statusValues)
-        {
-            var heartbeatMessage = new HeartbeatMessage
-            {
-                Type = "heartbeat",
-                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                Data = new HeartbeatData
-                {
-                    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    Status = status
-                }
-            };
-            var jsonMessage = JsonSerializer.Serialize(heartbeatMessage, JsonOptions.Default);
-
-            // Act & Assert - Should complete without throwing for all status values
-            await _handler.HandleAsync(jsonMessage, CancellationToken.None);
-        }
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldHandleZeroTimestamp()
+    [Theory]
+    [InlineData("active")]
+    [InlineData("idle")]
+    [InlineData("disconnected")]
+    [InlineData("error")]
+    public async Task HandleAsync_ShouldHandleDifferentStatusValues(string status)
     {
         // Arrange
         var heartbeatMessage = new HeartbeatMessage
         {
             Type = "heartbeat",
-            Timestamp = 0,
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             Data = new HeartbeatData
             {
-                Timestamp = 0,
-                Status = "active"
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                Status = status
             }
         };
         var jsonMessage = JsonSerializer.Serialize(heartbeatMessage, JsonOptions.Default);
 
-        // Act & Assert - Should complete without throwing
+        // Act & Assert - Should complete without throwing for all status values
         await _handler.HandleAsync(jsonMessage, CancellationToken.None);
     }
 
-    [Fact]
-    public async Task HandleAsync_ShouldHandleNegativeTimestamp()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(long.MaxValue)]
+    public async Task HandleAsync_ShouldHandleEdgeCaseTimestamps(long timestamp)
     {
         // Arrange
         var heartbeatMessage = new HeartbeatMessage
         {
             Type = "heartbeat",
-            Timestamp = -1,
+            Timestamp = timestamp,
             Data = new HeartbeatData
             {
-                Timestamp = -1,
-                Status = "active"
-            }
-        };
-        var jsonMessage = JsonSerializer.Serialize(heartbeatMessage, JsonOptions.Default);
-
-        // Act & Assert - Should complete without throwing
-        await _handler.HandleAsync(jsonMessage, CancellationToken.None);
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldHandleVeryLargeTimestamp()
-    {
-        // Arrange
-        var heartbeatMessage = new HeartbeatMessage
-        {
-            Type = "heartbeat",
-            Timestamp = long.MaxValue,
-            Data = new HeartbeatData
-            {
-                Timestamp = long.MaxValue,
+                Timestamp = timestamp,
                 Status = "active"
             }
         };

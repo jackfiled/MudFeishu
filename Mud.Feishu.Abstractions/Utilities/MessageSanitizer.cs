@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 namespace Mud.Feishu.Abstractions.Utilities;
 
 /// <summary>
-/// 改进版消息脱敏工具
+/// 消息脱敏工具
 /// </summary>
 public static class MessageSanitizer
 {
