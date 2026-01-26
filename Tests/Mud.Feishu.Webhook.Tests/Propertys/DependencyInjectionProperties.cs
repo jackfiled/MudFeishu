@@ -15,7 +15,7 @@ using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
 using Mud.Feishu.Webhook.Services;
 
-namespace Mud.Feishu.Webhook.Tests.ValidatorProperties;
+namespace Mud.Feishu.Webhook.Tests.Propertys;
 
 /// <summary>
 /// 依赖注入属性测试
@@ -368,6 +368,8 @@ public class DependencyInjectionProperties
     /// </summary>
     public class MockTimestampValidator : ITimestampValidator
     {
+        public void SetCurrentAppKey(string appKey) { }
+
         public bool ValidateTimestamp(long timestamp, int toleranceSeconds = 300) => true;
     }
 

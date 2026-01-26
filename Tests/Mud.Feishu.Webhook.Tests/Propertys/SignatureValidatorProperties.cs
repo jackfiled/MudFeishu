@@ -12,7 +12,7 @@ using Mud.Feishu.Webhook.Services;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Mud.Feishu.Webhook.Tests.ValidatorProperties;
+namespace Mud.Feishu.Webhook.Tests.Propertys;
 
 /// <summary>
 /// 签名验证器属性测试
@@ -23,14 +23,14 @@ public class SignatureValidatorProperties
 {
     private readonly Mock<ILogger<SignatureValidator>> _loggerMock;
     private readonly Mock<ISecurityAuditService> _auditServiceMock;
-    private readonly Mock<IOptions<FeishuWebhookOptions>> _optionsMock;
+    private readonly Mock<IOptionsMonitor<FeishuWebhookOptions>> _optionsMonitorMock;
     private readonly FeishuWebhookOptions _options;
 
     public SignatureValidatorProperties()
     {
         _loggerMock = new Mock<ILogger<SignatureValidator>>();
         _auditServiceMock = new Mock<ISecurityAuditService>();
-        _optionsMock = new Mock<IOptions<FeishuWebhookOptions>>();
+        _optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
 
         _options = new FeishuWebhookOptions
         {
@@ -38,7 +38,7 @@ public class SignatureValidatorProperties
             TimestampToleranceSeconds = 300
         };
 
-        _optionsMock.Setup(x => x.Value).Returns(_options);
+        _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(_options);
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ public class SignatureValidatorProperties
             data =>
             {
                 // Arrange
-                var validator = new SignatureValidator(_loggerMock.Object, _optionsMock.Object, _auditServiceMock.Object);
+                var validator = new SignatureValidator(_loggerMock.Object, _optionsMonitorMock.Object, _auditServiceMock.Object);
 
                 // 生成 HMAC-SHA256 签名（用于 ValidateSignatureAsync）
                 var hmacSignString = $"{data.Timestamp}\n{data.Nonce}\n{data.Encrypt}";
@@ -92,7 +92,7 @@ public class SignatureValidatorProperties
             {
                 // Arrange
                 var auditMock = new Mock<ISecurityAuditService>();
-                var validator = new SignatureValidator(_loggerMock.Object, _optionsMock.Object, auditMock.Object);
+                var validator = new SignatureValidator(_loggerMock.Object, _optionsMonitorMock.Object, auditMock.Object);
 
                 // Act
                 var result = validator.ValidateSignatureAsync(data.Timestamp, data.Nonce, data.Encrypt, data.InvalidSignature, data.EncryptKey).Result;
@@ -130,7 +130,7 @@ public class SignatureValidatorProperties
                 // Arrange
                 Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Production");
                 var auditMock = new Mock<ISecurityAuditService>();
-                var validator = new SignatureValidator(_loggerMock.Object, _optionsMock.Object, auditMock.Object);
+                var validator = new SignatureValidator(_loggerMock.Object, _optionsMonitorMock.Object, auditMock.Object);
 
                 try
                 {

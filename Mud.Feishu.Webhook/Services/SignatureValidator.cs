@@ -18,7 +18,7 @@ namespace Mud.Feishu.Webhook.Services;
 public class SignatureValidator : ISignatureValidator
 {
     private readonly ILogger<SignatureValidator> _logger;
-    private readonly IOptions<FeishuWebhookOptions> _options;
+    private readonly IOptionsMonitor<FeishuWebhookOptions> _options;
     private readonly ISecurityAuditService? _securityAuditService;
 
     /// <summary>
@@ -34,7 +34,7 @@ public class SignatureValidator : ISignatureValidator
     /// <param name="securityAuditService">安全审计服务</param>
     public SignatureValidator(
         ILogger<SignatureValidator> logger,
-        IOptions<FeishuWebhookOptions> options,
+        IOptionsMonitor<FeishuWebhookOptions> options,
         ISecurityAuditService? securityAuditService = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -155,8 +155,25 @@ public class SignatureValidator : ISignatureValidator
             // 检查请求头签名是否为空
             if (string.IsNullOrEmpty(headerSignature))
             {
+                // 获取当前配置
+                var options = _options.CurrentValue;
+                var enforceValidation = options.EnforceHeaderSignatureValidation;
+
+                // 多应用场景：检查应用特定配置
+                if (!string.IsNullOrEmpty(_currentAppKey))
+                {
+                    var appConfig = options.GetAppConfig(_currentAppKey);
+                    if (appConfig != null)
+                    {
+                        // 注意：当前 FeishuAppWebhookOptions 没有 EnforceHeaderSignatureValidation 属性
+                        // 这里使用全局配置
+                        _logger.LogDebug("使用应用 {AppKey} 的全局签名验证配置: {EnforceValidation}",
+                            _currentAppKey, enforceValidation);
+                    }
+                }
+
                 // 如果配置为强制验证，则拒绝请求
-                if (_options.Value.EnforceHeaderSignatureValidation)
+                if (enforceValidation)
                 {
                     var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
                     var isProduction = string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase);

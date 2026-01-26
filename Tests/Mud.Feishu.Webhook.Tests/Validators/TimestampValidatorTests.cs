@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Webhook.Services;
+using Mud.Feishu.Webhook.Configuration;
 
 namespace Mud.Feishu.Webhook.Tests.Validators;
 
@@ -16,12 +17,22 @@ namespace Mud.Feishu.Webhook.Tests.Validators;
 public class TimestampValidatorTests
 {
     private readonly Mock<ILogger<TimestampValidator>> _loggerMock;
+    private readonly Mock<IOptionsMonitor<FeishuWebhookOptions>> _optionsMonitorMock;
     private readonly TimestampValidator _validator;
 
     public TimestampValidatorTests()
     {
         _loggerMock = new Mock<ILogger<TimestampValidator>>();
-        _validator = new TimestampValidator(_loggerMock.Object);
+        _optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
+
+        // Setup default options
+        var defaultOptions = new FeishuWebhookOptions
+        {
+            TimestampToleranceSeconds = 300
+        };
+        _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(defaultOptions);
+
+        _validator = new TimestampValidator(_loggerMock.Object, _optionsMonitorMock.Object);
     }
 
     #region 秒级时间戳验证测试

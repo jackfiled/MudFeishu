@@ -297,7 +297,7 @@ public class NonceValidatorTests
 
         // Assert
         Assert.False(result); // 异常情况下验证失败
-        VerifyLogCalled(LogLevel.Error, "验证 Nonce 时发生错误");
+        VerifyLogCalled(LogLevel.Error, "检查 Nonce 使用状态时发生错误");
     }
 
     #endregion

@@ -7,10 +7,11 @@
 
 using FsCheck;
 using FsCheck.Xunit;
+using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Services;
 using SystemRandom = System.Random;
 
-namespace Mud.Feishu.Webhook.Tests.ValidatorProperties;
+namespace Mud.Feishu.Webhook.Tests.Propertys;
 
 /// <summary>
 /// 时间戳验证器属性测试
@@ -20,10 +21,19 @@ namespace Mud.Feishu.Webhook.Tests.ValidatorProperties;
 public class TimestampValidatorProperties
 {
     private readonly Mock<ILogger<TimestampValidator>> _loggerMock;
+    private readonly Mock<IOptionsMonitor<FeishuWebhookOptions>> _optionsMonitorMock;
 
     public TimestampValidatorProperties()
     {
         _loggerMock = new Mock<ILogger<TimestampValidator>>();
+        _optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
+
+        // Setup default options
+        var defaultOptions = new FeishuWebhookOptions
+        {
+            TimestampToleranceSeconds = 300
+        };
+        _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(defaultOptions);
     }
 
     /// <summary>
@@ -40,7 +50,7 @@ public class TimestampValidatorProperties
             data =>
             {
                 // Arrange
-                var validator = new TimestampValidator(_loggerMock.Object);
+                var validator = new TimestampValidator(_loggerMock.Object, _optionsMonitorMock.Object);
 
                 // Act
                 var result = validator.ValidateTimestamp(data.Timestamp, data.ToleranceSeconds);
@@ -79,7 +89,7 @@ public class TimestampValidatorProperties
             data =>
             {
                 // Arrange
-                var validator = new TimestampValidator(_loggerMock.Object);
+                var validator = new TimestampValidator(_loggerMock.Object, _optionsMonitorMock.Object);
 
                 // Act
                 var result = validator.ValidateTimestamp(data.Timestamp, data.ToleranceSeconds);
@@ -126,7 +136,11 @@ public class TimestampValidatorProperties
             {
                 // Arrange
                 var loggerMock = new Mock<ILogger<TimestampValidator>>();
-                var validator = new TimestampValidator(loggerMock.Object);
+                var optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
+                var defaultOptions = new FeishuWebhookOptions { TimestampToleranceSeconds = 300 };
+                optionsMonitorMock.Setup(x => x.CurrentValue).Returns(defaultOptions);
+
+                var validator = new TimestampValidator(loggerMock.Object, optionsMonitorMock.Object);
 
                 // Act
                 var result = validator.ValidateTimestamp(data.Timestamp, data.ToleranceSeconds);

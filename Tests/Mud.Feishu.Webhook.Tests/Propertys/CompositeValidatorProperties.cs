@@ -11,7 +11,7 @@ using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
 using Mud.Feishu.Webhook.Services;
 
-namespace Mud.Feishu.Webhook.Tests.ValidatorProperties;
+namespace Mud.Feishu.Webhook.Tests.Propertys;
 
 /// <summary>
 /// 组合验证器属性测试

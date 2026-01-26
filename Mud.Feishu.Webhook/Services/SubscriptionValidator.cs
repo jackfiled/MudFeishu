@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
 
 namespace Mud.Feishu.Webhook.Services;
@@ -16,6 +17,7 @@ namespace Mud.Feishu.Webhook.Services;
 public class SubscriptionValidator : ISubscriptionValidator
 {
     private readonly ILogger<SubscriptionValidator> _logger;
+    private readonly IOptionsMonitor<FeishuWebhookOptions> _optionsMonitor;
 
     /// <summary>
     /// 当前应用键（多应用场景）
@@ -26,9 +28,13 @@ public class SubscriptionValidator : ISubscriptionValidator
     /// 初始化订阅验证器
     /// </summary>
     /// <param name="logger">日志记录器</param>
-    public SubscriptionValidator(ILogger<SubscriptionValidator> logger)
+    /// <param name="optionsMonitor">配置监视器</param>
+    public SubscriptionValidator(
+        ILogger<SubscriptionValidator> logger,
+        IOptionsMonitor<FeishuWebhookOptions> optionsMonitor)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _optionsMonitor = optionsMonitor ?? throw new ArgumentNullException(nameof(optionsMonitor));
     }
 
     /// <inheritdoc />
@@ -70,12 +76,15 @@ public class SubscriptionValidator : ISubscriptionValidator
                 return false;
             }
 
+            // 获取期望的 Token，支持多应用配置
+            var effectiveExpectedToken = GetEffectiveToken(expectedToken);
+
             // 验证 Token 是否匹配
-            if (request.Token != expectedToken)
+            if (request.Token != effectiveExpectedToken)
             {
                 // 为了安全，不在日志中记录完整的 Token 值，只记录前几位
                 var actualTokenPrefix = request.Token.Length > 4 ? request.Token.Substring(0, 4) + "***" : "***";
-                var expectedTokenPrefix = expectedToken.Length > 4 ? expectedToken.Substring(0, 4) + "***" : "***";
+                var expectedTokenPrefix = effectiveExpectedToken.Length > 4 ? effectiveExpectedToken.Substring(0, 4) + "***" : "***";
 
                 _logger.LogWarning("验证 Token 不匹配: 期望 {ExpectedToken}, 实际 {ActualToken}, AppKey: {AppKey}",
                     expectedTokenPrefix, actualTokenPrefix, _currentAppKey ?? "null");
@@ -89,6 +98,46 @@ public class SubscriptionValidator : ISubscriptionValidator
         {
             _logger.LogError(ex, "验证事件订阅请求时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// 获取有效的验证 Token
+    /// </summary>
+    /// <param name="fallbackToken">后备 Token</param>
+    /// <returns>有效的验证 Token</returns>
+    private string GetEffectiveToken(string fallbackToken)
+    {
+        try
+        {
+            var options = _optionsMonitor.CurrentValue;
+
+            // 多应用场景：优先使用应用特定配置
+            if (!string.IsNullOrEmpty(_currentAppKey))
+            {
+                var appConfig = options.GetAppConfig(_currentAppKey);
+                if (appConfig != null && !string.IsNullOrEmpty(appConfig.VerificationToken))
+                {
+                    _logger.LogDebug("使用应用 {AppKey} 的验证 Token", _currentAppKey);
+                    return appConfig.VerificationToken;
+                }
+            }
+
+            // 使用全局配置或传入的后备 Token
+            if (!string.IsNullOrEmpty(options.VerificationToken))
+            {
+                _logger.LogDebug("使用全局验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
+                return options.VerificationToken;
+            }
+
+            // 最后使用传入的后备 Token
+            _logger.LogDebug("使用传入的后备验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
+            return fallbackToken;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取有效验证 Token 时发生错误, AppKey: {AppKey}, 使用后备 Token", _currentAppKey ?? "null");
+            return fallbackToken;
         }
     }
 }

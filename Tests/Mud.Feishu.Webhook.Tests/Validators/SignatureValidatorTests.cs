@@ -24,7 +24,7 @@ public class SignatureValidatorTests
 {
     private readonly Mock<ILogger<SignatureValidator>> _loggerMock;
     private readonly Mock<ISecurityAuditService> _auditServiceMock;
-    private readonly Mock<IOptions<FeishuWebhookOptions>> _optionsMock;
+    private readonly Mock<IOptionsMonitor<FeishuWebhookOptions>> _optionsMonitorMock;
     private readonly FeishuWebhookOptions _options;
     private readonly SignatureValidator _validator;
 
@@ -32,7 +32,7 @@ public class SignatureValidatorTests
     {
         _loggerMock = new Mock<ILogger<SignatureValidator>>();
         _auditServiceMock = new Mock<ISecurityAuditService>();
-        _optionsMock = new Mock<IOptions<FeishuWebhookOptions>>();
+        _optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
 
         _options = new FeishuWebhookOptions
         {
@@ -40,8 +40,8 @@ public class SignatureValidatorTests
             TimestampToleranceSeconds = 300
         };
 
-        _optionsMock.Setup(x => x.Value).Returns(_options);
-        _validator = new SignatureValidator(_loggerMock.Object, _optionsMock.Object, _auditServiceMock.Object);
+        _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(_options);
+        _validator = new SignatureValidator(_loggerMock.Object, _optionsMonitorMock.Object, _auditServiceMock.Object);
     }
 
     [Fact]

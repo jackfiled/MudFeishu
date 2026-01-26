@@ -56,6 +56,7 @@ public class CompositeFeishuEventValidator : IFeishuEventValidator
 
         // 将应用键传播到所有支持多应用的验证器
         _signatureValidator.SetCurrentAppKey(appKey);
+        _timestampValidator.SetCurrentAppKey(appKey);
         _nonceValidator.SetCurrentAppKey(appKey);
         _subscriptionValidator.SetCurrentAppKey(appKey);
     }
