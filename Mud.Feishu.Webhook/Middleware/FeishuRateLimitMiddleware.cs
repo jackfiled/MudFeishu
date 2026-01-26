@@ -19,7 +19,6 @@ public class FeishuRateLimitMiddleware : IDisposable
     private readonly FeishuWebhookOptions _webhookOptions;
     private readonly RateLimitOptions _rateLimitOptions;
     private readonly ILogger<FeishuRateLimitMiddleware> _logger;
-    private readonly ISecurityAuditService? _securityAuditService;
 
     // 使用并发字典和滑动窗口计数器：ConcurrentDictionary<(AppKey, IP), (Count, WindowStart)>
     private readonly ConcurrentDictionary<(string AppKey, string IP), (int Count, DateTime WindowStart)> _requestCounts = new();
@@ -36,14 +35,12 @@ public class FeishuRateLimitMiddleware : IDisposable
     public FeishuRateLimitMiddleware(
         RequestDelegate next,
         IOptions<FeishuWebhookOptions> webhookOptions,
-        ILogger<FeishuRateLimitMiddleware> logger,
-        ISecurityAuditService? securityAuditService = null)
+        ILogger<FeishuRateLimitMiddleware> logger)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _webhookOptions = webhookOptions.Value;
         _rateLimitOptions = _webhookOptions.RateLimit;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _securityAuditService = securityAuditService;
 
         // 初始化定时清理任务，每分钟清理一次过期记录
         _cleanupTimer = new Timer(
@@ -115,14 +112,6 @@ public class FeishuRateLimitMiddleware : IDisposable
                 {
                     _logger.LogWarning("客户端 IP {ClientIP}（应用: {AppKey}）请求频率超出限制：{Count}/{MaxRequests} 在 {WindowSize}秒内",
                         clientIp, appKey ?? "global", counter.Count, _rateLimitOptions.MaxRequestsPerWindow, _rateLimitOptions.WindowSizeSeconds);
-
-                    // 记录安全审计日志
-                    _ = _securityAuditService?.LogSecurityFailureAsync(
-                        SecurityEventType.RateLimitExceeded,
-                        clientIp,
-                        context.Request.Path,
-                        $"请求频率超出限制：{counter.Count}/{_rateLimitOptions.MaxRequestsPerWindow} 在 {_rateLimitOptions.WindowSizeSeconds}秒内",
-                        context.Items["RequestId"]?.ToString());
 
                     await WriteTooManyRequestsResponse(context,
                         $"{_rateLimitOptions.TooManyRequestsMessage}，请在 {_rateLimitOptions.WindowSizeSeconds} 秒后重试");

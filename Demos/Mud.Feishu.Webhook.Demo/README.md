@@ -429,7 +429,7 @@ curl -X POST http://localhost:5015/test/mock-feishu-event \
   "FeishuWebhook": {
     "VerificationToken": "your-verification-token",
     "EncryptKey": "your-encrypt-key",
-    "RoutePrefix": "feishu/Webhook",
+    "GlobalRoutePrefix": "feishu",
     "AutoRegisterEndpoint": true,
     "EnableRequestLogging": true,
     "EnableExceptionHandling": true,
@@ -461,7 +461,7 @@ curl -X POST http://localhost:5015/test/mock-feishu-event \
   "urls": "http://*:80",
   "AllowedHosts": "*",
   "FeishuWebhook": {
-    "RoutePrefix": "feishu/webhook",
+    "GlobalRoutePrefix": "feishu",
     "AutoRegisterEndpoint": true,
     "EnableRequestLogging": true,
     "EnableExceptionHandling": true,
@@ -496,7 +496,7 @@ curl -X POST http://localhost:5015/test/mock-feishu-event \
 |--------|------|--------|------|
 | `VerificationToken` | string | - | 验证令牌，用于验证请求来源 |
 | `EncryptKey` | string | - | 加密密钥，用于解密事件数据 |
-| `RoutePrefix` | string | feishu/Webhook | Webhook 路由前缀 |
+| `GlobalRoutePrefix` | string | feishu | 全局路由前缀 |
 | `AutoRegisterEndpoint` | bool | true | 自动注册端点 |
 | `EnableRequestLogging` | bool | true | 启用请求日志 |
 | `EnableExceptionHandling` | bool | true | 启用异常处理 |
@@ -513,16 +513,16 @@ curl -X POST http://localhost:5015/test/mock-feishu-event \
 ### 路由映射说明
 
 **单应用模式**：
-- 配置 `RoutePrefix: "feishu/Webhook"`
+- 配置 `GlobalRoutePrefix: "feishu"`
 - Webhook 端点：`/feishu/Webhook`
 
 **多应用模式**：
-- 配置 `RoutePrefix: "feishu/webhook"`
+- 配置 `GlobalRoutePrefix: "feishu"`
 - 配置两个应用：`app1` 和 `app2`
 - App1 Webhook 端点：`/feishu/app1`
 - App2 Webhook 端点：`/feishu/app2`
 
-路由格式：`/{RoutePrefix}/{appKey}`
+路由格式：`/{GlobalRoutePrefix}/{appKey}`
 
 ### 安全配置建议
 
@@ -533,7 +533,7 @@ curl -X POST http://localhost:5015/test/mock-feishu-event \
   "FeishuWebhook": {
     "VerificationToken": "your-production-token",
     "EncryptKey": "your-production-key",
-    "RoutePrefix": "feishu/webhook",
+    "GlobalRoutePrefix": "feishu",
     "EnforceHeaderSignatureValidation": true,
     "EnableBodySignatureValidation": true,
     "ValidateSourceIP": true,
@@ -548,7 +548,7 @@ curl -X POST http://localhost:5015/test/mock-feishu-event \
 ```json
 {
   "FeishuWebhook": {
-    "RoutePrefix": "feishu/webhook",
+    "GlobalRoutePrefix": "feishu",
     "EnforceHeaderSignatureValidation": true,
     "EnableBodySignatureValidation": true,
     "ValidateSourceIP": true,

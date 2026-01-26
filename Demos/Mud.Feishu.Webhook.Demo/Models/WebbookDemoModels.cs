@@ -25,7 +25,7 @@ public class WebhookStatus
 /// </summary>
 public class WebhookConfiguration
 {
-    public string RoutePrefix { get; init; } = string.Empty;
+    public string GlobalRoutePrefix { get; init; } = string.Empty;
     public bool AutoRegisterEndpoint { get; init; }
     public bool EnableRequestLogging { get; init; }
     public bool EnableExceptionHandling { get; init; }
@@ -66,7 +66,7 @@ public class VerifyConfigurationRequest
 {
     public string VerificationToken { get; init; } = string.Empty;
     public string EncryptKey { get; init; } = string.Empty;
-    public string RoutePrefix { get; init; } = "feishu/Webhook";
+    public string GlobalRoutePrefix { get; init; } = "feishu";
 }
 
 /// <summary>
