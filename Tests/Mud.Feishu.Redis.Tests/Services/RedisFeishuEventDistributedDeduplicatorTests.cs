@@ -34,7 +34,11 @@ public class RedisFeishuEventDistributedDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                When.NotExists))
             .ReturnsAsync(true);
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicator(
@@ -45,13 +49,12 @@ public class RedisFeishuEventDistributedDeduplicatorTests
         var result = await deduplicator.TryMarkAsProcessedAsync("test_event_123");
 
         // Assert
-        Assert.False(result); // false 表示未处理过（新事件）
+        Assert.False(result); // StringSetAsync 返回 true（设置成功），表示新事件，所以 TryMarkAsProcessedAsync 返回 false
         _databaseMock.Verify(x => x.StringSetAsync(
-            It.IsAny<RedisKey>(), 
-            It.IsAny<RedisValue>(), 
-            It.IsAny<TimeSpan?>(), 
-            When.NotExists, 
-            It.IsAny<CommandFlags>()), Times.Once);
+            It.IsAny<RedisKey>(),
+            It.IsAny<RedisValue>(),
+            It.IsAny<TimeSpan?>(),
+            When.NotExists), Times.Once);
     }
 
     [Fact]
@@ -59,7 +62,12 @@ public class RedisFeishuEventDistributedDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                When.NotExists,
+                It.IsAny<CommandFlags>()))
             .ReturnsAsync(false);
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicator(
@@ -70,7 +78,7 @@ public class RedisFeishuEventDistributedDeduplicatorTests
         var result = await deduplicator.TryMarkAsProcessedAsync("test_event_123");
 
         // Assert
-        Assert.True(result); // true 表示已处理过（重复事件）
+        Assert.True(result); // StringSetAsync 返回 false（键已存在），表示重复事件，所以 TryMarkAsProcessedAsync 返回 true
     }
 
     [Fact]
@@ -78,7 +86,12 @@ public class RedisFeishuEventDistributedDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                When.NotExists,
+                It.IsAny<CommandFlags>()))
             .ThrowsAsync(new RedisException("Redis connection failed"));
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicator(
@@ -164,7 +177,12 @@ public class RedisFeishuEventDistributedDeduplicatorTests
         // Arrange
         var customTtl = TimeSpan.FromMinutes(10);
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), customTtl, It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                customTtl,
+                When.NotExists,
+                It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicator(
@@ -175,12 +193,12 @@ public class RedisFeishuEventDistributedDeduplicatorTests
         var result = await deduplicator.TryMarkAsProcessedAsync("test_event_123", null, customTtl);
 
         // Assert
-        Assert.False(result);
+        Assert.False(result); // StringSetAsync 返回 true（设置成功），表示新事件，所以 TryMarkAsProcessedAsync 返回 false
         _databaseMock.Verify(x => x.StringSetAsync(
-            It.IsAny<RedisKey>(), 
-            It.IsAny<RedisValue>(), 
-            customTtl, 
-            When.NotExists, 
+            It.IsAny<RedisKey>(),
+            It.IsAny<RedisValue>(),
+            customTtl,
+            When.NotExists,
             It.IsAny<CommandFlags>()), Times.Once);
     }
 

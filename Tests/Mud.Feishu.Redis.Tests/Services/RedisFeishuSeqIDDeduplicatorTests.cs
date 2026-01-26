@@ -34,10 +34,19 @@ public class RedisFeishuSeqIDDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                When.NotExists,
+                It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
         _databaseMock
-            .Setup(x => x.SortedSetAddAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<double>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.SortedSetAddAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<double>(),
+                It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -48,17 +57,17 @@ public class RedisFeishuSeqIDDeduplicatorTests
         var result = await deduplicator.TryMarkAsProcessedAsync(12345);
 
         // Assert
-        Assert.False(result); // false 表示未处理过（新 SeqID）
+        Assert.False(result); // StringSetAsync 返回 true（设置成功），表示新 SeqID，所以 TryMarkAsProcessedAsync 返回 false
         _databaseMock.Verify(x => x.StringSetAsync(
-            It.IsAny<RedisKey>(), 
-            It.IsAny<RedisValue>(), 
-            It.IsAny<TimeSpan?>(), 
-            When.NotExists, 
+            It.IsAny<RedisKey>(),
+            It.IsAny<RedisValue>(),
+            It.IsAny<TimeSpan?>(),
+            When.NotExists,
             It.IsAny<CommandFlags>()), Times.Once);
         _databaseMock.Verify(x => x.SortedSetAddAsync(
-            It.IsAny<RedisKey>(), 
-            It.IsAny<RedisValue>(), 
-            It.IsAny<double>(), 
+            It.IsAny<RedisKey>(),
+            It.IsAny<RedisValue>(),
+            It.IsAny<double>(),
             It.IsAny<CommandFlags>()), Times.Once);
     }
 
@@ -67,7 +76,12 @@ public class RedisFeishuSeqIDDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                When.NotExists,
+                It.IsAny<CommandFlags>()))
             .ReturnsAsync(false);
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -78,7 +92,7 @@ public class RedisFeishuSeqIDDeduplicatorTests
         var result = await deduplicator.TryMarkAsProcessedAsync(12345);
 
         // Assert
-        Assert.True(result); // true 表示已处理过（重复 SeqID）
+        Assert.True(result); // StringSetAsync 返回 false（键已存在），表示重复 SeqID，所以 TryMarkAsProcessedAsync 返回 true
     }
 
     [Fact]
@@ -86,7 +100,12 @@ public class RedisFeishuSeqIDDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSet(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSet(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                When.NotExists,
+                It.IsAny<CommandFlags>()))
             .Returns(true);
         _databaseMock
             .Setup(x => x.SortedSetAdd(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<double>(), It.IsAny<CommandFlags>()))
@@ -100,7 +119,7 @@ public class RedisFeishuSeqIDDeduplicatorTests
         var result = deduplicator.TryMarkAsProcessed(12345);
 
         // Assert
-        Assert.False(result);
+        Assert.False(result); // StringSet 返回 true（设置成功），表示新 SeqID，所以 TryMarkAsProcessed 返回 false
     }
 
     [Fact]
@@ -108,7 +127,12 @@ public class RedisFeishuSeqIDDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSet(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSet(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                When.NotExists,
+                It.IsAny<CommandFlags>()))
             .Returns(false);
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -119,7 +143,7 @@ public class RedisFeishuSeqIDDeduplicatorTests
         var result = deduplicator.TryMarkAsProcessed(12345);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result); // StringSet 返回 false（键已存在），表示重复 SeqID，所以 TryMarkAsProcessed 返回 true
     }
 
     [Fact]
@@ -203,7 +227,7 @@ public class RedisFeishuSeqIDDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.SortedSetLength(It.IsAny<RedisKey>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<Exclude>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.SortedSetLength(It.IsAny<RedisKey>(), double.NegativeInfinity, double.PositiveInfinity, Exclude.None, It.IsAny<CommandFlags>()))
             .Returns(5);
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -224,13 +248,13 @@ public class RedisFeishuSeqIDDeduplicatorTests
         var maxSeqId = 99999UL;
         _databaseMock
             .Setup(x => x.SortedSetRangeByScore(
-                It.IsAny<RedisKey>(), 
-                It.IsAny<double>(), 
-                It.IsAny<double>(), 
-                It.IsAny<Exclude>(), 
-                It.IsAny<Order>(), 
-                It.IsAny<long>(), 
-                It.IsAny<long>(), 
+                It.IsAny<RedisKey>(),
+                double.NegativeInfinity,
+                double.PositiveInfinity,
+                Exclude.None,
+                Order.Descending,
+                0,
+                1,
                 It.IsAny<CommandFlags>()))
             .Returns(new RedisValue[] { maxSeqId.ToString() });
 
@@ -251,13 +275,13 @@ public class RedisFeishuSeqIDDeduplicatorTests
         // Arrange
         _databaseMock
             .Setup(x => x.SortedSetRangeByScore(
-                It.IsAny<RedisKey>(), 
-                It.IsAny<double>(), 
-                It.IsAny<double>(), 
-                It.IsAny<Exclude>(), 
-                It.IsAny<Order>(), 
-                It.IsAny<long>(), 
-                It.IsAny<long>(), 
+                It.IsAny<RedisKey>(),
+                double.NegativeInfinity,
+                double.PositiveInfinity,
+                Exclude.None,
+                Order.Descending,
+                0,
+                1,
                 It.IsAny<CommandFlags>()))
             .Returns(Array.Empty<RedisValue>());
 
@@ -277,7 +301,12 @@ public class RedisFeishuSeqIDDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                When.NotExists,
+                It.IsAny<CommandFlags>()))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection failed"));
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
