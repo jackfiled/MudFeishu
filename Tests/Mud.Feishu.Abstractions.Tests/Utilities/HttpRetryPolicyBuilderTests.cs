@@ -55,7 +55,7 @@ public class HttpRetryPolicyBuilderTests
     public void BuildRetryPolicy_WithNegativeRetryCount_ShouldThrow()
     {
         // Act & Assert
-        Assert.Throws<ArgumentOutOfRangeException>(() => 
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
             HttpRetryPolicyBuilder.BuildRetryPolicy(-1, 1000));
     }
 
@@ -63,7 +63,7 @@ public class HttpRetryPolicyBuilderTests
     public void BuildRetryPolicy_WithNegativeDelay_ShouldThrow()
     {
         // Act & Assert
-        Assert.Throws<ArgumentOutOfRangeException>(() => 
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
             HttpRetryPolicyBuilder.BuildRetryPolicy(3, -1));
     }
 
@@ -107,7 +107,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(3, 10);
 
         // Act
-        var result = await policy.ExecuteAsync(async ct => 
+        var result = await policy.ExecuteAsync(async ct =>
         {
             var response = await httpClient.GetAsync("/test", ct);
             return response;
@@ -144,7 +144,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(2, 10);
 
         // Act
-        var result = await policy.ExecuteAsync(async ct => 
+        var result = await policy.ExecuteAsync(async ct =>
         {
             var response = await httpClient.GetAsync("/test", ct);
             return response;
@@ -181,7 +181,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(2, 10);
 
         // Act
-        var result = await policy.ExecuteAsync(async ct => 
+        var result = await policy.ExecuteAsync(async ct =>
         {
             var response = await httpClient.GetAsync("/test", ct);
             return response;
@@ -218,7 +218,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(3, 10);
 
         // Act
-        var result = await policy.ExecuteAsync(async ct => 
+        var result = await policy.ExecuteAsync(async ct =>
         {
             var response = await httpClient.GetAsync("/test", ct);
             return response;
@@ -255,7 +255,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(3, 10);
 
         // Act
-        var result = await policy.ExecuteAsync(async ct => 
+        var result = await policy.ExecuteAsync(async ct =>
         {
             var response = await httpClient.GetAsync("/test", ct);
             return response;
@@ -292,7 +292,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(3, 10);
 
         // Act
-        var result = await policy.ExecuteAsync(async ct => 
+        var result = await policy.ExecuteAsync(async ct =>
         {
             var response = await httpClient.GetAsync("/test", ct);
             return response;
@@ -329,7 +329,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(3, 10);
 
         // Act
-        var result = await policy.ExecuteAsync(async ct => 
+        var result = await policy.ExecuteAsync(async ct =>
         {
             var response = await httpClient.GetAsync("/test", ct);
             return response;
@@ -362,9 +362,9 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(2, 10);
 
         // Act & Assert
-        await Assert.ThrowsAsync<HttpRequestException>(async () => 
+        await Assert.ThrowsAsync<HttpRequestException>(async () =>
         {
-            await policy.ExecuteAsync(async ct => 
+            await policy.ExecuteAsync(async ct =>
             {
                 callCount++;
                 return await httpClient.GetAsync("/test", ct);
@@ -396,9 +396,9 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(2, 10);
 
         // Act & Assert
-        await Assert.ThrowsAsync<TimeoutException>(async () => 
+        await Assert.ThrowsAsync<TimeoutException>(async () =>
         {
-            await policy.ExecuteAsync(async ct => 
+            await policy.ExecuteAsync(async ct =>
             {
                 callCount++;
                 return await httpClient.GetAsync("/test", ct);
@@ -438,7 +438,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(5, 10);
 
         // Act
-        var result = await policy.ExecuteAsync(async ct => 
+        var result = await policy.ExecuteAsync(async ct =>
         {
             var response = await httpClient.GetAsync("/test", ct);
             return response;
@@ -480,7 +480,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(3, retryDelayMs);
 
         // Act
-        await policy.ExecuteAsync(async ct => 
+        await policy.ExecuteAsync(async ct =>
         {
             return await httpClient.GetAsync("/test", ct);
         }, CancellationToken.None);
@@ -531,7 +531,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(5, retryDelayMs);
 
         // Act
-        await policy.ExecuteAsync(async ct => 
+        await policy.ExecuteAsync(async ct =>
         {
             return await httpClient.GetAsync("/test", ct);
         }, CancellationToken.None);
@@ -570,7 +570,7 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(10, 100);
 
         // Act
-        await policy.ExecuteAsync(async ct => 
+        await policy.ExecuteAsync(async ct =>
         {
             return await httpClient.GetAsync("/test", ct);
         }, CancellationToken.None);
@@ -622,9 +622,9 @@ public class HttpRetryPolicyBuilderTests
         var policy = HttpRetryPolicyBuilder.BuildRetryPolicy(5, 100);
 
         // Act & Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => 
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            await policy.ExecuteAsync(async ct => 
+            await policy.ExecuteAsync(async ct =>
             {
                 return await httpClient.GetAsync("/test", ct);
             }, cts.Token);

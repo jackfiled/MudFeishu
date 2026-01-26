@@ -43,7 +43,7 @@ public class SsrfProtectionIntegrationTests
         };
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => 
+        var exception = Assert.Throws<ArgumentException>(() =>
             UrlValidator.ValidateBaseUrl(config.BaseUrl, config.AllowCustomBaseUrl));
         Assert.Contains("私有 IP", exception.Message);
     }
@@ -62,7 +62,7 @@ public class SsrfProtectionIntegrationTests
         };
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => 
+        var exception = Assert.Throws<ArgumentException>(() =>
             UrlValidator.ValidateBaseUrl(config.BaseUrl, config.AllowCustomBaseUrl));
         Assert.Contains("HTTPS", exception.Message);
     }
@@ -81,7 +81,7 @@ public class SsrfProtectionIntegrationTests
         };
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => 
+        var exception = Assert.Throws<ArgumentException>(() =>
             UrlValidator.ValidateBaseUrl(config.BaseUrl, config.AllowCustomBaseUrl));
         Assert.Contains("不在白名单", exception.Message);
     }
@@ -100,7 +100,7 @@ public class SsrfProtectionIntegrationTests
         };
 
         // Act & Assert
-        var exception = Record.Exception(() => 
+        var exception = Record.Exception(() =>
             UrlValidator.ValidateBaseUrl(config.BaseUrl, config.AllowCustomBaseUrl));
         Assert.Null(exception);
     }
@@ -225,7 +225,7 @@ public class SsrfProtectionIntegrationTests
         };
 
         // Act & Assert - Should throw because custom domain not allowed
-        var exception = Assert.Throws<ArgumentException>(() => 
+        var exception = Assert.Throws<ArgumentException>(() =>
             UrlValidator.ValidateBaseUrl(config.BaseUrl, config.AllowCustomBaseUrl));
         Assert.Contains("不在白名单", exception.Message);
     }
@@ -244,7 +244,7 @@ public class SsrfProtectionIntegrationTests
         };
 
         // Act & Assert - Should pass because custom domain is allowed
-        var exception = Record.Exception(() => 
+        var exception = Record.Exception(() =>
             UrlValidator.ValidateBaseUrl(config.BaseUrl, config.AllowCustomBaseUrl));
         Assert.Null(exception);
     }
@@ -269,7 +269,7 @@ public class SsrfProtectionIntegrationTests
         stopwatch.Stop();
 
         // Assert - Should be very fast (less than 10ms for 1000 validations)
-        Assert.True(stopwatch.ElapsedMilliseconds < 10, 
+        Assert.True(stopwatch.ElapsedMilliseconds < 10,
             $"URL 验证应该很快，但 {iterations} 次验证耗时 {stopwatch.ElapsedMilliseconds}ms");
     }
 
