@@ -7,7 +7,7 @@
 
 using Mud.Feishu.DataModels.AttendanceUserDailyShifts;
 
-namespace Mud.Feishu.Interfaces.Attendance;
+namespace Mud.Feishu;
 
 /// <summary>
 /// 排班表是用来描述考勤组内人员每天按哪个班次进行上班。
