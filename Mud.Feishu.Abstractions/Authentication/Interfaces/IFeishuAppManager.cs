@@ -78,7 +78,7 @@ public interface IFeishuAppManager
     /// <remarks>
     /// 返回系统中所有已注册的飞书应用上下文。
     /// </remarks>
-    IEnumerable<FeishuAppContext> GetAllApps();
+    IEnumerable<IMudAppContext> GetAllApps();
 
     /// <summary>
     /// 检查应用是否存在

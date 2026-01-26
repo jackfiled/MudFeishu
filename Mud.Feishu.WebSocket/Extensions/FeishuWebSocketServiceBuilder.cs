@@ -56,18 +56,6 @@ public class FeishuWebSocketServiceBuilder
 
         var section = sectionName ?? "WebSocket";
         _services.Configure<FeishuWebSocketOptions>(options => configuration.GetSection(section).Bind(options));
-        // 注册 FeishuAppContext，使用指定的应用键
-        _services.AddSingleton<FeishuAppContext>(sp =>
-        {
-            var appManager = sp.GetRequiredService<IFeishuAppManager>();
-            var appContext = string.IsNullOrEmpty(appKey)
-                ? appManager.GetDefaultApp()
-                : appManager.GetApp(appKey);
-            return (FeishuAppContext)appContext;
-        });
-
-        // 同时注册 IMudAppContext 接口
-        _services.AddSingleton<IMudAppContext>(sp => sp.GetRequiredService<FeishuAppContext>());
         return this;
     }
 

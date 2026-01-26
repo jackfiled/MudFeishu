@@ -123,6 +123,13 @@ public class SubscriptionValidator : ISubscriptionValidator
                 }
             }
 
+            // 尝试使用全局配置中的验证 Token
+            if (!string.IsNullOrEmpty(options.VerificationToken))
+            {
+                _logger.LogDebug("使用全局配置的验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
+                return options.VerificationToken;
+            }
+
             // 使用传入的后备 Token
             _logger.LogDebug("使用传入的后备验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
             return fallbackToken;

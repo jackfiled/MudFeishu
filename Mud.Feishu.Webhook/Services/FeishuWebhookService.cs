@@ -81,7 +81,7 @@ public class FeishuWebhookService : IFeishuWebhookService
 
             // 注意：这里需要传入一个有效的 token，通常应该从应用配置中获取
             // 在多应用场景下，应该先设置当前应用键，然后验证器会自动使用对应的配置
-            if (!_validator.ValidateSubscriptionRequest(request, string.Empty))
+            if (!_validator.ValidateSubscriptionRequest(request, Options.VerificationToken))
             {
                 _logger.LogWarning("事件订阅验证失败");
                 return null;
@@ -264,7 +264,8 @@ public class FeishuWebhookService : IFeishuWebhookService
             }
 
             // 在多应用场景下，应该使用提供的加密密钥
-            if (string.IsNullOrEmpty(_providedEncryptKey))
+            var encryptKey = _providedEncryptKey ?? Options.EncryptKey;
+            if (string.IsNullOrEmpty(encryptKey))
             {
                 _logger.LogError("缺少加密密钥，无法验证签名");
                 return false;
@@ -275,7 +276,7 @@ public class FeishuWebhookService : IFeishuWebhookService
                 request.Nonce,
                 request.Encrypt!,
                 request.Signature,
-                _providedEncryptKey);
+                encryptKey);
         }
         catch (Exception ex)
         {
@@ -290,13 +291,14 @@ public class FeishuWebhookService : IFeishuWebhookService
         try
         {
             // 在多应用场景下，应该使用提供的加密密钥
-            if (string.IsNullOrEmpty(_providedEncryptKey))
+            var encryptKey = _providedEncryptKey ?? Options.EncryptKey;
+            if (string.IsNullOrEmpty(encryptKey))
             {
                 _logger.LogError("缺少加密密钥，无法解密事件数据");
                 return null;
             }
 
-            return await _decryptor.DecryptAsync(encryptedData, _providedEncryptKey, cancellationToken);
+            return await _decryptor.DecryptAsync(encryptedData, encryptKey, cancellationToken);
         }
         catch (Exception ex)
         {

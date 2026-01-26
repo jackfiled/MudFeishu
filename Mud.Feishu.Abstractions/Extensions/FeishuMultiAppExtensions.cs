@@ -7,9 +7,7 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mud.Feishu.Abstractions;
-using Mud.Feishu.TokenManager;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -57,6 +55,50 @@ public static class FeishuMultiAppExtensions
         IConfiguration configuration,
         string sectionName = "FeishuApps")
     {
+        return services.AddFeishuApp(
+             validateConfig: null,
+             configuration: configuration,
+             sectionName: sectionName);
+    }
+
+    /// <summary>
+    /// 注册飞书多应用支持（从配置文件加载）
+    /// </summary>
+    /// <param name="services">服务集合</param>
+    /// <param name="configuration">配置对象</param>
+    /// <param name="sectionName">配置节名称，默认为"FeishuApps"</param>
+    /// <param name="validateConfig">配置验证委托</param>
+    /// <returns>服务集合实例，支持链式调用</returns>
+    /// <exception cref="ArgumentNullException">当参数为null时抛出</exception>
+    /// <exception cref="InvalidOperationException">当配置无效时抛出</exception>
+    /// <remarks>
+    /// 从配置文件加载飞书应用配置。
+    /// 配置示例：
+    /// <code>
+    /// {
+    ///   "FeishuApps": [
+    ///     {
+    ///       "AppKey": "default",
+    ///       "AppId": "cli_xxx",
+    ///       "AppSecret": "dsk_xxx",
+    ///       "IsDefault": true
+    ///     },
+    ///     {
+    ///       "AppKey": "hr-app",
+    ///       "AppId": "cli_yyy",
+    ///       "AppSecret": "dsk_yyy"
+    ///     }
+    ///   ]
+    /// }
+    /// </code>
+    /// </remarks>
+    public static IServiceCollection AddFeishuApp(
+        this IServiceCollection services,
+        Action<List<FeishuAppConfig>>? validateConfig,
+        IConfiguration configuration,
+
+        string sectionName = "FeishuApps")
+    {
         if (services == null)
             throw new ArgumentNullException(nameof(services));
         if (configuration == null)
@@ -72,6 +114,8 @@ public static class FeishuMultiAppExtensions
 
         // 验证并设置默认应用
         ValidateAndSetDefaultApp(configs);
+
+        validateConfig?.Invoke(configs);
 
         // 注册基础服务（HttpClient工厂）
         services.AddFeishuAppBaseServices(configs);
@@ -90,7 +134,12 @@ public static class FeishuMultiAppExtensions
             configs,
             sp.GetRequiredService<ILogger<FeishuAppManager>>()
         ));
-
+        // 同时注册 IMudAppContext 接口
+        services.AddSingleton<IMudAppContext>(sp =>
+        {
+            var appManager = sp.GetRequiredService<IFeishuAppManager>();
+            return appManager.GetDefaultApp();
+        });
         return services;
     }
 

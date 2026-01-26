@@ -150,7 +150,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 获取所有已注册的应用
     /// </summary>
-    public IEnumerable<FeishuAppContext> GetAllApps()
+    public IEnumerable<IMudAppContext> GetAllApps()
     {
         return _apps.Values;
     }

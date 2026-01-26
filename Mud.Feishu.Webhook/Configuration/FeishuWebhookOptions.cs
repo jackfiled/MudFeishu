@@ -14,7 +14,15 @@ namespace Mud.Feishu.Webhook.Configuration;
 /// </summary>
 public class FeishuWebhookOptions
 {
+    /// <summary>
+    /// 应用验证 Token
+    /// </summary>
+    public string VerificationToken { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 事件加密 Key
+    /// </summary>
+    public string EncryptKey { get; set; } = string.Empty;
 
     /// <summary>
     /// Webhook 路由前缀
