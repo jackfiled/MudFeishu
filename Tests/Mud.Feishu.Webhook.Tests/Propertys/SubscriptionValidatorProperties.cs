@@ -29,10 +29,7 @@ public class SubscriptionValidatorProperties
         _optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
 
         // Setup default options
-        var defaultOptions = new FeishuWebhookOptions
-        {
-            VerificationToken = "default-token"
-        };
+        var defaultOptions = new FeishuWebhookOptions();
         _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(defaultOptions);
     }
 
@@ -55,7 +52,7 @@ public class SubscriptionValidatorProperties
                 // Arrange
                 var loggerMock = new Mock<ILogger<SubscriptionValidator>>();
                 var optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
-                var defaultOptions = new FeishuWebhookOptions { VerificationToken = "default-token" };
+                var defaultOptions = new FeishuWebhookOptions();
                 optionsMonitorMock.Setup(x => x.CurrentValue).Returns(defaultOptions);
 
                 var validator = new SubscriptionValidator(loggerMock.Object, optionsMonitorMock.Object);

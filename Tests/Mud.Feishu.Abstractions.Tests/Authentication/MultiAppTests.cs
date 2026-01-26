@@ -8,7 +8,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Mud.Feishu.Abstractions.Utilities;
 using Mud.Feishu.TokenManager;
-using Mud.HttpUtils.Attributes;
+using Mud.HttpUtils;
 
 namespace Mud.Feishu.Abstractions.Tests;
 

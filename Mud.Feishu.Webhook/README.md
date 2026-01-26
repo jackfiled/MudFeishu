@@ -182,8 +182,6 @@ var builder = WebApplication.CreateBuilder(args);
 // 通过代码配置
 builder.Services.CreateFeishuWebhookServiceBuilder(options =>
 {
-    options.VerificationToken = "your_verification_token";
-    options.EncryptKey = "your_encrypt_key_32_bytes_long";
     options.RoutePrefix = "feishu/Webhook";
     options.EnableRequestLogging = true;
     options.EnableExceptionHandling = true;
@@ -196,6 +194,8 @@ var app = builder.Build();
 app.UseFeishuWebhook();
 app.Run();
 ```
+
+**注意**：多应用场景下，请在 `FeishuWebhookOptions` 的 `Apps` 字典中配置每个应用的 `VerificationToken` 和 `EncryptKey`，或通过配置文件设置。
 
 ### 🔌 方式三：添加事件拦截器
 
@@ -1162,19 +1162,17 @@ app.Run();
 ### 最常用的代码模式
 
 ```csharp
-// ✅ 推荐：从配置文件读取
+// ✅ 推荐：从配置文件读取（多应用配置）
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .AddHandler<YourEventHandler>()
     .Build();
 
-// ✅ 代码配置
+// ✅ 代码配置（需在 Apps 中配置每个应用的 Token 和 Key）
 builder.Services.CreateFeishuWebhookServiceBuilder(options => {
-    options.VerificationToken = "your_token";
-    options.EncryptKey = "your_encrypt_key_32_bytes_long";
+    options.GlobalRoutePrefix = "feishu";
 })
 .AddHandler<YourEventHandler>()
 .Build();
-
 
 // ✅ 高级配置
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)

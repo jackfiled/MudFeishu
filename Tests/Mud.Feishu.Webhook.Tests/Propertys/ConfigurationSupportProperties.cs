@@ -40,9 +40,7 @@ public class ConfigurationSupportProperties
                 var options = new FeishuWebhookOptions
                 {
                     TimestampToleranceSeconds = data.TimestampToleranceSeconds,
-                    EnforceHeaderSignatureValidation = data.EnforceHeaderSignatureValidation,
-                    VerificationToken = data.VerificationToken,
-                    EncryptKey = data.EncryptKey
+                    EnforceHeaderSignatureValidation = data.EnforceHeaderSignatureValidation
                 };
 
                 optionsMonitorMock.Setup(x => x.CurrentValue).Returns(options);
@@ -78,7 +76,6 @@ public class ConfigurationSupportProperties
 
                 var globalOptions = new FeishuWebhookOptions
                 {
-                    VerificationToken = data.GlobalToken,
                     Apps = new Dictionary<string, FeishuAppWebhookOptions>
                     {
                         [data.AppKey] = new FeishuAppWebhookOptions
@@ -104,7 +101,7 @@ public class ConfigurationSupportProperties
                 };
 
                 // 验证应该使用应用特定配置而不是全局配置
-                var result = subscriptionValidator.ValidateSubscriptionRequest(request, data.GlobalToken);
+                var result = subscriptionValidator.ValidateSubscriptionRequest(request, null);
 
                 // Assert - 应该使用应用特定的 Token，所以验证应该成功
                 return result;

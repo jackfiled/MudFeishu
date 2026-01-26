@@ -107,19 +107,16 @@ public class ConfigurationSupportTests
     }
 
     /// <summary>
-    /// 测试订阅验证器使用全局配置Token
+    /// 测试订阅验证器使用后备 Token
     /// </summary>
     [Fact]
-    public void SubscriptionValidator_ShouldUseGlobalConfigurationToken()
+    public void SubscriptionValidator_ShouldUseFallbackToken()
     {
         // Arrange
         var optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
         var loggerMock = new Mock<ILogger<SubscriptionValidator>>();
 
-        var options = new FeishuWebhookOptions
-        {
-            VerificationToken = "global_verification_token"
-        };
+        var options = new FeishuWebhookOptions();
 
         optionsMonitorMock.Setup(x => x.CurrentValue).Returns(options);
 
@@ -128,11 +125,11 @@ public class ConfigurationSupportTests
         var request = new EventVerificationRequest
         {
             Type = "url_verification",
-            Token = "global_verification_token",
+            Token = "fallback_token",
             Challenge = "test_challenge"
         };
 
-        // Act - 传入不同的fallback token，应该使用配置中的token
+        // Act - 使用传入的 fallback token
         var result = validator.ValidateSubscriptionRequest(request, "fallback_token");
 
         // Assert
@@ -151,7 +148,6 @@ public class ConfigurationSupportTests
 
         var options = new FeishuWebhookOptions
         {
-            VerificationToken = "global_token",
             Apps = new Dictionary<string, FeishuAppWebhookOptions>
             {
                 ["app1"] = new FeishuAppWebhookOptions
@@ -210,7 +206,6 @@ public class ConfigurationSupportTests
 
         var options = new FeishuWebhookOptions
         {
-            VerificationToken = "global_token",
             Apps = new Dictionary<string, FeishuAppWebhookOptions>()
         };
 
@@ -222,11 +217,11 @@ public class ConfigurationSupportTests
         var request = new EventVerificationRequest
         {
             Type = "url_verification",
-            Token = "global_token", // 应该使用全局token
+            Token = "fallback_token",
             Challenge = "test_challenge"
         };
 
-        // Act - 应该降级到全局配置
+        // Act - 使用传入的 fallback token
         var result = validator.ValidateSubscriptionRequest(request, "fallback_token");
 
         // Assert
@@ -274,8 +269,6 @@ public class ConfigurationSupportTests
 
         var validOptions = new FeishuWebhookOptions
         {
-            VerificationToken = "valid_token",
-            EncryptKey = "12345678901234567890123456789012", // 32字符
             TimestampToleranceSeconds = 300,
             MaxConcurrentEvents = 10,
             EventHandlingTimeoutMs = 30000,
@@ -302,8 +295,6 @@ public class ConfigurationSupportTests
 
         var invalidOptions = new FeishuWebhookOptions
         {
-            VerificationToken = "", // 空token
-            EncryptKey = "short_key", // 长度不足32字符
             TimestampToleranceSeconds = -1, // 负数
             MaxConcurrentEvents = 0, // 无效值
             EventHandlingTimeoutMs = 0, // 无效值
@@ -328,10 +319,7 @@ public class ConfigurationSupportTests
         var loggerMock = new Mock<ILogger<ConfigurationValidationService>>();
         var service = new ConfigurationValidationService(loggerMock.Object);
 
-        var globalOptions = new FeishuWebhookOptions
-        {
-            VerificationToken = "global_token"
-        };
+        var globalOptions = new FeishuWebhookOptions();
 
         var validAppConfig = new FeishuAppWebhookOptions
         {

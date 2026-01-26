@@ -31,10 +31,7 @@ public class SubscriptionValidatorTests
         _optionsMonitorMock = new Mock<IOptionsMonitor<FeishuWebhookOptions>>();
 
         // Setup default options
-        var defaultOptions = new FeishuWebhookOptions
-        {
-            VerificationToken = "default-token"
-        };
+        var defaultOptions = new FeishuWebhookOptions();
         _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(defaultOptions);
 
         _validator = new SubscriptionValidator(_loggerMock.Object, _optionsMonitorMock.Object);
@@ -83,11 +80,8 @@ public class SubscriptionValidatorTests
         };
         var expectedToken = "valid-token";
 
-        // Setup options to return the expected token
-        var options = new FeishuWebhookOptions
-        {
-            VerificationToken = expectedToken
-        };
+        // Setup options
+        var options = new FeishuWebhookOptions();
         _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(options);
 
         // Act
@@ -113,11 +107,8 @@ public class SubscriptionValidatorTests
         };
         var expectedToken = "valid-token";
 
-        // Setup options to return the expected token
-        var options = new FeishuWebhookOptions
-        {
-            VerificationToken = expectedToken
-        };
+        // Setup options
+        var options = new FeishuWebhookOptions();
         _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(options);
 
         // Act
@@ -232,11 +223,8 @@ public class SubscriptionValidatorTests
         };
         var expectedToken = "expected-long-token-654321";
 
-        // Setup options to return the expected token
-        var options = new FeishuWebhookOptions
-        {
-            VerificationToken = expectedToken
-        };
+        // Setup options
+        var options = new FeishuWebhookOptions();
         _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(options);
 
         // Act
@@ -390,11 +378,8 @@ public class SubscriptionValidatorTests
             Challenge = "valid-challenge"
         };
 
-        // Setup options to return the expected token
-        var options = new FeishuWebhookOptions
-        {
-            VerificationToken = "valid-token"
-        };
+        // Setup options
+        var options = new FeishuWebhookOptions();
         _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(options);
 
         // Act & Assert - 第一个应用
@@ -422,11 +407,8 @@ public class SubscriptionValidatorTests
             Challenge = "valid-challenge"
         };
 
-        // Setup options to return the expected token
-        var options = new FeishuWebhookOptions
-        {
-            VerificationToken = "valid-token"
-        };
+        // Setup options
+        var options = new FeishuWebhookOptions();
         _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(options);
 
         // Act

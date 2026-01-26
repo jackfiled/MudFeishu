@@ -31,7 +31,7 @@ public class FeishuEventValidatorTests
     public void ValidateSubscriptionRequest_WhenValidRequest_ShouldReturnTrue()
     {
         // Arrange
-        var options = new FeishuWebhookOptions { VerificationToken = "test_token" };
+        var options = new FeishuWebhookOptions();
         var validator = new FeishuEventValidator(
             _loggerMock.Object,
             _nonceDeduplicatorMock.Object,
@@ -55,7 +55,7 @@ public class FeishuEventValidatorTests
     public void ValidateSubscriptionRequest_WhenInvalidToken_ShouldReturnFalse()
     {
         // Arrange
-        var options = new FeishuWebhookOptions { VerificationToken = "correct_token" };
+        var options = new FeishuWebhookOptions();
         var validator = new FeishuEventValidator(
             _loggerMock.Object,
             _nonceDeduplicatorMock.Object,
@@ -79,7 +79,7 @@ public class FeishuEventValidatorTests
     public void ValidateSubscriptionRequest_WhenInvalidType_ShouldReturnFalse()
     {
         // Arrange
-        var options = new FeishuWebhookOptions { VerificationToken = "test_token" };
+        var options = new FeishuWebhookOptions();
         var validator = new FeishuEventValidator(
             _loggerMock.Object,
             _nonceDeduplicatorMock.Object,
@@ -105,7 +105,6 @@ public class FeishuEventValidatorTests
         // Arrange
         var options = new FeishuWebhookOptions
         {
-            EncryptKey = "test_encrypt_key",
             TimestampToleranceSeconds = 60
         };
         var validator = new FeishuEventValidator(
@@ -142,7 +141,6 @@ public class FeishuEventValidatorTests
         // Arrange
         var options = new FeishuWebhookOptions
         {
-            EncryptKey = "test_encrypt_key",
             TimestampToleranceSeconds = 60
         };
         var validator = new FeishuEventValidator(
@@ -174,7 +172,6 @@ public class FeishuEventValidatorTests
         // Arrange
         var options = new FeishuWebhookOptions
         {
-            EncryptKey = "test_encrypt_key",
             TimestampToleranceSeconds = 60
         };
         var validator = new FeishuEventValidator(

@@ -21,8 +21,6 @@ public class FeishuWebhookOptionsTests
         var options = new FeishuWebhookOptions();
 
         // Assert
-        Assert.Equal(string.Empty, options.VerificationToken);
-        Assert.Equal(string.Empty, options.EncryptKey);
         Assert.True(options.EnableBodySignatureValidation);
         Assert.Equal(30, options.TimestampToleranceSeconds);
         Assert.Equal(30000, options.EventHandlingTimeoutMs);
@@ -36,8 +34,6 @@ public class FeishuWebhookOptionsTests
         // Arrange & Act
         var options = new FeishuWebhookOptions
         {
-            VerificationToken = "custom_token",
-            EncryptKey = "custom_key",
             EnableBodySignatureValidation = false,
             TimestampToleranceSeconds = 600,
             EventHandlingTimeoutMs = 10000,
@@ -46,39 +42,11 @@ public class FeishuWebhookOptionsTests
         };
 
         // Assert
-        Assert.Equal("custom_token", options.VerificationToken);
-        Assert.Equal("custom_key", options.EncryptKey);
         Assert.False(options.EnableBodySignatureValidation);
         Assert.Equal(600, options.TimestampToleranceSeconds);
         Assert.Equal(10000, options.EventHandlingTimeoutMs);
         Assert.Equal(200, options.MaxConcurrentEvents);
         Assert.False(options.EnableExceptionHandling);
-    }
-
-    [Fact]
-    public void FeishuWebhookOptions_SetVerificationToken_ShouldAcceptDifferentFormats()
-    {
-        // Arrange & Act
-        var options1 = new FeishuWebhookOptions { VerificationToken = "simple_token" };
-        var options2 = new FeishuWebhookOptions { VerificationToken = "token_with_123_numbers" };
-        var options3 = new FeishuWebhookOptions { VerificationToken = "token-with-dashes" };
-
-        // Assert
-        Assert.Equal("simple_token", options1.VerificationToken);
-        Assert.Equal("token_with_123_numbers", options2.VerificationToken);
-        Assert.Equal("token-with-dashes", options3.VerificationToken);
-    }
-
-    [Fact]
-    public void FeishuWebhookOptions_SetEncryptKey_ShouldAcceptDifferentLengths()
-    {
-        // Arrange & Act
-        var options1 = new FeishuWebhookOptions { EncryptKey = "short_key" };
-        var options2 = new FeishuWebhookOptions { EncryptKey = "very_long_encryption_key_with_many_characters_123456" };
-
-        // Assert
-        Assert.Equal("short_key", options1.EncryptKey);
-        Assert.Equal("very_long_encryption_key_with_many_characters_123456", options2.EncryptKey);
     }
 
     [Fact]

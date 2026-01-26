@@ -175,8 +175,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure via code
 builder.Services.CreateFeishuWebhookServiceBuilder(options =>
 {
-    options.VerificationToken = "your_verification_token";
-    options.EncryptKey = "your_encrypt_key_32_bytes_long";
     options.GlobalRoutePrefix = "feishu";
     options.EnableRequestLogging = true;
     options.EnableExceptionHandling = true;
@@ -189,6 +187,8 @@ var app = builder.Build();
 app.UseFeishuWebhook();
 app.Run();
 ```
+
+**Note**: For multi-application scenarios, configure each application's `VerificationToken` and `EncryptKey` in the `Apps` dictionary of `FeishuWebhookOptions`, or set them via configuration file.
 
 ### 🔌 Method 3: Add Event Interceptors
 
@@ -1145,15 +1145,14 @@ app.Run();
 ### Most Common Code Patterns
 
 ```csharp
-// ✅ Recommended: Read from configuration file
+// ✅ Recommended: Read from configuration file (multi-app config)
 builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     .AddHandler<YourEventHandler>()
     .Build();
 
-// ✅ Code configuration
+// ✅ Code configuration (configure each app's Token and Key in Apps)
 builder.Services.CreateFeishuWebhookServiceBuilder(options => {
-    options.VerificationToken = "your_token";
-    options.EncryptKey = "your_encrypt_key_32_bytes_long";
+    options.GlobalRoutePrefix = "feishu";
 })
 .AddHandler<YourEventHandler>()
 .Build();

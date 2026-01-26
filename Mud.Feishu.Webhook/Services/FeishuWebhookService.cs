@@ -35,6 +35,11 @@ public class FeishuWebhookService : IFeishuWebhookService
     private string? _providedEncryptKey;
 
     /// <summary>
+    /// 当前应用键（多应用场景）
+    /// </summary>
+    private string? _currentAppKey;
+
+    /// <summary>
     /// 获取当前配置选项（支持热更新）
     /// </summary>
     private FeishuWebhookOptions Options => _optionsMonitor.CurrentValue;
@@ -73,17 +78,35 @@ public class FeishuWebhookService : IFeishuWebhookService
     }
 
     /// <inheritdoc />
+    public void SetCurrentAppKey(string appKey)
+    {
+        _currentAppKey = appKey;
+    }
+
+    /// <inheritdoc />
     public async Task<EventVerificationResponse?> VerifyEventSubscriptionAsync(EventVerificationRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("开始验证飞书事件订阅请求");
+            _logger.LogInformation("开始验证飞书事件订阅请求, AppKey: {AppKey}", _currentAppKey ?? "null");
 
-            // 注意：这里需要传入一个有效的 token，通常应该从应用配置中获取
-            // 在多应用场景下，应该先设置当前应用键，然后验证器会自动使用对应的配置
-            if (!_validator.ValidateSubscriptionRequest(request, Options.VerificationToken))
+            // 从应用配置中获取验证 Token
+            if (string.IsNullOrEmpty(_currentAppKey))
             {
-                _logger.LogWarning("事件订阅验证失败");
+                _logger.LogError("当前应用键未设置，无法验证事件订阅请求");
+                return null;
+            }
+
+            var appConfig = Options.GetAppConfig(_currentAppKey);
+            if (appConfig == null)
+            {
+                _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
+                return null;
+            }
+
+            if (!_validator.ValidateSubscriptionRequest(request, appConfig.VerificationToken))
+            {
+                _logger.LogWarning("事件订阅验证失败, AppKey: {AppKey}", _currentAppKey);
                 return null;
             }
 
@@ -92,12 +115,12 @@ public class FeishuWebhookService : IFeishuWebhookService
                 Challenge = request.Challenge
             };
 
-            _logger.LogInformation("事件订阅验证成功，返回挑战码: {Challenge}", request.Challenge);
+            _logger.LogInformation("事件订阅验证成功，返回挑战码: {Challenge}, AppKey: {AppKey}", request.Challenge, _currentAppKey);
             return await Task.FromResult(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "验证事件订阅请求时发生错误");
+            _logger.LogError(ex, "验证事件订阅请求时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
             return null;
         }
     }
@@ -259,15 +282,26 @@ public class FeishuWebhookService : IFeishuWebhookService
                 string.IsNullOrEmpty(request.Signature) ||
                 string.IsNullOrEmpty(request.Nonce))
             {
-                _logger.LogWarning("请求缺少必要的签名字段");
+                _logger.LogWarning("请求缺少必要的签名字段, AppKey: {AppKey}", _currentAppKey ?? "null");
                 return false;
             }
 
-            // 在多应用场景下，应该使用提供的加密密钥
-            var encryptKey = _providedEncryptKey ?? Options.EncryptKey;
+            // 在多应用场景下，优先使用提供的加密密钥，否则从应用配置获取
+            var encryptKey = _providedEncryptKey;
+            if (string.IsNullOrEmpty(encryptKey) && !string.IsNullOrEmpty(_currentAppKey))
+            {
+                var appConfig = Options.GetAppConfig(_currentAppKey);
+                if (appConfig == null)
+                {
+                    _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
+                    return false;
+                }
+                encryptKey = appConfig.EncryptKey;
+            }
+
             if (string.IsNullOrEmpty(encryptKey))
             {
-                _logger.LogError("缺少加密密钥，无法验证签名");
+                _logger.LogError("缺少加密密钥，无法验证签名, AppKey: {AppKey}", _currentAppKey ?? "null");
                 return false;
             }
 
@@ -280,7 +314,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "验证请求签名时发生错误");
+            _logger.LogError(ex, "验证请求签名时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
             return false;
         }
     }
@@ -290,11 +324,22 @@ public class FeishuWebhookService : IFeishuWebhookService
     {
         try
         {
-            // 在多应用场景下，应该使用提供的加密密钥
-            var encryptKey = _providedEncryptKey ?? Options.EncryptKey;
+            // 在多应用场景下，优先使用提供的加密密钥，否则从应用配置获取
+            var encryptKey = _providedEncryptKey;
+            if (string.IsNullOrEmpty(encryptKey) && !string.IsNullOrEmpty(_currentAppKey))
+            {
+                var appConfig = Options.GetAppConfig(_currentAppKey);
+                if (appConfig == null)
+                {
+                    _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
+                    return null;
+                }
+                encryptKey = appConfig.EncryptKey;
+            }
+
             if (string.IsNullOrEmpty(encryptKey))
             {
-                _logger.LogError("缺少加密密钥，无法解密事件数据");
+                _logger.LogError("缺少加密密钥，无法解密事件数据, AppKey: {AppKey}", _currentAppKey ?? "null");
                 return null;
             }
 
@@ -302,7 +347,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "解密事件数据时发生错误");
+            _logger.LogError(ex, "解密事件数据时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
             return null;
         }
     }

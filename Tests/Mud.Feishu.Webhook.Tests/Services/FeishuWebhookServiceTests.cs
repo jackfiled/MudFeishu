@@ -8,6 +8,7 @@
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
+using Mud.Feishu.Webhook;
 
 namespace Mud.Feishu.Webhook.Tests.Services;
 
@@ -36,8 +37,6 @@ public class FeishuWebhookServiceTests
 
         _options = new FeishuWebhookOptions
         {
-            VerificationToken = "test_token",
-            EncryptKey = "test_key",
             EnableBodySignatureValidation = false,
             EventHandlingTimeoutMs = 5000,
             MaxConcurrentEvents = 10
@@ -168,12 +167,19 @@ public class FeishuWebhookServiceTests
             EventId = "test_123",
             EventType = "test.event"
         };
+        var encryptKey = "test_key_32_characters_long____";
 
         _decryptorMock
-            .Setup(x => x.DecryptAsync(encryptedData, _options.EncryptKey, It.IsAny<CancellationToken>()))
+            .Setup(x => x.DecryptAsync(encryptedData, encryptKey, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedEventData);
 
         var service = CreateService();
+        service.SetCurrentAppKey("test-app");
+        _options.Apps["test-app"] = new FeishuAppWebhookOptions
+        {
+            AppKey = "test-app",
+            EncryptKey = encryptKey
+        };
 
         // Act
         var result = await service.DecryptEventAsync(encryptedData);
@@ -189,12 +195,19 @@ public class FeishuWebhookServiceTests
     {
         // Arrange
         var encryptedData = "invalid_data";
+        var encryptKey = "test_key_32_characters_long____";
 
         _decryptorMock
-            .Setup(x => x.DecryptAsync(encryptedData, _options.EncryptKey, It.IsAny<CancellationToken>()))
+            .Setup(x => x.DecryptAsync(encryptedData, encryptKey, It.IsAny<CancellationToken>()))
             .ReturnsAsync((EventData?)null);
 
         var service = CreateService();
+        service.SetCurrentAppKey("test-app");
+        _options.Apps["test-app"] = new FeishuAppWebhookOptions
+        {
+            AppKey = "test-app",
+            EncryptKey = encryptKey
+        };
 
         // Act
         var result = await service.DecryptEventAsync(encryptedData);

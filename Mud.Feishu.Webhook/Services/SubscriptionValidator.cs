@@ -79,6 +79,12 @@ public class SubscriptionValidator : ISubscriptionValidator
             // 获取期望的 Token，支持多应用配置
             var effectiveExpectedToken = GetEffectiveToken(expectedToken);
 
+            if (string.IsNullOrEmpty(effectiveExpectedToken))
+            {
+                _logger.LogError("无法获取有效的验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
+                return false;
+            }
+
             // 验证 Token 是否匹配
             if (request.Token != effectiveExpectedToken)
             {
@@ -106,7 +112,7 @@ public class SubscriptionValidator : ISubscriptionValidator
     /// </summary>
     /// <param name="fallbackToken">后备 Token</param>
     /// <returns>有效的验证 Token</returns>
-    private string GetEffectiveToken(string fallbackToken)
+    private string? GetEffectiveToken(string? fallbackToken)
     {
         try
         {
@@ -123,21 +129,20 @@ public class SubscriptionValidator : ISubscriptionValidator
                 }
             }
 
-            // 尝试使用全局配置中的验证 Token
-            if (!string.IsNullOrEmpty(options.VerificationToken))
+            // 使用传入的后备 Token（用于非多应用场景的兼容）
+            if (!string.IsNullOrEmpty(fallbackToken))
             {
-                _logger.LogDebug("使用全局配置的验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
-                return options.VerificationToken;
+                _logger.LogDebug("使用传入的后备验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
+                return fallbackToken;
             }
 
-            // 使用传入的后备 Token
-            _logger.LogDebug("使用传入的后备验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
-            return fallbackToken;
+            _logger.LogWarning("未找到有效的验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
+            return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "获取有效验证 Token 时发生错误, AppKey: {AppKey}, 使用后备 Token", _currentAppKey ?? "null");
-            return fallbackToken;
+            _logger.LogError(ex, "获取有效验证 Token 时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
+            return null;
         }
     }
 }

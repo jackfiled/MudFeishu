@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Mud.Feishu.DataModels.WsEndpoint;
 using Mud.Feishu.WebSocket.SocketEventArgs;
+using Mud.HttpUtils;
 
 namespace Mud.Feishu.WebSocket;
 
@@ -72,7 +73,7 @@ public class FeishuWebSocketManager : IFeishuWebSocketManager
             }
         }
 
-        var tokenManager = _appContext.GetTokenManager(HttpUtils.Attributes.TokenType.TenantAccessToken);
+        var tokenManager = _appContext.GetTokenManager(TokenType.TenantAccessToken);
         // 需要刷新令牌
         var newToken = await tokenManager.GetTokenAsync(cancellationToken);
 
