@@ -122,7 +122,7 @@ graph TB
 # HTTP API 客户端 (核心模块)
 dotnet add package Mud.Feishu
 
-# 事件处理抽象层 (可选，WebSocket/Webhook 依赖)
+# 事件处理抽象层 (核心模块，Mud.Feishu/WebSocket/Webhook 依赖)
 dotnet add package Mud.Feishu.Abstractions
 
 # WebSocket 实时事件订阅 (可选)
@@ -135,7 +135,7 @@ dotnet add package Mud.Feishu.Webhook
 dotnet add package Mud.Feishu.Redis
 ```
 
-> 💡 **提示**：根据实际需求安装对应包，`Mud.Feishu` 是核心包，`Mud.Feishu.Abstractions` 已作为 WebSocket 和 Webhook 的依赖自动安装。
+> 💡 **提示**：根据实际需求安装对应包，`Mud.Feishu` 是核心包，`Mud.Feishu.Abstractions` 已作为 Mud.Feishu\WebSocket\Webhook 的依赖自动安装。
 
 ### 2️⃣ 配置文件 (appsettings.json)
 
@@ -303,6 +303,7 @@ graph LR
 | **工厂模式**   | 动态注册和发现处理器       |
 | **类型安全**   | 强类型数据模型，编译时检查 |
 | **自动去重**   | 内置事件 ID 去重机制       |
+| **事件拦截器** | 支持事件处理前后的拦截逻辑 |
 | **基类处理器** | 简化开发的专用基类         |
 
 **支持的基类处理器**：
@@ -310,6 +311,11 @@ graph LR
 - `DepartmentCreatedEventHandler` - 部门创建
 - `DepartmentDeleteEventHandler` - 部门删除
 - `DefaultFeishuEventHandler<T>` - 通用处理器
+
+**新增工具类**：
+
+- `UrlValidator` - URL 白名单验证和 SSRF 防护
+- `HttpRetryPolicyBuilder` - HTTP 重试策略构建器（支持指数退避和抖动）
 
 ### 🌐 Mud.Feishu - HTTP API 客户端
 
@@ -323,15 +329,17 @@ graph LR
 | **📋 审批流程** | V4      | 审批定义、审批实例、审批操作               |
 | **📝 任务管理** | V2      | 任务创建、更新、分组、附件、评论           |
 | **📅 日程会议** | V4      | 日程事件、会议管理                         |
+| **...** | ..      | ....                         |
 
 **企业级特性**：
 
 - ✅ 自动令牌缓存和刷新
-- ✅ 智能重试机制（可配置重试次数）
+- ✅ 智能重试机制（可配置重试次数和延迟）
 - ✅ 高性能缓存（解决缓存击穿）
 - ✅ 统一异常处理
 - ✅ 连接池管理
 - ✅ 详细日志记录
+- ✅ 多应用上下文切换支持
 
 > 💡 **提示**：[查看完整 API 文档](./Mud.Feishu/README.md)
 
@@ -396,12 +404,12 @@ sequenceDiagram
 
 | 功能分类     | 特性                                                                 |
 | ------------ | -------------------------------------------------------------------- |
-| **安全验证** | 签名验证、时间戳验证、AES-256-CBC 解密、IP 白名单、Content-Type 验证 |
-| **事件处理** | 中间件模式、自动路由、策略模式、异步处理、事件拦截器                 |
-| **高级功能** | 多机器人支持、后台处理、并发控制、配置热更新、断路器模式             |
-| **监控运维** | 性能监控、健康检查、请求日志、异常处理、失败事件重试                 |
-| **安全加固** | 滑动窗口限流、威胁检测、安全审计、密钥验证、JSON深度限制             |
-| **性能优化** | 流式请求体读取、源生成器序列化、内存管理优化                         |
+| **安全验证** | 签名验证、时间戳验证、AES-256-CBC 解密、IP 白名单、Content-Type 验证、SSRF 防护、URL 白名单验证 |
+| **事件处理** | 中间件模式、自动路由、策略模式、异步处理、事件拦截器、失败事件重试   |
+| **高级功能** | 多机器人支持、后台处理、并发控制（支持热更新）、断路器模式           |
+| **监控运维** | 性能监控、健康检查、请求日志、异常处理、安全审计日志               |
+| **安全加固** | 滑动窗口限流、威胁检测、安全审计、密钥验证、JSON 深度限制、私网 IP 检测 |
+| **性能优化** | 流式请求体读取、源生成器序列化、内存管理优化、信号量并发控制         |
 
 **安全增强特性**：
 
@@ -411,12 +419,27 @@ sequenceDiagram
 - ✅ **Nonce 过期清理** - 防止内存泄漏
 - ✅ **断路器模式** - 使用 Polly 实现熔断机制
 - ✅ **失败事件重试** - 后台自动重试失败事件
+- ✅ **SSRF 防护** - 自动检测和阻止内网 IP 访问请求
+- ✅ **URL 白名单验证** - 支持配置允许的 URL 域名和路径
+- ✅ **私网 IP 检测** - 自动识别 127.0.0.1、192.168.x.x 等内网地址
+- ✅ **安全审计日志** - 记录所有安全相关事件（成功/失败）
 
 **性能优化**：
 
 - ✅ **源生成器序列化** - 提升序列化性能约 20-30%
 - ✅ **限流内存管理** - LRU 淘汰机制，最大 10 万条目
 - ✅ **日志脱敏** - 自动脱敏敏感字段防止信息泄露
+- ✅ **信号量并发控制** - 使用 SemaphoreSlim 控制最大并发数，支持配置热更新
+- ✅ **HTTP 重试策略** - 智能指数退避和抖动算法
+
+**核心服务**：
+
+- `FeishuWebhookConcurrencyService` - 并发控制服务，支持配置热更新
+- `FailedEventRetryService` - 失败事件重试服务，后台自动重试
+- `SecurityAuditService` - 安全审计服务，记录安全事件
+- `ThreatDetectionService` - 威胁检测服务，识别异常请求模式
+- `LoggingEventInterceptor` - 日志事件拦截器
+- `TelemetryEventInterceptor` - 遥测事件拦截器
 
 ---
 
@@ -429,13 +452,23 @@ sequenceDiagram
 [HttpPost("users")]
 public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
 {
+    _userApi.UseApp("hr-app");// 多应用场景下切换到 hr-app 应用，单应用场景下可省略
     var result = await _userApi.CreateUserAsync(request);
+    _userApi.UseDefaultApp();// 多应用场景下切换回默认应用, 单应用场景下可省略
     return result.Code == 0 ? Ok(result.Data) : BadRequest(result.Msg);
 }
 
-// 发送消息
+// 构造函数注入IFeishuAppManager接口。
+private readonly IFeishuAppManager _feishuAppManager;
+
+// 使用IFeishuAppManager获取API接口对象，灵活切换飞书应用。
+var tenantJobTitleApi = _feishuAppManager.GetFeishuApi<IFeishuTenantV3JobTitle>("hr-app");
+var result = await tenantJobTitleApi.GetJobTitlesListAsync(10, null);
+
+
+// 单应用模式下发送消息，无须应用。
 var textContent = new MessageTextContent { Text = "Hello World!" };
-var result = await _messageApi.SendMessageAsync(new SendMessageRequest
+var result = await messageApi.SendMessageAsync(new SendMessageRequest
 {
     ReceiveId = "user_123",
     MsgType = "text",
@@ -491,6 +524,56 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 app.UseFeishuWebhook();
 ```
 
+### URL 白名单和 SSRF 防护
+
+```csharp
+// 配置 URL 白名单
+var options = new FeishuWebhookOptions
+{
+    SsrfProtection = new SsrfProtectionOptions
+    {
+        Enabled = true,
+        BlockPrivateIps = true,
+        AllowList = new[]
+        {
+            "https://open.feishu.cn",
+            "https://*.example.com"
+        }
+    }
+};
+
+// 验证 URL
+UrlValidator.ValidateBaseUrl("https://open.feishu.cn/api", true);
+```
+
+### 事件拦截器
+
+```csharp
+// 创建日志拦截器
+public class CustomLoggingInterceptor : LoggingEventInterceptor
+{
+    public CustomLoggingInterceptor(ILogger<CustomLoggingInterceptor> logger)
+        : base(logger)
+    {
+    }
+
+    protected override Task LogBeforeHandleAsync(
+        string eventType,
+        string? eventId,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("开始处理事件: {EventType}, EventId: {EventId}", eventType, eventId);
+        return Task.CompletedTask;
+    }
+}
+
+// 注册拦截器
+builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
+    .AddInterceptor<CustomLoggingInterceptor>()
+    .AddHandler<DepartmentCreatedHandler>()
+    .Build();
+```
+
 ---
 
 ## 📖 详细文档
@@ -500,6 +583,7 @@ app.UseFeishuWebhook();
 - [Mud.Feishu.WebSocket 详细文档](./Mud.Feishu.WebSocket/Readme.md) - WebSocket 实时事件订阅指南
 - [Mud.Feishu.Webhook 详细文档](./Mud.Feishu.Webhook/README.md) - Webhook HTTP 回调事件处理指南
 - [Mud.Feishu.Redis 详细文档](./Mud.Feishu.Redis/README.md) - Redis 分布式去重扩展指南
+- [安全增强文档](./docs/SECURITY_IMPROVEMENTS.md) - SSRF 防护、URL 验证等安全特性详解
 
 ---
 
@@ -551,7 +635,8 @@ app.UseFeishuWebhook();
 
 - [项目仓库](https://gitee.com/mudtools/MudFeishu) - 源代码和开发文档
 - [Mud.ServiceCodeGenerator](https://gitee.com/mudtools/mud-code-generator) - HTTP 客户端代码生成器
-- [示例项目](./Mud.Feishu.Test) - 完整的使用示例和演示代码
+- [示例项目](./Demos) - 完整的使用示例和演示代码
+- [测试项目](./Tests) - 完整的单元测试和集成测试
 
 ### 🤝 社区支持
 
