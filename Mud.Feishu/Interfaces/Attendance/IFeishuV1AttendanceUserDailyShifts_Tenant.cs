@@ -33,4 +33,19 @@ public interface IFeishuTenantV1AttendanceUserDailyShifts
          [Body] UserDailyShiftsRequest userDailyShiftRequest,
          [Query("employee_type")] string employee_type = Consts.User_Id_Type,
          CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <para>支持查询多个用户的排班情况，注意此接口返回的是用户维度的排班结果，与页面功能并不对应。</para>
+    /// <para>可以通过返回结果中的group_id查询考勤组按 ID 查询考勤组 ，shift_id查询班次按 ID 查询班次 。</para>
+    /// <para>查询的时间跨度不能超过 30 天。</para>
+    /// </summary>
+    /// <param name="userDailyShiftRequest">查询排班表请求体</param>
+    /// <param name="employee_type">请求体中的 user_id 和响应体中的 user_id 的员工ID类型。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/attendance/v1/user_daily_shifts/query")]
+    Task<FeishuApiResult<UserDailyShiftsQueryResult>?> QueryShiftsAsync(
+      [Body] QueryUserDailyShiftsRequest userDailyShiftRequest,
+      [Query("employee_type")] string employee_type = Consts.User_Id_Type,
+      CancellationToken cancellationToken = default);
 }

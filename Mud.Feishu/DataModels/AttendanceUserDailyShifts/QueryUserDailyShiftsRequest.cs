@@ -8,15 +8,31 @@
 namespace Mud.Feishu.DataModels.AttendanceUserDailyShifts;
 
 /// <summary>
-/// <para>班表信息列表</para>
+/// 查询排班表请求体
 /// </summary>
-public class UserDailyShift : UserDailyShiftInfo
+public class QueryUserDailyShiftsRequest
 {
     /// <summary>
-    /// <para>是否清空班次 (此字段优先于 shift_id，若为true ，shift_id 将失效)</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：true</para>
+    /// <para>employee_no 或 employee_id 列表，与employee_type对应。最多50人。</para>
+    /// <para>必填：是</para>
+    /// <para>示例值：["abd754f7"]</para>
     /// </summary>
-    [JsonPropertyName("is_clear_schedule")]
-    public bool? IsClearSchedule { get; set; }
+    [JsonPropertyName("user_ids")]
+    public string[] UserIds { get; set; } = [];
+
+    /// <summary>
+    /// <para>查询的起始工作日，格式为yyyyMMdd</para>
+    /// <para>必填：是</para>
+    /// <para>示例值：20190817</para>
+    /// </summary>
+    [JsonPropertyName("check_date_from")]
+    public int CheckDateFrom { get; set; }
+
+    /// <summary>
+    /// <para>查询的结束工作日，格式为yyyyMMdd</para>
+    /// <para>必填：是</para>
+    /// <para>示例值：20190820</para>
+    /// </summary>
+    [JsonPropertyName("check_date_to")]
+    public int CheckDateTo { get; set; }
 }

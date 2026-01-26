@@ -8,15 +8,13 @@
 namespace Mud.Feishu.DataModels.AttendanceUserDailyShifts;
 
 /// <summary>
-/// <para>班表信息列表</para>
+/// 查询排班表响应体
 /// </summary>
-public class UserDailyShift : UserDailyShiftInfo
+public class UserDailyShiftsQueryResult
 {
     /// <summary>
-    /// <para>是否清空班次 (此字段优先于 shift_id，若为true ，shift_id 将失效)</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：true</para>
+    /// <para>班表信息列表</para>
     /// </summary>
-    [JsonPropertyName("is_clear_schedule")]
-    public bool? IsClearSchedule { get; set; }
+    [JsonPropertyName("user_daily_shifts")]
+    public UserDailyShiftInfo[]? UserDailyShifts { get; set; }
 }
