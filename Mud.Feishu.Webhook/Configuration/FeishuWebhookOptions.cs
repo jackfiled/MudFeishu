@@ -101,14 +101,15 @@ public class FeishuWebhookOptions
 
     /// <summary>
     /// 时间戳验证容错范围（秒）
-    /// 用于验证请求时间戳是否在有效范围内，默认为 60 秒
+    /// 用于验证请求时间戳是否在有效范围内，默认为 30 秒
     /// </summary>
     /// <remarks>
     /// 安全建议：
-    /// - 生产环境建议设置为 60 秒或更短，以减少重放攻击时间窗口
+    /// - 生产环境建议设置为 30 秒或更短，以减少重放攻击时间窗口
     /// - 开发环境可以适当放宽到 300 秒
+    /// - 飞书官方建议的时间戳容错范围为 60 秒以内
     /// </remarks>
-    public int TimestampToleranceSeconds { get; set; } = 60;
+    public int TimestampToleranceSeconds { get; set; } = 30;
 
     /// <summary>
     /// 请求频率限制配置

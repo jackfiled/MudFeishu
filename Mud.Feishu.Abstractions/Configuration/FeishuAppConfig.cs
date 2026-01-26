@@ -70,8 +70,28 @@ public class FeishuAppConfig
     /// <remarks>
     /// 默认值: "https://open.feishu.cn"
     /// 用于自定义飞书服务的访问地址，通常在生产环境中使用默认值即可。
+    /// <para>
+    /// 安全提示: 默认情况下仅允许飞书官方域名。如需使用自定义域名，
+    /// 请将 AllowCustomBaseUrl 设置为 true（存在 SSRF 风险，仅用于特殊场景）。
+    /// </para>
     /// </remarks>
     public string BaseUrl { get; set; } = "https://open.feishu.cn";
+
+    /// <summary>
+    /// 是否允许自定义基础 URL
+    /// </summary>
+    /// <remarks>
+    /// 默认值: false
+    /// <para>
+    /// 当设置为 true 时，允许使用非飞书官方域名的基础 URL。
+    /// 此选项仅用于特殊场景（如内网代理、测试环境），生产环境不建议启用。
+    /// </para>
+    /// <para>
+    /// 安全警告: 启用此选项存在 SSRF（服务端请求伪造）攻击风险。
+    /// 请确保自定义域名可信且可审计。
+    /// </para>
+    /// </remarks>
+    public bool AllowCustomBaseUrl { get; set; } = false;
 
     /// <summary>
     /// HTTP请求超时时间（秒）

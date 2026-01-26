@@ -34,9 +34,10 @@ internal static class HttpClientExtensions
             throw new ArgumentNullException("URL不能为空", nameof(url));
         ExceptionUtils.ThrowIfNull(client, nameof(client));
 
-
         if (Uri.IsWellFormedUriString(url, UriKind.Absolute))
         {
+            // 验证绝对 URL 是否安全（SSRF 防护）
+            UrlValidator.ValidateUrl(url, allowCustomBaseUrls: false);
             return;
         }
 
@@ -47,6 +48,8 @@ internal static class HttpClientExtensions
                 throw new InvalidOperationException(
                     "HttpClient未配置BaseAddress，无法使用相对URL");
             }
+            // 验证 BaseAddress 是否安全
+            UrlValidator.ValidateBaseUrl(client.BaseAddress?.ToString(), allowCustomBaseUrls: false);
             return;
         }
 

@@ -45,9 +45,9 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable, IHostedService
             _currentMaxConcurrentEvents, actualMaxConcurrent);
 
         // 监听配置变更，支持热更新
-        _optionsMonitor.OnChange(newOptions =>
+        _optionsMonitor.OnChange(async newOptions =>
         {
-            UpdateSemaphore(newOptions.MaxConcurrentEvents);
+            await UpdateSemaphoreAsync(newOptions.MaxConcurrentEvents);
         });
     }
 
@@ -91,10 +91,10 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable, IHostedService
     /// <summary>
     /// 更新信号量配置
     /// </summary>
-    private void UpdateSemaphore(int newMaxConcurrent)
+    private async Task UpdateSemaphoreAsync(int newMaxConcurrent)
     {
         // 使用信号量确保只有一个线程在更新配置
-        _semaphoreLock.Wait();
+        await _semaphoreLock.WaitAsync();
 
         try
         {
@@ -119,11 +119,11 @@ public class FeishuWebhookConcurrencyService : IAsyncDisposable, IHostedService
                 _logger.LogInformation("信号量已重新创建，新的最大并发数: {NewMax} (实际: {ActualMaxConcurrent})", newMaxConcurrent, actualMaxConcurrent);
 
                 // 延迟释放旧信号量，等待可能正在使用的请求完成
-                Task.Run(async () =>
-                {
-                    await Task.Delay(60000); // 等待 60 秒
-                    oldSemaphore.Dispose();
-                });
+                await Task.Run(async () =>
+                   {
+                       await Task.Delay(60000); // 等待 60 秒
+                       oldSemaphore.Dispose();
+                   });
             }
             else
             {

@@ -95,11 +95,16 @@ public static class FeishuServiceCollectionExtensions
         Action<HttpClient, IServiceProvider>? additionalConfig = null)
     {
         return builder
-            .ConfigureHttpClient((serviceProvider, client) =>
-            {
-                // 基础配置
-                string baseUrl = config?.BaseUrl ?? "https://open.feishu.cn";
-                int timeOut = config?.TimeOut ?? 60;
+        .ConfigureHttpClient((serviceProvider, client) =>
+        {
+            // 基础配置
+            string baseUrl = config?.BaseUrl ?? "https://open.feishu.cn";
+            bool allowCustomBaseUrl = config?.AllowCustomBaseUrl ?? false;
+
+            // 验证 BaseUrl 是否安全（SSRF 防护）
+            UrlValidator.ValidateBaseUrl(baseUrl, allowCustomBaseUrl);
+
+            int timeOut = config?.TimeOut ?? 60;
 
                 client.BaseAddress = new Uri(baseUrl);
                 client.DefaultRequestHeaders.Add("User-Agent", "MudFeishuClient/1.0");
@@ -112,13 +117,12 @@ public static class FeishuServiceCollectionExtensions
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
             })
-            .AddTransientHttpErrorPolicy(policyBuilder =>
+            .AddPolicyHandler(request =>
             {
+                // 使用自定义重试策略，区分 4xx 和 5xx 错误
                 int retryCount = config?.RetryCount ?? 3;
                 int retryDelayMs = config?.RetryDelayMs ?? 1000;
-                return policyBuilder.WaitAndRetryAsync(
-                    retryCount,
-                    retryAttempt => TimeSpan.FromMilliseconds(retryDelayMs * Math.Pow(2, retryAttempt - 1)));
+                return HttpRetryPolicyBuilder.BuildRetryPolicy(retryCount, retryDelayMs);
             });
     }
 }
