@@ -142,6 +142,7 @@ public class FeishuWebhookService : IFeishuWebhookService
     public void SetCurrentAppKey(string appKey)
     {
         _currentAppKey.Value = appKey;
+        _validator.SetCurrentAppKey(appKey);
     }
 
     /// <inheritdoc />

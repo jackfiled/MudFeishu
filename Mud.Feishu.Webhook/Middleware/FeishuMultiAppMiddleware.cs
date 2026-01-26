@@ -251,19 +251,15 @@ public class FeishuMultiAppMiddleware
         FeishuAppWebhookOptions appConfig)
     {
         using var scope = _scopeFactory.CreateScope();
-        var validator = scope.ServiceProvider.GetRequiredService<IFeishuEventValidator>() as FeishuEventValidator;
-        var decryptor = scope.ServiceProvider.GetRequiredService<IFeishuEventDecryptor>();
+        var webhookService = scope.ServiceProvider.GetRequiredService<IFeishuWebhookService>();
 
-        // 设置当前应用键以支持多应用去重
-        if (validator != null)
-        {
-            validator.SetCurrentAppKey(appKey);
-        }
+        // 设置当前应用键以支持多应用场景
+        webhookService.SetCurrentAppKey(appKey);
 
         try
         {
             // 尝试处理明文 URL 验证请求
-            if (await TryHandlePlaintextVerificationAsync(context, requestBody, appConfig, appKey))
+            if (await TryHandlePlaintextVerificationAsync(context, requestBody, webhookService))
             {
                 return;
             }
@@ -280,7 +276,7 @@ public class FeishuMultiAppMiddleware
             }
 
             // 解密请求数据
-            var decryptedData = await decryptor.DecryptAsync(eventRequest.Encrypt!, appConfig.EncryptKey);
+            var decryptedData = await webhookService.DecryptEventAsync(eventRequest.Encrypt!);
 
             if (decryptedData == null)
             {
@@ -298,19 +294,18 @@ public class FeishuMultiAppMiddleware
             if (decryptedData.EventType == "url_verification" ||
                 (string.IsNullOrEmpty(decryptedData.EventType) && string.IsNullOrEmpty(decryptedData.EventId)))
             {
-                await HandleEncryptedVerificationAsync(context, decryptedData, appKey);
+                await HandleEncryptedVerificationAsync(context, decryptedData);
                 return;
             }
 
             // 验证签名
             await ValidateRequestSignatureAsync(
                 context,
-                requestBody,
+                eventRequest,
                 appConfig.EncryptKey,
                 clientIp,
                 requestId,
-                appKey ?? string.Empty,
-                validator);
+                appKey ?? string.Empty);
 
             // 处理事件请求
             await HandleEventRequestAsync(
@@ -318,7 +313,7 @@ public class FeishuMultiAppMiddleware
                 decryptedData,
                 requestId,
                 appKey ?? string.Empty,
-                scope);
+                webhookService);
         }
         catch (JsonException ex)
         {
@@ -333,8 +328,7 @@ public class FeishuMultiAppMiddleware
     private async Task<bool> TryHandlePlaintextVerificationAsync(
         HttpContext context,
         string requestBody,
-        FeishuAppWebhookOptions appConfig,
-        string appKey)
+        IFeishuWebhookService webhookService)
     {
         var verificationRequest = JsonSerializer.Deserialize(
             requestBody,
@@ -344,18 +338,15 @@ public class FeishuMultiAppMiddleware
         {
             _logger.LogDebug("检测到明文 URL 验证请求");
 
-            if (verificationRequest.Token != appConfig.VerificationToken)
+            var verificationResponse = await webhookService.VerifyEventSubscriptionAsync(verificationRequest);
+
+            if (verificationResponse == null)
             {
-                _logger.LogWarning("验证令牌不匹配");
+                _logger.LogWarning("验证令牌不匹配或验证失败");
                 return false;
             }
 
-            var verificationResponse = new EventVerificationResponse
-            {
-                Challenge = verificationRequest.Challenge ?? string.Empty
-            };
-
-            _logger.LogInformation("明文验证成功，返回挑战码，AppKey: {AppKey}", appKey);
+            _logger.LogInformation("明文验证成功，返回挑战码");
             await WriteJsonResponse(context, 200, verificationResponse);
             return true;
         }
@@ -366,7 +357,7 @@ public class FeishuMultiAppMiddleware
     /// <summary>
     /// 处理加密的 URL 验证请求
     /// </summary>
-    private async Task HandleEncryptedVerificationAsync(HttpContext context, EventData decryptedData, string appKey)
+    private async Task HandleEncryptedVerificationAsync(HttpContext context, EventData decryptedData)
     {
         string? challenge;
         if (decryptedData.Event is JsonElement eventElement)
@@ -385,7 +376,7 @@ public class FeishuMultiAppMiddleware
             Challenge = challenge ?? string.Empty
         };
 
-        _logger.LogInformation("加密验证成功，返回挑战码，AppKey: {AppKey}", appKey);
+        _logger.LogInformation("加密验证成功，返回挑战码");
         await WriteJsonResponse(context, 200, verificationResponse);
     }
 
@@ -394,29 +385,26 @@ public class FeishuMultiAppMiddleware
     /// </summary>
     private async Task ValidateRequestSignatureAsync(
         HttpContext context,
-        string requestBody,
+        FeishuWebhookRequest eventRequest,
         string encryptKey,
         string clientIp,
         string requestId,
-        string appKey,
-        IFeishuEventValidator validator)
+        string appKey)
     {
-        var headerSignature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault();
-        var headerTimestamp = context.Request.Headers["X-Lark-Request-Timestamp"].FirstOrDefault();
-        var headerNonce = context.Request.Headers["X-Lark-Request-Nonce"].FirstOrDefault();
-
-        long timestamp = 0;
-        if (!string.IsNullOrEmpty(headerTimestamp) && long.TryParse(headerTimestamp, out var parsedTimestamp))
+        // 构造请求对象用于签名验证
+        var webhookRequest = new FeishuWebhookRequest
         {
-            timestamp = parsedTimestamp;
-        }
+            Encrypt = eventRequest.Encrypt,
+            Signature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault() ?? string.Empty,
+            Nonce = context.Request.Headers["X-Lark-Request-Nonce"].FirstOrDefault() ?? string.Empty,
+            Timestamp = long.TryParse(context.Request.Headers["X-Lark-Request-Timestamp"].FirstOrDefault(), out var ts) ? ts : 0
+        };
 
-        if (!await validator.ValidateHeaderSignatureAsync(
-            timestamp,
-            headerNonce ?? string.Empty,
-            requestBody,
-            headerSignature,
-            encryptKey))
+        using var scope = _scopeFactory.CreateScope();
+        var webhookService = scope.ServiceProvider.GetRequiredService<IFeishuWebhookService>();
+        webhookService.SetCurrentAppKey(appKey);
+
+        if (!await webhookService.ValidateRequestSignature(webhookRequest))
         {
             throw new FeishuWebhookSecurityException(
                 "X-Lark-Signature 请求头签名验证失败",
@@ -435,84 +423,29 @@ public class FeishuMultiAppMiddleware
         EventData eventData,
         string requestId,
         string appKey,
-        IServiceScope scope)
+        IFeishuWebhookService webhookService)
     {
-        var handlerTypes = _handlerRegistry.GetHandlers(appKey);
-        var interceptorTypes = _interceptorRegistry.GetInterceptors(appKey);
-
-        // 获取处理器
-        var handlers = new List<IFeishuEventHandler>();
-        foreach (var handlerType in handlerTypes)
-        {
-            var handler = scope.ServiceProvider.GetService(handlerType) as IFeishuEventHandler;
-            if (handler != null)
-            {
-                handlers.Add(handler);
-            }
-        }
-
-        // 获取拦截器
-        var interceptors = new List<IFeishuEventInterceptor>();
-        foreach (var interceptorType in interceptorTypes)
-        {
-            var interceptor = scope.ServiceProvider.GetService(interceptorType) as IFeishuEventInterceptor;
-            if (interceptor != null)
-            {
-                interceptors.Add(interceptor);
-            }
-        }
-
         try
         {
-            // 前置拦截器
-            foreach (var interceptor in interceptors)
-            {
-                var shouldContinue = await interceptor.BeforeHandleAsync(eventData.EventType, eventData);
-                if (!shouldContinue)
-                {
-                    _logger.LogWarning("事件被拦截器中断: {EventType}, EventId: {EventId}",
-                        eventData.EventType, eventData.EventId);
-                    await WriteJsonResponse(context, 200, new { });
-                    return;
-                }
-            }
+            // 使用 Webhook 服务处理事件
+            var result = await webhookService.HandleEventAsync(eventData);
 
-            // 分发事件到处理器
-            var eventType = eventData.EventType;
-            var matchedHandlers = handlers.Where(h => h.SupportedEventType == eventType).ToList();
-
-            if (matchedHandlers.Count == 0)
+            if (!result.Success)
             {
-                _logger.LogWarning("未找到事件类型 {EventType} 的处理器", eventType);
-                await WriteJsonResponse(context, 200, new { });
+                _logger.LogError("事件处理失败: {EventType}, 事件ID: {EventId}, 原因: {Reason}",
+                    eventData.EventType, eventData.EventId, result.ErrorReason ?? "未知错误");
+                await WriteErrorResponse(context, 500, "Internal Server Error", requestId);
                 return;
             }
 
-            // 并行处理
-            var tasks = matchedHandlers.Select(h => h.HandleAsync(eventData));
-            await Task.WhenAll(tasks);
-
             _logger.LogInformation("事件处理完成: {EventType}, 事件ID: {EventId}, AppKey: {AppKey}",
                 eventData.EventType, eventData.EventId, appKey);
-
-            // 后置拦截器
-            foreach (var interceptor in interceptors)
-            {
-                await interceptor.AfterHandleAsync(eventData.EventType, eventData, null);
-            }
 
             await WriteJsonResponse(context, 200, new { });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "处理事件时发生错误");
-
-            // 后置拦截器（异常情况）
-            foreach (var interceptor in interceptors)
-            {
-                await interceptor.AfterHandleAsync(eventData.EventType, eventData, ex);
-            }
-
             await WriteErrorResponse(context, 500, "Internal Server Error", requestId);
         }
     }
