@@ -10,6 +10,7 @@ using Mud.Feishu.Abstractions.EventHandlers;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook;
 using Mud.Feishu.Webhook.Configuration;
+using Mud.Feishu.Webhook.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -247,6 +248,66 @@ public class FeishuWebhookServiceBuilder
     }
 
     /// <summary>
+    /// 使用自定义签名验证器
+    /// </summary>
+    /// <typeparam name="TSignatureValidator">自定义签名验证器类型</typeparam>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder UseSignatureValidator<TSignatureValidator>()
+        where TSignatureValidator : class, ISignatureValidator
+    {
+        _services.AddScoped<ISignatureValidator, TSignatureValidator>();
+        return this;
+    }
+
+    /// <summary>
+    /// 使用自定义时间戳验证器
+    /// </summary>
+    /// <typeparam name="TTimestampValidator">自定义时间戳验证器类型</typeparam>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder UseTimestampValidator<TTimestampValidator>()
+        where TTimestampValidator : class, ITimestampValidator
+    {
+        _services.AddScoped<ITimestampValidator, TTimestampValidator>();
+        return this;
+    }
+
+    /// <summary>
+    /// 使用自定义 Nonce 验证器
+    /// </summary>
+    /// <typeparam name="TNonceValidator">自定义 Nonce 验证器类型</typeparam>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder UseNonceValidator<TNonceValidator>()
+        where TNonceValidator : class, INonceValidator
+    {
+        _services.AddScoped<INonceValidator, TNonceValidator>();
+        return this;
+    }
+
+    /// <summary>
+    /// 使用自定义订阅验证器
+    /// </summary>
+    /// <typeparam name="TSubscriptionValidator">自定义订阅验证器类型</typeparam>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder UseSubscriptionValidator<TSubscriptionValidator>()
+        where TSubscriptionValidator : class, ISubscriptionValidator
+    {
+        _services.AddScoped<ISubscriptionValidator, TSubscriptionValidator>();
+        return this;
+    }
+
+    /// <summary>
+    /// 使用自定义组合验证器（完全替换默认实现）
+    /// </summary>
+    /// <typeparam name="TCompositeValidator">自定义组合验证器类型</typeparam>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuWebhookServiceBuilder UseCompositeValidator<TCompositeValidator>()
+        where TCompositeValidator : class, IFeishuEventValidator
+    {
+        _services.AddScoped<IFeishuEventValidator, TCompositeValidator>();
+        return this;
+    }
+
+    /// <summary>
     /// 应用自定义配置操作
     /// </summary>
     /// <param name="configureAction">配置操作</param>
@@ -390,8 +451,16 @@ public class FeishuWebhookServiceBuilder
         _services.TryAddSingleton<FeishuWebhookHandlerRegistry>();
         _services.TryAddSingleton<FeishuWebhookInterceptorRegistry>();
 
-        // 作用域服务
-        _services.TryAddScoped<IFeishuEventValidator, FeishuEventValidator>();
+        // 注册专门的验证器（作用域服务）
+        _services.TryAddScoped<ISignatureValidator, SignatureValidator>();
+        _services.TryAddScoped<ITimestampValidator, TimestampValidator>();
+        _services.TryAddScoped<INonceValidator, NonceValidator>();
+        _services.TryAddScoped<ISubscriptionValidator, SubscriptionValidator>();
+
+        // 注册组合验证器作为原接口的实现（向后兼容）
+        _services.TryAddScoped<IFeishuEventValidator, CompositeFeishuEventValidator>();
+
+        // 其他作用域服务
         _services.TryAddScoped<IFeishuEventDecryptor, FeishuEventDecryptor>();
         _services.TryAddScoped<IFeishuWebhookService, FeishuWebhookService>();
         _services.TryAddScoped<ISecurityAuditService, SecurityAuditService>();

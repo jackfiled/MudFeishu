@@ -33,29 +33,6 @@ public class FeishuWebhookOptions
     public string RoutePrefix { get; set; } = "feishu/Webhook";
 
     /// <summary>
-    /// 多机器人密钥配置（AppId -> EncryptKey 映射）
-    /// 支持多个飞书机器人共享同一个 Webhook 端点
-    /// 已废弃：请使用 Apps 配置进行多应用管理
-    /// </summary>
-    [Obsolete("请使用 Apps 配置进行多应用管理")]
-    public Dictionary<string, string> MultiAppEncryptKeys { get; set; } = new();
-
-    /// <summary>
-    /// 多机器人验证令牌配置（AppId -> VerificationToken 映射）
-    /// 支持多个飞书机器人共享同一个 Webhook 端点
-    /// 已废弃：请使用 Apps 配置进行多应用管理
-    /// </summary>
-    [Obsolete("请使用 Apps 配置进行多应用管理")]
-    public Dictionary<string, string> MultiAppVerificationTokens { get; set; } = new();
-
-    /// <summary>
-    /// 默认应用 ID（用于多机器人场景下的回退）
-    /// 已废弃：请使用 Apps 配置进行多应用管理
-    /// </summary>
-    [Obsolete("请使用 Apps 配置进行多应用管理")]
-    public string DefaultAppId { get; set; } = string.Empty;
-
-    /// <summary>
     /// 是否自动注册 Webhook 端点
     /// </summary>
     public bool AutoRegisterEndpoint { get; set; } = true;
@@ -161,13 +138,6 @@ public class FeishuWebhookOptions
     /// 失败事件重试配置
     /// </summary>
     public FailedEventRetryOptions Retry { get; set; } = new();
-
-    /// <summary>
-    /// 是否启用事件拦截器
-    /// 注意：拦截器通过 FeishuWebhookServiceBuilder 的 AddInterceptor 方法添加
-    /// </summary>
-    [Obsolete("此配置已废弃。拦截器通过 FeishuWebhookServiceBuilder 的 AddInterceptor 方法注册，不再需要此开关。")]
-    public bool EnableEventInterceptors { get; set; } = false;
 
     /// <summary>
     /// 应用配置集合（AppKey -> 应用配置）

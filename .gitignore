@@ -5,6 +5,7 @@
 /.vs
 /.vscode
 /.qoder
+/.kiro
 /artifacts
 /Mud.Feishu/bin/Debug
 /Mud.Feishu/obj
@@ -66,4 +67,8 @@ node_modules
 /Demos/FeishuOAuthDemo/backend/Properties/PublishProfiles
 /Demos/Mud.Feishu.Demo/bin/Release/net8.0
 /Demos/Mud.Feishu.WebSocket.Demo/bin/Release/net8.0
+/Tests/Mud.Feishu.Webhook.Tests/TestResults
+/Tests/Mud.Feishu.WebSocket.Tests/TestResults
+/Tests/Mud.Feishu.Abstractions.Tests/TestResults
+/Tests/Mud.Feishu.Redis.Tests/TestResults
 /test-reports
