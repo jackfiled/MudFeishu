@@ -30,14 +30,14 @@ public class FeishuWebhookService : IFeishuWebhookService
     private readonly IThreatDetectionService? _threatDetectionService;
 
     /// <summary>
-    /// 提供的加密密钥（支持多密钥场景）
+    /// 提供的加密密钥（支持多密钥场景，使用 AsyncLocal 确保线程安全）
     /// </summary>
-    private string? _providedEncryptKey;
+    private static readonly AsyncLocal<string?> _providedEncryptKey = new();
 
     /// <summary>
-    /// 当前应用键（多应用场景）
+    /// 当前应用键（多应用场景，使用 AsyncLocal 确保线程安全）
     /// </summary>
-    private string? _currentAppKey;
+    private static readonly AsyncLocal<string?> _currentAppKey = new();
 
     /// <summary>
     /// 获取当前配置选项（支持热更新）
@@ -73,14 +73,75 @@ public class FeishuWebhookService : IFeishuWebhookService
         // 监听配置变更
         _optionsMonitor.OnChange((newOptions, name) =>
         {
-            _logger.LogInformation("飞书 Webhook 配置已更新，来源: {ChangeSource}", name);
+            var oldOptions = Options;
+            var changes = new List<string>();
+
+            // 检测关键配置项的变更
+            if (oldOptions.EventHandlingTimeoutMs != newOptions.EventHandlingTimeoutMs)
+            {
+                changes.Add($"EventHandlingTimeoutMs: {oldOptions.EventHandlingTimeoutMs}ms → {newOptions.EventHandlingTimeoutMs}ms");
+            }
+
+            if (oldOptions.MaxConcurrentEvents != newOptions.MaxConcurrentEvents)
+            {
+                changes.Add($"MaxConcurrentEvents: {oldOptions.MaxConcurrentEvents} → {newOptions.MaxConcurrentEvents}");
+            }
+
+            if (oldOptions.EnableExceptionHandling != newOptions.EnableExceptionHandling)
+            {
+                changes.Add($"EnableExceptionHandling: {oldOptions.EnableExceptionHandling} → {newOptions.EnableExceptionHandling}");
+            }
+
+            if (oldOptions.EnableBackgroundProcessing != newOptions.EnableBackgroundProcessing)
+            {
+                changes.Add($"EnableBackgroundProcessing: {oldOptions.EnableBackgroundProcessing} → {newOptions.EnableBackgroundProcessing}");
+            }
+
+            if (oldOptions.EnableCircuitBreaker != newOptions.EnableCircuitBreaker)
+            {
+                changes.Add($"EnableCircuitBreaker: {oldOptions.EnableCircuitBreaker} → {newOptions.EnableCircuitBreaker}");
+            }
+
+            if (oldOptions.EnablePerformanceMonitoring != newOptions.EnablePerformanceMonitoring)
+            {
+                changes.Add($"EnablePerformanceMonitoring: {oldOptions.EnablePerformanceMonitoring} → {newOptions.EnablePerformanceMonitoring}");
+            }
+
+            // 检测应用配置的变更
+            var oldAppKeys = oldOptions.Apps.Keys.OrderBy(k => k).ToList();
+            var newAppKeys = newOptions.Apps.Keys.OrderBy(k => k).ToList();
+
+            if (!oldAppKeys.SequenceEqual(newAppKeys))
+            {
+                var addedApps = newAppKeys.Except(oldAppKeys).ToList();
+                var removedApps = oldAppKeys.Except(newAppKeys).ToList();
+
+                if (addedApps.Count > 0)
+                {
+                    changes.Add($"新增应用: {string.Join(", ", addedApps)}");
+                }
+
+                if (removedApps.Count > 0)
+                {
+                    changes.Add($"移除应用: {string.Join(", ", removedApps)}");
+                }
+            }
+
+            if (changes.Count > 0)
+            {
+                _logger.LogInformation("飞书 Webhook 配置已更新，来源: {ChangeSource}，变更内容:\n{Changes}", name, string.Join("\n  - ", changes));
+            }
+            else
+            {
+                _logger.LogDebug("飞书 Webhook 配置已更新，来源: {ChangeSource}（无关键配置变更）", name);
+            }
         });
     }
 
     /// <inheritdoc />
     public void SetCurrentAppKey(string appKey)
     {
-        _currentAppKey = appKey;
+        _currentAppKey.Value = appKey;
     }
 
     /// <inheritdoc />
@@ -88,16 +149,16 @@ public class FeishuWebhookService : IFeishuWebhookService
     {
         try
         {
-            _logger.LogInformation("开始验证飞书事件订阅请求, AppKey: {AppKey}", _currentAppKey ?? "null");
+            _logger.LogInformation("开始验证飞书事件订阅请求, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
 
             // 从应用配置中获取验证 Token
-            if (string.IsNullOrEmpty(_currentAppKey))
+            if (string.IsNullOrEmpty(_currentAppKey.Value))
             {
                 _logger.LogError("当前应用键未设置，无法验证事件订阅请求");
                 return null;
             }
 
-            var appConfig = Options.GetAppConfig(_currentAppKey);
+            var appConfig = Options.GetAppConfig(_currentAppKey.Value);
             if (appConfig == null)
             {
                 _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
@@ -120,7 +181,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "验证事件订阅请求时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
+            _logger.LogError(ex, "验证事件订阅请求时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
             return null;
         }
     }
@@ -135,7 +196,7 @@ public class FeishuWebhookService : IFeishuWebhookService
     public async Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, string? encryptKey = null, CancellationToken cancellationToken = default)
     {
         // 保存提供的密钥
-        _providedEncryptKey = encryptKey;
+        _providedEncryptKey.Value = encryptKey;
 
         try
         {
@@ -144,7 +205,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         finally
         {
             // 清理密钥
-            _providedEncryptKey = null;
+            _providedEncryptKey.Value = null;
         }
     }
 
@@ -282,26 +343,26 @@ public class FeishuWebhookService : IFeishuWebhookService
                 string.IsNullOrEmpty(request.Signature) ||
                 string.IsNullOrEmpty(request.Nonce))
             {
-                _logger.LogWarning("请求缺少必要的签名字段, AppKey: {AppKey}", _currentAppKey ?? "null");
+                _logger.LogWarning("请求缺少必要的签名字段, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
                 return false;
             }
 
             // 在多应用场景下，优先使用提供的加密密钥，否则从应用配置获取
             var encryptKey = _providedEncryptKey;
-            if (string.IsNullOrEmpty(encryptKey) && !string.IsNullOrEmpty(_currentAppKey))
+            if (string.IsNullOrEmpty(encryptKey.Value) && !string.IsNullOrEmpty(_currentAppKey.Value))
             {
-                var appConfig = Options.GetAppConfig(_currentAppKey);
+                var appConfig = Options.GetAppConfig(_currentAppKey.Value);
                 if (appConfig == null)
                 {
                     _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
                     return false;
                 }
-                encryptKey = appConfig.EncryptKey;
+                encryptKey.Value = appConfig.EncryptKey;
             }
 
-            if (string.IsNullOrEmpty(encryptKey))
+            if (string.IsNullOrEmpty(encryptKey.Value))
             {
-                _logger.LogError("缺少加密密钥，无法验证签名, AppKey: {AppKey}", _currentAppKey ?? "null");
+                _logger.LogError("缺少加密密钥，无法验证签名, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
                 return false;
             }
 
@@ -310,11 +371,11 @@ public class FeishuWebhookService : IFeishuWebhookService
                 request.Nonce,
                 request.Encrypt!,
                 request.Signature,
-                encryptKey);
+                encryptKey.Value);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "验证请求签名时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
+            _logger.LogError(ex, "验证请求签名时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
             return false;
         }
     }
@@ -325,10 +386,10 @@ public class FeishuWebhookService : IFeishuWebhookService
         try
         {
             // 在多应用场景下，优先使用提供的加密密钥，否则从应用配置获取
-            var encryptKey = _providedEncryptKey;
-            if (string.IsNullOrEmpty(encryptKey) && !string.IsNullOrEmpty(_currentAppKey))
+            var encryptKey = _providedEncryptKey.Value;
+            if (string.IsNullOrEmpty(encryptKey) && !string.IsNullOrEmpty(_currentAppKey.Value))
             {
-                var appConfig = Options.GetAppConfig(_currentAppKey);
+                var appConfig = Options.GetAppConfig(_currentAppKey.Value);
                 if (appConfig == null)
                 {
                     _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
@@ -339,7 +400,7 @@ public class FeishuWebhookService : IFeishuWebhookService
 
             if (string.IsNullOrEmpty(encryptKey))
             {
-                _logger.LogError("缺少加密密钥，无法解密事件数据, AppKey: {AppKey}", _currentAppKey ?? "null");
+                _logger.LogError("缺少加密密钥，无法解密事件数据, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
                 return null;
             }
 
@@ -347,7 +408,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "解密事件数据时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
+            _logger.LogError(ex, "解密事件数据时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
             return null;
         }
     }

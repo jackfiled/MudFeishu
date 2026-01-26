@@ -22,9 +22,9 @@ public class FeishuEventValidator : IFeishuEventValidator
     private readonly ISecurityAuditService? _securityAuditService;
 
     /// <summary>
-    /// 当前应用键（多应用场景）
+    /// 当前应用键（多应用场景，使用 AsyncLocal 确保线程安全）
     /// </summary>
-    private string? _currentAppKey;
+    private static readonly AsyncLocal<string?> _currentAppKey = new();
 
     /// <inheritdoc />
     public FeishuEventValidator(
@@ -44,7 +44,7 @@ public class FeishuEventValidator : IFeishuEventValidator
     /// </summary>
     public void SetCurrentAppKey(string appKey)
     {
-        _currentAppKey = appKey;
+        _currentAppKey.Value = appKey;
     }
 
     /// <inheritdoc />
@@ -54,34 +54,34 @@ public class FeishuEventValidator : IFeishuEventValidator
         {
             if (request.Type != "url_verification")
             {
-                _logger.LogWarning("无效的验证请求类型: {Type}, AppKey: {AppKey}", request.Type, _currentAppKey ?? "null");
+                _logger.LogWarning("无效的验证请求类型: {Type}, AppKey: {AppKey}", request.Type, _currentAppKey.Value ?? "null");
                 return false;
             }
 
             if (string.IsNullOrEmpty(request.Token))
             {
-                _logger.LogWarning("验证请求缺少 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
+                _logger.LogWarning("验证请求缺少 Token, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
                 return false;
             }
 
             if (string.IsNullOrEmpty(request.Challenge))
             {
-                _logger.LogWarning("验证请求缺少 Challenge, AppKey: {AppKey}", _currentAppKey ?? "null");
+                _logger.LogWarning("验证请求缺少 Challenge, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
                 return false;
             }
 
             if (request.Token != expectedToken)
             {
-                _logger.LogWarning("验证 Token 不匹配: 期望 {ExpectedToken}, 实际 {ActualToken}, AppKey: {AppKey}", expectedToken, request.Token, _currentAppKey ?? "null");
+                _logger.LogWarning("验证 Token 不匹配: 期望 {ExpectedToken}, 实际 {ActualToken}, AppKey: {AppKey}", expectedToken, request.Token, _currentAppKey.Value ?? "null");
                 return false;
             }
 
-            _logger.LogInformation("事件订阅验证请求验证成功, AppKey: {AppKey}", _currentAppKey ?? "null");
+            _logger.LogInformation("事件订阅验证请求验证成功, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "验证事件订阅请求时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
+            _logger.LogError(ex, "验证事件订阅请求时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
             return false;
         }
     }
@@ -130,9 +130,9 @@ public class FeishuEventValidator : IFeishuEventValidator
             // 检查 nonce 是否已使用（防止重放攻击）
             // TryMarkAsUsedAsync 返回 true 表示 Nonce 已被使用（重放攻击）
             // 返回 false 表示 Nonce 未被使用，并成功标记为已使用
-            if (await _nonceDeduplicator.TryMarkAsUsedAsync(nonce, _currentAppKey))
+            if (await _nonceDeduplicator.TryMarkAsUsedAsync(nonce, _currentAppKey.Value))
             {
-                _logger.LogWarning("Nonce {Nonce} 已使用过（AppKey: {AppKey}），拒绝重放攻击", nonce, _currentAppKey ?? "null");
+                _logger.LogWarning("Nonce {Nonce} 已使用过（AppKey: {AppKey}），拒绝重放攻击", nonce, _currentAppKey.Value ?? "null");
                 return false;
             }
 
@@ -163,7 +163,7 @@ public class FeishuEventValidator : IFeishuEventValidator
                 _logger.LogWarning("签名验证失败: 计算 {ComputedSignaturePrefix}..., 期望 {ExpectedSignaturePrefix}..., AppKey: {AppKey}",
                     computedPrefix + "...",
                     signaturePrefix + "...",
-                    _currentAppKey ?? "null");
+                    _currentAppKey.Value ?? "null");
 
                 // 记录安全审计日志
                 _ = _securityAuditService?.LogSecurityFailureAsync(
@@ -175,14 +175,14 @@ public class FeishuEventValidator : IFeishuEventValidator
             }
             else
             {
-                _logger.LogDebug("签名验证成功, AppKey: {AppKey}", _currentAppKey ?? "null");
+                _logger.LogDebug("签名验证成功, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
 
                 // 记录安全审计日志
                 _ = _securityAuditService?.LogSecuritySuccessAsync(
                     SecurityEventType.SignatureValidation,
                     "unknown",
                     "FeishuEventValidator",
-                    $"签名验证成功: {computedSignature}, AppKey: {_currentAppKey ?? "null"}",
+                    $"签名验证成功: {computedSignature}, AppKey: {_currentAppKey.Value ?? "null"}",
                     "");
             }
 
@@ -190,7 +190,7 @@ public class FeishuEventValidator : IFeishuEventValidator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "验证签名时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
+            _logger.LogError(ex, "验证签名时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
             return false;
         }
     }
@@ -270,9 +270,9 @@ public class FeishuEventValidator : IFeishuEventValidator
             }
 
             // 检查 nonce 是否已使用（防止重放攻击）
-            if (await _nonceDeduplicator.TryMarkAsUsedAsync(nonce, _currentAppKey))
+            if (await _nonceDeduplicator.TryMarkAsUsedAsync(nonce, _currentAppKey.Value))
             {
-                _logger.LogWarning("Nonce {Nonce} 已使用过（AppKey: {AppKey}），拒绝重放攻击", nonce, _currentAppKey ?? "null");
+                _logger.LogWarning("Nonce {Nonce} 已使用过（AppKey: {AppKey}），拒绝重放攻击", nonce, _currentAppKey.Value ?? "null");
                 return false;
             }
 
@@ -309,9 +309,9 @@ public class FeishuEventValidator : IFeishuEventValidator
                 var headerPrefix = headerSignature is null ? "null" :
                     (headerSignature.Length > 8 ? headerSignature.Substring(0, 8) : headerSignature);
                 _logger.LogWarning("请求头签名验证失败: 计算 {ComputedSignaturePrefix}..., 期望 {ExpectedSignaturePrefix}..., AppKey: {AppKey}",
-                    computedPrefix + "...",
-                    headerPrefix + "...",
-                    _currentAppKey ?? "null");
+                computedPrefix + "...",
+                headerPrefix + "...",
+                _currentAppKey.Value ?? "null");
 
                 // 记录安全审计日志
                 _ = _securityAuditService?.LogSecurityFailureAsync(
@@ -323,14 +323,14 @@ public class FeishuEventValidator : IFeishuEventValidator
             }
             else
             {
-                _logger.LogDebug("请求头签名验证成功, AppKey: {AppKey}", _currentAppKey ?? "null");
+                _logger.LogDebug("请求头签名验证成功, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
 
                 // 记录安全审计日志
                 _ = _securityAuditService?.LogSecuritySuccessAsync(
                     SecurityEventType.SignatureValidation,
                     "unknown",
                     "FeishuEventValidator",
-                    $"请求头签名验证成功: {computedSignature}, AppKey: {_currentAppKey ?? "null"}",
+                    $"请求头签名验证成功: {computedSignature}, AppKey: {_currentAppKey.Value ?? "null"}",
                     "");
             }
 
@@ -338,7 +338,7 @@ public class FeishuEventValidator : IFeishuEventValidator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "验证请求头签名时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
+            _logger.LogError(ex, "验证请求头签名时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
             return false;
         }
     }
@@ -376,14 +376,14 @@ public class FeishuEventValidator : IFeishuEventValidator
             if (!isValid)
             {
                 _logger.LogWarning("时间戳超出容错范围: 请求时间 {RequestTime}, 当前时间 {CurrentTime}, 差异 {Diff}秒, AppKey: {AppKey}",
-                    requestTime, now, diff, _currentAppKey ?? "null");
+                    requestTime, now, diff, _currentAppKey.Value ?? "null");
             }
 
             return isValid;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "验证时间戳时发生错误, AppKey: {AppKey}", _currentAppKey ?? "null");
+            _logger.LogError(ex, "验证时间戳时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
             return false;
         }
     }

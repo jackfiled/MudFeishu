@@ -35,15 +35,35 @@ public interface IFeishuWebhookService
     /// <param name="eventData">已解密的事件数据</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>处理结果</returns>
+    /// <remarks>
+    /// 使用场景：
+    /// 1. 单元测试：直接传入解密后的 EventData 进行测试
+    /// 2. 已解密场景：如果事件数据已经通过其他方式解密，可以直接调用此方法
+    /// 3. 批量处理：处理已解密的事件队列
+    ///
+    /// 注意：此方法不会验证签名，仅处理已解密的数据。如需完整的验证流程，
+    /// 请使用 HandleEventAsync(FeishuWebhookRequest) 重载方法。
+    /// </remarks>
     Task<(bool Success, string? ErrorReason)> HandleEventAsync(EventData eventData, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 处理飞书事件推送
+    /// 处理飞书事件推送（完整流程）
     /// </summary>
     /// <param name="request">Webhook 请求</param>
     /// <param name="encryptKey">加密密钥（可选，用于多密钥场景）</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>处理结果</returns>
+    /// <remarks>
+    /// 完整处理流程：
+    /// 1. 验证请求签名（如果启用）
+    /// 2. 解密事件数据
+    /// 3. 执行前置拦截器
+    /// 4. 去重检查
+    /// 5. 调用事件处理器
+    /// 6. 执行后置拦截器
+    ///
+    /// 推荐在大多数场景下使用此方法以获得完整的验证和处理流程。
+    /// </remarks>
     Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, string? encryptKey = null, CancellationToken cancellationToken = default);
 
     /// <summary>

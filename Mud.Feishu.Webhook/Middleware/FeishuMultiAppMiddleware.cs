@@ -56,7 +56,61 @@ public class FeishuMultiAppMiddleware
         // 监听配置变更
         _options.OnChange((newOptions, name) =>
         {
-            _logger.LogInformation("飞书多应用 Webhook 配置已更新，来源: {ChangeSource}", name);
+            var oldOptions = Options;
+            var changes = new List<string>();
+
+            // 检测关键配置项的变更
+            if (oldOptions.GlobalRoutePrefix != newOptions.GlobalRoutePrefix)
+            {
+                changes.Add($"GlobalRoutePrefix: {oldOptions.GlobalRoutePrefix} → {newOptions.GlobalRoutePrefix}");
+            }
+
+            if (oldOptions.AutoRegisterEndpoint != newOptions.AutoRegisterEndpoint)
+            {
+                changes.Add($"AutoRegisterEndpoint: {oldOptions.AutoRegisterEndpoint} → {newOptions.AutoRegisterEndpoint}");
+            }
+
+            if (oldOptions.MaxRequestBodySize != newOptions.MaxRequestBodySize)
+            {
+                changes.Add($"MaxRequestBodySize: {oldOptions.MaxRequestBodySize} bytes → {newOptions.MaxRequestBodySize} bytes");
+            }
+
+            if (oldOptions.AllowedHttpMethods.Count != newOptions.AllowedHttpMethods.Count ||
+                !oldOptions.AllowedHttpMethods.SetEquals(newOptions.AllowedHttpMethods))
+            {
+                changes.Add($"AllowedHttpMethods: [{string.Join(", ", oldOptions.AllowedHttpMethods)}] → [{string.Join(", ", newOptions.AllowedHttpMethods)}]");
+            }
+
+            // 检测 IP 白名单的变更
+            if (!oldOptions.AllowedSourceIPs.SetEquals(newOptions.AllowedSourceIPs))
+            {
+                changes.Add($"AllowedSourceIPs: [{string.Join(", ", oldOptions.AllowedSourceIPs)}] → [{string.Join(", ", newOptions.AllowedSourceIPs)}]");
+            }
+
+            // 检测限流配置的变更
+            if (oldOptions.RateLimit.EnableRateLimit != newOptions.RateLimit.EnableRateLimit)
+            {
+                changes.Add($"RateLimit.EnableRateLimit: {oldOptions.RateLimit.EnableRateLimit} → {newOptions.RateLimit.EnableRateLimit}");
+            }
+
+            if (oldOptions.RateLimit.WindowSizeSeconds != newOptions.RateLimit.WindowSizeSeconds)
+            {
+                changes.Add($"RateLimit.WindowSizeSeconds: {oldOptions.RateLimit.WindowSizeSeconds}s → {newOptions.RateLimit.WindowSizeSeconds}s");
+            }
+
+            if (oldOptions.RateLimit.MaxRequestsPerWindow != newOptions.RateLimit.MaxRequestsPerWindow)
+            {
+                changes.Add($"RateLimit.MaxRequestsPerWindow: {oldOptions.RateLimit.MaxRequestsPerWindow} → {newOptions.RateLimit.MaxRequestsPerWindow}");
+            }
+
+            if (changes.Count > 0)
+            {
+                _logger.LogInformation("飞书多应用 Webhook 配置已更新，来源: {ChangeSource}，变更内容:\n{Changes}", name, string.Join("\n  - ", changes));
+            }
+            else
+            {
+                _logger.LogDebug("飞书多应用 Webhook 配置已更新，来源: {ChangeSource}（无关键配置变更）", name);
+            }
         });
     }
 
