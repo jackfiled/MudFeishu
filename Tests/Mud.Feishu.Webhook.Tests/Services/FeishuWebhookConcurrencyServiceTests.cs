@@ -186,4 +186,161 @@ public class FeishuWebhookConcurrencyServiceTests
             _optionsMonitorMock.Object,
             _loggerMock.Object);
     }
+
+    /// <summary>
+    /// 测试配置热更新功能
+    /// 业务场景：验证 MaxConcurrentEvents 配置变更时，服务能够正确更新信号量限制
+    /// </summary>
+    [Fact]
+    public async Task OnChange_ShouldUpdateSemaphoreConfiguration()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // 初始状态：获取3个信号量（达到初始限制）
+        var lease1 = await service.AcquireAsync();
+        var lease2 = await service.AcquireAsync();
+        var lease3 = await service.AcquireAsync();
+
+        // 验证初始限制有效
+        var result1 = false;
+        try
+        {
+            var lease4_initial = await service.AcquireAsync(new CancellationTokenSource(100).Token);
+            result1 = true;
+            lease4_initial.Dispose();
+        }
+        catch (OperationCanceledException)
+        {
+            result1 = false;
+        }
+        result1.Should().BeFalse("初始限制为3，应该无法获取第4个信号量");
+
+        // Act - 模拟配置变更，将限制增加到5
+        var newOptions = new FeishuWebhookOptions
+        {
+            MaxConcurrentEvents = 5,
+            EventHandlingTimeoutMs = 5000
+        };
+
+        // 触发配置变更事件
+        _optionsMonitorMock.Raise(x => x.OnChange(It.IsAny<Action<FeishuWebhookOptions>>()), newOptions);
+
+        // 等待配置更新完成（确保 UpdateSemaphoreAsync 完成）
+        await Task.Delay(100);
+
+        // Assert - 现在应该能够获取第4个信号量
+        var lease4 = await service.AcquireAsync(new CancellationTokenSource(100).Token);
+        lease4.Should().NotBeNull("配置更新后，限制增加，应该能够获取第4个信号量");
+
+        var lease5 = await service.AcquireAsync(new CancellationTokenSource(100).Token);
+        lease5.Should().NotBeNull("配置更新后，限制为5，应该能够获取第5个信号量");
+
+        // 仍然无法获取第6个信号量
+        var result2 = false;
+        try
+        {
+            var lease6 = await service.AcquireAsync(new CancellationTokenSource(100).Token);
+            result2 = true;
+            lease6.Dispose();
+        }
+        catch (OperationCanceledException)
+        {
+            result2 = false;
+        }
+        result2.Should().BeFalse("配置更新后限制为5，应该无法获取第6个信号量");
+
+        // 清理
+        lease1.Dispose();
+        lease2.Dispose();
+        lease3.Dispose();
+        lease4.Dispose();
+        lease5.Dispose();
+    }
+
+    /// <summary>
+    /// 测试配置热更新为无限制
+    /// 业务场景：验证 MaxConcurrentEvents 配置变更为0时，服务能够正确解除并发限制
+    /// </summary>
+    [Fact]
+    public async Task OnChange_ShouldRemoveConcurrencyLimit()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // 初始状态：获取3个信号量（达到初始限制）
+        var lease1 = await service.AcquireAsync();
+        var lease2 = await service.AcquireAsync();
+        var lease3 = await service.AcquireAsync();
+
+        // Act - 模拟配置变更，将限制设置为0（无限制）
+        var newOptions = new FeishuWebhookOptions
+        {
+            MaxConcurrentEvents = 0,
+            EventHandlingTimeoutMs = 5000
+        };
+
+        // 触发配置变更事件
+        _optionsMonitorMock.Raise(x => x.OnChange(It.IsAny<Action<FeishuWebhookOptions>>()), newOptions);
+
+        // 等待配置更新完成
+        await Task.Delay(100);
+
+        // Assert - 现在应该能够无限制获取信号量
+        var additionalLeases = new List<IDisposable>();
+        for (int i = 0; i < 10; i++)
+        {
+            var lease = await service.AcquireAsync(new CancellationTokenSource(100).Token);
+            lease.Should().NotBeNull($"无限制模式下，应该能够无限制获取信号量（第{i + 4}个）");
+            additionalLeases.Add(lease);
+        }
+
+        // 清理
+        lease1.Dispose();
+        lease2.Dispose();
+        lease3.Dispose();
+        foreach (var lease in additionalLeases)
+        {
+            lease.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// 测试配置热更新时的异步并发安全
+    /// 业务场景：验证多个并发配置变更时，UpdateSemaphoreAsync 能够正确处理，避免死锁或竞态条件
+    /// </summary>
+    [Fact]
+    public async Task OnChange_ShouldHandleConcurrentUpdates()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act - 并发触发多个配置变更
+        var tasks = new List<Task>();
+        for (int i = 0; i < 10; i++)
+        {
+            var maxConcurrent = (i % 3) + 1; // 1, 2, 3 循环
+            var newOptions = new FeishuWebhookOptions
+            {
+                MaxConcurrentEvents = maxConcurrent,
+                EventHandlingTimeoutMs = 5000
+            };
+
+            tasks.Add(Task.Run(() =>
+            {
+                _optionsMonitorMock.Raise(x => x.OnChange(It.IsAny<Action<FeishuWebhookOptions>>()), newOptions);
+            }));
+        }
+
+        // 等待所有配置变更完成
+        await Task.WhenAll(tasks);
+        await Task.Delay(200);
+
+        // Assert - 服务仍然正常工作，能够获取信号量
+        var lease1 = await service.AcquireAsync(new CancellationTokenSource(100).Token);
+        lease1.Should().NotBeNull("并发配置更新后，服务应该仍然正常工作");
+
+        // 清理
+        lease1.Dispose();
+    }
 }
