@@ -196,8 +196,7 @@ public class FeishuMultiAppMiddleware
                 requestBody,
                 requestId,
                 clientIp,
-                appKey ?? string.Empty,
-                appConfig);
+                appKey ?? string.Empty);
         }
         catch (Exception ex)
         {
@@ -247,8 +246,7 @@ public class FeishuMultiAppMiddleware
         string requestBody,
         string requestId,
         string clientIp,
-        string appKey,
-        FeishuAppWebhookOptions appConfig)
+        string appKey)
     {
         using var scope = _scopeFactory.CreateScope();
         var webhookService = scope.ServiceProvider.GetRequiredService<IFeishuWebhookService>();
@@ -302,17 +300,16 @@ public class FeishuMultiAppMiddleware
             await ValidateRequestSignatureAsync(
                 context,
                 eventRequest,
-                appConfig.EncryptKey,
                 clientIp,
                 requestId,
-                appKey ?? string.Empty);
+                appKey);
 
             // 处理事件请求
             await HandleEventRequestAsync(
                 context,
                 decryptedData,
                 requestId,
-                appKey ?? string.Empty,
+                appKey,
                 webhookService);
         }
         catch (JsonException ex)
@@ -386,7 +383,6 @@ public class FeishuMultiAppMiddleware
     private async Task ValidateRequestSignatureAsync(
         HttpContext context,
         FeishuWebhookRequest eventRequest,
-        string encryptKey,
         string clientIp,
         string requestId,
         string appKey)
