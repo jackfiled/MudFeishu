@@ -240,24 +240,3 @@ public class FeishuWebhookOptions
         return $"{data.Substring(0, 2)}****{data.Substring(data.Length - 2)}";
     }
 }
-
-/// <summary>
-/// 单个应用的配置
-/// </summary>
-public class FeishuAppWebhookOptions
-{
-    /// <summary>
-    /// 应用键（用于标识应用）
-    /// </summary>
-    public string AppKey { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 应用验证 Token
-    /// </summary>
-    public string VerificationToken { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 事件加密 Key
-    /// </summary>
-    public string EncryptKey { get; set; } = string.Empty;
-}
