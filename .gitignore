@@ -72,3 +72,4 @@ node_modules
 /Tests/Mud.Feishu.Abstractions.Tests/TestResults
 /Tests/Mud.Feishu.Redis.Tests/TestResults
 /test-reports
+/Demos/Mud.Feishu.Webhook.Demo/bin/Release/net8.0
