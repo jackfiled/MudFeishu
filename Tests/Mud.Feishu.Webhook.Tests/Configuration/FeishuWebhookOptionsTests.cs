@@ -24,7 +24,7 @@ public class FeishuWebhookOptionsTests
         Assert.Equal(string.Empty, options.VerificationToken);
         Assert.Equal(string.Empty, options.EncryptKey);
         Assert.True(options.EnableBodySignatureValidation);
-        Assert.Equal(60, options.TimestampToleranceSeconds);
+        Assert.Equal(30, options.TimestampToleranceSeconds);
         Assert.Equal(30000, options.EventHandlingTimeoutMs);
         Assert.Equal(10, options.MaxConcurrentEvents);
         Assert.True(options.EnableExceptionHandling);

@@ -168,7 +168,7 @@ public class FeishuMultiAppMiddleware
     private string? ExtractAppKeyFromPath(string path)
     {
         var globalPrefix = $"/{Options.GlobalRoutePrefix}";
-        
+
         if (!path.StartsWith(globalPrefix, StringComparison.OrdinalIgnoreCase))
         {
             return null;
@@ -176,7 +176,7 @@ public class FeishuMultiAppMiddleware
 
         var remainingPath = path.Substring(globalPrefix.Length).Trim('/');
         var segments = remainingPath.Split('/');
-        
+
         if (segments.Length > 0 && !string.IsNullOrEmpty(segments[0]))
         {
             return segments[0];
@@ -248,15 +248,15 @@ public class FeishuMultiAppMiddleware
                 return;
             }
 
-        // 验证签名
-        await ValidateRequestSignatureAsync(
-            context,
-            requestBody,
-            appConfig.EncryptKey,
-            clientIp,
-            requestId,
-            appKey ?? string.Empty,
-            validator);
+            // 验证签名
+            await ValidateRequestSignatureAsync(
+                context,
+                requestBody,
+                appConfig.EncryptKey,
+                clientIp,
+                requestId,
+                appKey ?? string.Empty,
+                validator);
 
             // 处理事件请求
             await HandleEventRequestAsync(
@@ -289,7 +289,7 @@ public class FeishuMultiAppMiddleware
         if (verificationRequest?.Type == "url_verification")
         {
             _logger.LogDebug("检测到明文 URL 验证请求");
-            
+
             if (verificationRequest.Token != appConfig.VerificationToken)
             {
                 _logger.LogWarning("验证令牌不匹配");

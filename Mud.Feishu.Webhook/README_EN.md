@@ -14,7 +14,7 @@ A webhook component for Feishu event subscription and handling, providing comple
 - ✅ **Automatic Event Routing**: Automatically distributes events to corresponding handlers based on event type
 - ✅ **Security Validation**: Supports event subscription validation, request signature validation, and timestamp validation
 - ✅ **Encryption/Decryption**: Built-in AES-256-CBC decryption, automatically handles Feishu encrypted events
-- ✅ **Usage Mode**: Supports middleware mode
+- ✅ **Middleware Mode**: Uses .NET standard middleware mode, simple integration
 - ✅ **Dependency Injection**: Fully integrated with .NET dependency injection container
 - ✅ **Exception Handling**: Comprehensive exception handling and logging
 - ✅ **Performance Monitoring**: Optional performance metrics collection and monitoring
@@ -24,7 +24,7 @@ A webhook component for Feishu event subscription and handling, providing comple
 - ✅ **Distributed Support**: Provides distributed deduplication interface, supports Redis and other external storage
 - ✅ **Configuration Hot Reload**: Supports runtime configuration changes without service restart
 - ✅ **Rate Limiting**: Built-in sliding window rate limiting middleware to prevent malicious requests
-- ✅ **Multi-Bot Support**: Supports multiple Feishu bots sharing the same Webhook endpoint
+- ✅ **Multi-App Support**: Supports multiple Feishu apps sharing the same Webhook endpoint
 - ✅ **Background Processing**: Supports async background processing to avoid Feishu timeout retries
 - ✅ **Security Hardening**: Enhanced IP validation, signature validation, and encryption key security checks
 - ✅ **Cross-Platform**: Supports .NET Standard 2.0, .NET 6.0, .NET 8.0, .NET 10.0
@@ -60,7 +60,7 @@ app.UseFeishuWebhook();
 app.Run();
 ```
 
-> 💡 **Note**: Webhook service uses middleware mode, automatically registering endpoints via `app.UseFeishuWebhook()`. Default route is `/feishu/Webhook`.
+> 💡 **Note**: Webhook service uses middleware mode, automatically registering endpoints via `app.UseFeishuWebhook()`. Default route is `/feishu/{AppKey}`, where `{AppKey}` is the application key.
 
 ### 3. Complete Configuration (Add Multiple Event Handlers)
 
@@ -92,19 +92,19 @@ app.Run();
   "FeishuWebhook": {
     "VerificationToken": "your_verification_token",
     "EncryptKey": "your_encrypt_key_32_bytes_long",
-    "RoutePrefix": "feishu/Webhook",
+    "GlobalRoutePrefix": "feishu",
     "AutoRegisterEndpoint": true,
     "EnableRequestLogging": true,
     "EnableExceptionHandling": true,
     "EventHandlingTimeoutMs": 30000,
     "MaxConcurrentEvents": 10,
     "EnablePerformanceMonitoring": false,
-    "AllowedHttpMethods": [ "POST" ],
+    "AllowedHttpMethods": ["POST"],
     "MaxRequestBodySize": 10485760,
     "AllowedSourceIPs": [],
     "EnforceHeaderSignatureValidation": true,
     "EnableBodySignatureValidation": true,
-    "TimestampToleranceSeconds": 60,
+    "TimestampToleranceSeconds": 30,
     "EnableBackgroundProcessing": false,
     "EnableCircuitBreaker": true,
     "CircuitBreaker": {
@@ -128,7 +128,7 @@ app.Run();
       "EnableIpRateLimit": true,
       "TooManyRequestsStatusCode": 429,
       "TooManyRequestsMessage": "Too many requests, please try again later",
-      "WhitelistIPs": [ "127.0.0.1", "::1" ]
+      "WhitelistIPs": ["127.0.0.1", "::1"]
     },
     "Apps": {
       "app1": {
@@ -177,7 +177,7 @@ builder.Services.CreateFeishuWebhookServiceBuilder(options =>
 {
     options.VerificationToken = "your_verification_token";
     options.EncryptKey = "your_encrypt_key_32_bytes_long";
-    options.RoutePrefix = "feishu/Webhook";
+    options.GlobalRoutePrefix = "feishu";
     options.EnableRequestLogging = true;
     options.EnableExceptionHandling = true;
     options.MaxConcurrentEvents = 10;
@@ -265,7 +265,7 @@ app.UseFeishuWebhook(); // Automatically handles requests under route prefix
 app.Run();
 ```
 
-> 💡 **Note**: Webhook service currently only supports middleware mode. Customize the route path by configuring `RoutePrefix`.
+> 💡 **Note**: Webhook service currently only supports middleware mode. Customize the global route prefix by configuring `GlobalRoutePrefix`.
 
 ## Creating Event Handlers
 
@@ -290,16 +290,16 @@ public class MessageReceiveEventHandler : IFeishuEventHandler
 
     public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Received message event: EventId={EventId}, EventType={EventType}", 
+        _logger.LogInformation("Received message event: EventId={EventId}, EventType={EventType}",
             eventData.EventId, eventData.EventType);
-        
+
         // Handle message logic
         var messageData = JsonSerializer.Deserialize<MessageEventData>(
             eventData.Event?.ToString() ?? string.Empty);
-        
+
         // Your business logic...
         _logger.LogInformation("Processing message: {MessageId}", messageData?.MessageId);
-        
+
         await Task.CompletedTask;
     }
 }
@@ -330,17 +330,17 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
     private readonly DemoEventService _eventService;
 
     public DemoDepartmentEventHandler(
-        IFeishuEventDeduplicator businessDeduplicator, 
+        IFeishuEventDeduplicator businessDeduplicator,
         ILogger<DemoDepartmentEventHandler> logger,
-        DemoEventService eventService) 
+        DemoEventService eventService)
         : base(businessDeduplicator, logger)
     {
         _eventService = eventService;
     }
 
     protected override async Task ProcessBusinessLogicAsync(
-        EventData eventData, 
-        DepartmentCreatedResult? eventEntity, 
+        EventData eventData,
+        DepartmentCreatedResult? eventEntity,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Processing department created event: DepartmentId={DepartmentId}, Name={DepartmentName}",
@@ -348,10 +348,10 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 
         // Your business logic
         await _eventService.RecordDepartmentEventAsync(eventEntity, cancellationToken);
-        
+
         // Initialize department permissions
         _logger.LogInformation("Initializing department permissions: {DepartmentName}", eventEntity.Name);
-        
+
         // Notify department leader
         if (!string.IsNullOrWhiteSpace(eventEntity.LeaderUserId))
         {
@@ -372,61 +372,61 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 
 ### Basic Configuration
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `VerificationToken` | string | - | Feishu event subscription verification token |
-| `EncryptKey` | string | - | Feishu event encryption key (32 bytes) |
-| `RoutePrefix` | string | "feishu/Webhook" | Webhook route prefix |
-| `AutoRegisterEndpoint` | bool | true | Whether to auto-register endpoint |
+| Option                 | Type   | Default  | Description                                        |
+| ---------------------- | ------ | -------- | -------------------------------------------------- |
+| `VerificationToken`    | string | -        | Feishu event subscription verification token       |
+| `EncryptKey`           | string | -        | Feishu event encryption key (32 bytes)             |
+| `GlobalRoutePrefix`    | string | "feishu" | Global route prefix (base path shared by all apps) |
+| `AutoRegisterEndpoint` | bool   | true     | Whether to auto-register endpoint                  |
 
 ### Multi-App Configuration
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `Apps` | Dictionary\<string, FeishuAppWebhookOptions\> | {} | App configurations (AppKey -> AppConfig) |
-| `Apps.{AppKey}.AppKey` | string | - | Application key (used to identify app) |
-| `Apps.{AppKey}.VerificationToken` | string | - | App verification token |
-| `Apps.{AppKey}.EncryptKey` | string | - | App encryption key (32 bytes) |
-| `GlobalRoutePrefix` | string | "feishu" | Global route prefix (base path shared by all apps) |
+| Option                            | Type                                          | Default  | Description                                        |
+| --------------------------------- | --------------------------------------------- | -------- | -------------------------------------------------- |
+| `Apps`                            | Dictionary\<string, FeishuAppWebhookOptions\> | {}       | App configurations (AppKey -> AppConfig)           |
+| `Apps.{AppKey}.AppKey`            | string                                        | -        | Application key (used to identify app)             |
+| `Apps.{AppKey}.VerificationToken` | string                                        | -        | App verification token                             |
+| `Apps.{AppKey}.EncryptKey`        | string                                        | -        | App encryption key (32 bytes)                      |
+| `GlobalRoutePrefix`               | string                                        | "feishu" | Global route prefix (base path shared by all apps) |
 
 ### Security Configuration
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `AllowedSourceIPs` | HashSet\<string\> | [] | Allowed source IP addresses (IP validation enabled when non-empty) |
-| `AllowedHttpMethods` | HashSet\<string\> | ["POST"] | Allowed HTTP methods |
-| `MaxRequestBodySize` | long | 10MB | Max request body size |
-| `EnforceHeaderSignatureValidation` | bool | true | Whether to enforce header signature validation |
-| `EnableBodySignatureValidation` | bool | true | Whether to validate request body signature at service layer |
-| `TimestampToleranceSeconds` | int | 60 | Timestamp validation tolerance (seconds) |
+| Option                             | Type              | Default  | Description                                                        |
+| ---------------------------------- | ----------------- | -------- | ------------------------------------------------------------------ |
+| `AllowedSourceIPs`                 | HashSet\<string\> | []       | Allowed source IP addresses (IP validation enabled when non-empty) |
+| `AllowedHttpMethods`               | HashSet\<string\> | ["POST"] | Allowed HTTP methods                                               |
+| `MaxRequestBodySize`               | long              | 10MB     | Max request body size                                              |
+| `EnforceHeaderSignatureValidation` | bool              | true     | Whether to enforce header signature validation                     |
+| `EnableBodySignatureValidation`    | bool              | true     | Whether to validate request body signature at service layer        |
+| `TimestampToleranceSeconds`        | int               | 60       | Timestamp validation tolerance (seconds)                           |
 
 ### Performance Configuration
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `MaxConcurrentEvents` | int | 10 | Max concurrent events, supports hot reload |
-| `EventHandlingTimeoutMs` | int | 30000 | Event handling timeout (milliseconds) |
-| `EnablePerformanceMonitoring` | bool | false | Whether to enable performance monitoring |
-| `EnableBackgroundProcessing` | bool | false | Whether to enable async background processing |
+| Option                        | Type | Default | Description                                   |
+| ----------------------------- | ---- | ------- | --------------------------------------------- |
+| `MaxConcurrentEvents`         | int  | 10      | Max concurrent events, supports hot reload    |
+| `EventHandlingTimeoutMs`      | int  | 30000   | Event handling timeout (milliseconds)         |
+| `EnablePerformanceMonitoring` | bool | false   | Whether to enable performance monitoring      |
+| `EnableBackgroundProcessing`  | bool | false   | Whether to enable async background processing |
 
 ### Logging Configuration
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `EnableRequestLogging` | bool | true | Whether to enable request logging |
-| `EnableExceptionHandling` | bool | true | Whether to enable exception handling |
+| Option                    | Type | Default | Description                          |
+| ------------------------- | ---- | ------- | ------------------------------------ |
+| `EnableRequestLogging`    | bool | true    | Whether to enable request logging    |
+| `EnableExceptionHandling` | bool | true    | Whether to enable exception handling |
 
 ### Rate Limiting Configuration
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `RateLimit.EnableRateLimit` | bool | false | Whether to enable rate limiting |
-| `RateLimit.WindowSizeSeconds` | int | 60 | Time window size (seconds) |
-| `RateLimit.MaxRequestsPerWindow` | int | 100 | Max requests per time window |
-| `RateLimit.EnableIpRateLimit` | bool | true | Whether to enable IP-based rate limiting |
-| `RateLimit.TooManyRequestsStatusCode` | int | 429 | Status code when rate limit exceeded |
-| `RateLimit.TooManyRequestsMessage` | string | "Too many requests, please try again later" | Message when rate limit exceeded |
-| `RateLimit.WhitelistIPs` | HashSet\<string\> | [] | Whitelist IPs (exempt from rate limiting) |
+| Option                                | Type              | Default                                     | Description                               |
+| ------------------------------------- | ----------------- | ------------------------------------------- | ----------------------------------------- |
+| `RateLimit.EnableRateLimit`           | bool              | false                                       | Whether to enable rate limiting           |
+| `RateLimit.WindowSizeSeconds`         | int               | 60                                          | Time window size (seconds)                |
+| `RateLimit.MaxRequestsPerWindow`      | int               | 100                                         | Max requests per time window              |
+| `RateLimit.EnableIpRateLimit`         | bool              | true                                        | Whether to enable IP-based rate limiting  |
+| `RateLimit.TooManyRequestsStatusCode` | int               | 429                                         | Status code when rate limit exceeded      |
+| `RateLimit.TooManyRequestsMessage`    | string            | "Too many requests, please try again later" | Message when rate limit exceeded          |
+| `RateLimit.WhitelistIPs`              | HashSet\<string\> | []                                          | Whitelist IPs (exempt from rate limiting) |
 
 ## Advanced Features
 
@@ -467,7 +467,7 @@ Built-in sliding window rate limiting middleware to prevent malicious requests:
       "WindowSizeSeconds": 60,
       "MaxRequestsPerWindow": 100,
       "EnableIpRateLimit": true,
-      "WhitelistIPs": [ "127.0.0.1", "::1" ]
+      "WhitelistIPs": ["127.0.0.1", "::1"]
     }
   }
 }
@@ -675,16 +675,19 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 This library supports all Feishu Open Platform event types. Common event types include:
 
 ### Message Events
+
 - `im.message.receive_v1` - Receive message event
 - `im.message.recalled_v1` - Message recalled event
 
 ### Group Chat Events
+
 - `im.chat.member_user.added_v1` - User joins group chat
 - `im.chat.member_user.withdrawn_v1` - User leaves group chat
 - `im.chat.disbanded_v1` - Group chat disbanded
 - `im.chat.updated_v1` - Group info updated
 
 ### Contact Events
+
 - `contact.user.created_v3` - Employee onboarded
 - `contact.user.updated_v3` - Employee info updated
 - `contact.user.deleted_v3` - Employee offboarded
@@ -693,11 +696,13 @@ This library supports all Feishu Open Platform event types. Common event types i
 - `contact.department.deleted_v3` - Department deleted
 
 ### Approval Events
+
 - `approval.approval.approved_v1` - Approval approved
 - `approval.approval.rejected_v1` - Approval rejected
 - `approval.approval.updated_v1` - Approval updated
 
 ### Task Events
+
 - `task.task.created_v1` - Task created
 - `task.task.updated_v1` - Task updated
 
@@ -776,9 +781,9 @@ Health check configuration options:
 ```json
 {
   "FeishuWebhook": {
-    "HealthCheckUnhealthyFailureRateThreshold": 0.1,  // Unhealthy threshold (10%)
-    "HealthCheckDegradedFailureRateThreshold": 0.05,  // Degraded threshold (5%)
-    "HealthCheckMinEventsThreshold": 10  // Minimum events count
+    "HealthCheckUnhealthyFailureRateThreshold": 0.1, // Unhealthy threshold (10%)
+    "HealthCheckDegradedFailureRateThreshold": 0.05, // Degraded threshold (5%)
+    "HealthCheckMinEventsThreshold": 10 // Minimum events count
   }
 }
 ```
@@ -831,10 +836,10 @@ public class RobustEventHandler : IFeishuEventHandler
         try
         {
             _logger.LogInformation("Starting to process event: {EventId}", eventData.EventId);
-            
+
             // Your business logic
             await ProcessBusinessLogicAsync(eventData, cancellationToken);
-            
+
             _logger.LogInformation("Event processing completed: {EventId}", eventData.EventId);
         }
         catch (OperationCanceledException)
@@ -849,7 +854,7 @@ public class RobustEventHandler : IFeishuEventHandler
             // Optionally log to failure queue or alert system
         }
     }
-    
+
     private async Task ProcessBusinessLogicAsync(EventData eventData, CancellationToken cancellationToken)
     {
         // Actual business logic
@@ -868,11 +873,11 @@ public async Task HandleAsync(EventData eventData, CancellationToken cancellatio
     // ✅ Correct: Use async APIs and pass cancellation token
     await ProcessMessageAsync(eventData, cancellationToken);
     await SaveToDatabaseAsync(eventData, cancellationToken);
-    
+
     // ❌ Wrong: Don't use blocking calls
     // var result = ProcessMessageAsync(eventData).Result;
     // ProcessMessageAsync(eventData).Wait();
-    
+
     // ✅ Correct: Respect cancellation token
     cancellationToken.ThrowIfCancellationRequested();
 }
@@ -1163,15 +1168,15 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 ### Common Configuration Quick Reference
 
-| Configuration | Default | Description |
-|--------------|---------|-------------|
-| `RoutePrefix` | `"feishu/Webhook"` | Webhook route prefix |
-| `VerificationToken` | - | Verification token (required) |
-| `EncryptKey` | - | Encryption key (32 bytes) |
-| `MaxConcurrentEvents` | `10` | Max concurrent events |
-| `EventHandlingTimeoutMs` | `30000` | Event handling timeout (ms) |
-| `EnableBackgroundProcessing` | `false` | Background processing mode |
-| `EnablePerformanceMonitoring` | `false` | Performance monitoring |
+| Configuration                 | Default            | Description                   |
+| ----------------------------- | ------------------ | ----------------------------- |
+| `RoutePrefix`                 | `"feishu/Webhook"` | Webhook route prefix          |
+| `VerificationToken`           | -                  | Verification token (required) |
+| `EncryptKey`                  | -                  | Encryption key (32 bytes)     |
+| `MaxConcurrentEvents`         | `10`               | Max concurrent events         |
+| `EventHandlingTimeoutMs`      | `30000`            | Event handling timeout (ms)   |
+| `EnableBackgroundProcessing`  | `false`            | Background processing mode    |
+| `EnablePerformanceMonitoring` | `false`            | Performance monitoring        |
 
 ---
 

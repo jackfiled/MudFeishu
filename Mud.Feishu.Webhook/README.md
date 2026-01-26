@@ -14,7 +14,7 @@
 - ✅ **自动事件路由**：根据事件类型自动分发到对应的处理器
 - ✅ **安全验证**：支持事件订阅验证、请求签名验证和时间戳验证
 - ✅ **加密解密**：内置 AES-256-CBC 解密功能，自动处理飞书加密事件
-- ✅ **使用模式**：支持中间件模式
+- ✅ **中间件模式**：使用 .NET 标准中间件模式，集成简单
 - ✅ **依赖注入**：完全集成 .NET 依赖注入容器
 - ✅ **异常处理**：完善的异常处理和日志记录
 - ✅ **性能监控**：可选的性能指标收集和监控
@@ -24,20 +24,17 @@
 - ✅ **分布式支持**：提供分布式去重接口，支持 Redis 等外部存储
 - ✅ **配置热更新**：支持运行时配置变更，无需重启服务
 - ✅ **请求频率限制**：内置滑动窗口限流中间件，防止恶意请求
-- ✅ **多机器人支持**：支持多个飞书机器人共享同一个 Webhook 端点
+- ✅ **多应用支持**：支持多个飞书应用共享同一个 Webhook 端点
 - ✅ **后台处理模式**：支持异步后台处理，避免飞书超时重试
 - ✅ **安全加固**：强化 IP 验证、签名验证和密钥安全检查
 - ✅ **跨平台兼容**：支持 .NET Standard 2.0、.NET 6.0、.NET 8.0、.NET 10.0
-- ✅ **内容类型验证**：仅接受 `application/json` 请求
-- ✅ **JSON 深度限制**：防止深度嵌套 JSON 导致 DoS 攻击
-- ✅ **流式请求体读取**：防止伪造 Content-Length 的 DoS 攻击
-- ✅ **Nonce 过期清理**：防止内存泄漏
-- ✅ **断路器模式**：使用 Polly 实现熔断机制
-- ✅ **失败事件重试**：后台自动重试失败事件
+- ✅ **内容安全**：仅接受 `application/json` 请求，防止深度嵌套 JSON 导致的 DoS 攻击
+- ✅ **流式处理**：流式请求体读取，防止伪造 Content-Length 的 DoS 攻击
+- ✅ **内存管理**：Nonce 过期清理，防止内存泄漏
+- ✅ **容错机制**：断路器模式（使用 Polly 实现）和失败事件指数退避重试
 - ✅ **事件处理拦截器**：前置/后置事件处理拦截器机制
 - ✅ **日志脱敏**：自动脱敏敏感字段防止信息泄露
-- ✅ **配置锁定机制**：生产环境强制安全检查
-- ✅ **指数退避重试**：失败事件指数退避重试机制
+- ✅ **配置锁定**：生产环境强制安全检查
 
 ## 快速开始
 
@@ -70,7 +67,7 @@ app.UseFeishuWebhook();
 app.Run();
 ```
 
-> 💡 **说明**：Webhook 服务使用中间件模式，通过 `app.UseFeishuWebhook()` 自动注册端点。默认路由为 `/feishu/Webhook`。
+> 💡 **说明**：Webhook 服务使用中间件模式，通过 `app.UseFeishuWebhook()` 自动注册端点。默认路由为 `/feishu/{AppKey}`，其中 `{AppKey}` 为应用键。
 
 ### 3. 完整配置（添加多个事件处理器）
 
@@ -102,19 +99,19 @@ app.Run();
   "FeishuWebhook": {
     "VerificationToken": "your_verification_token",
     "EncryptKey": "your_encrypt_key_32_bytes_long",
-    "RoutePrefix": "feishu/Webhook",
+    "GlobalRoutePrefix": "feishu",
     "AutoRegisterEndpoint": true,
     "EnableRequestLogging": true,
     "EnableExceptionHandling": true,
     "EventHandlingTimeoutMs": 30000,
     "MaxConcurrentEvents": 10,
     "EnablePerformanceMonitoring": false,
-    "AllowedHttpMethods": [ "POST" ],
+    "AllowedHttpMethods": ["POST"],
     "MaxRequestBodySize": 10485760,
     "AllowedSourceIPs": [],
     "EnforceHeaderSignatureValidation": true,
     "EnableBodySignatureValidation": true,
-    "TimestampToleranceSeconds": 60,
+    "TimestampToleranceSeconds": 30,
     "EnableBackgroundProcessing": false,
     "EnableCircuitBreaker": true,
     "CircuitBreaker": {
@@ -138,7 +135,7 @@ app.Run();
       "EnableIpRateLimit": true,
       "TooManyRequestsStatusCode": 429,
       "TooManyRequestsMessage": "请求过于频繁，请稍后再试",
-      "WhitelistIPs": [ "127.0.0.1", "::1" ]
+      "WhitelistIPs": ["127.0.0.1", "::1"]
     },
     "Apps": {
       "app1": {
@@ -300,16 +297,16 @@ public class MessageReceiveEventHandler : IFeishuEventHandler
 
     public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("收到消息事件: EventId={EventId}, EventType={EventType}", 
+        _logger.LogInformation("收到消息事件: EventId={EventId}, EventType={EventType}",
             eventData.EventId, eventData.EventType);
-        
+
         // 处理消息逻辑
         var messageData = JsonSerializer.Deserialize<MessageEventData>(
             eventData.Event?.ToString() ?? string.Empty);
-        
+
         // 你的业务逻辑...
         _logger.LogInformation("处理消息: {MessageId}", messageData?.MessageId);
-        
+
         await Task.CompletedTask;
     }
 }
@@ -340,17 +337,17 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
     private readonly DemoEventService _eventService;
 
     public DemoDepartmentEventHandler(
-        IFeishuEventDeduplicator businessDeduplicator, 
+        IFeishuEventDeduplicator businessDeduplicator,
         ILogger<DemoDepartmentEventHandler> logger,
-        DemoEventService eventService) 
+        DemoEventService eventService)
         : base(businessDeduplicator, logger)
     {
         _eventService = eventService;
     }
 
     protected override async Task ProcessBusinessLogicAsync(
-        EventData eventData, 
-        DepartmentCreatedResult? eventEntity, 
+        EventData eventData,
+        DepartmentCreatedResult? eventEntity,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("处理部门创建事件: 部门ID={DepartmentId}, 部门名={DepartmentName}",
@@ -358,10 +355,10 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 
         // 你的业务逻辑
         await _eventService.RecordDepartmentEventAsync(eventEntity, cancellationToken);
-        
+
         // 模拟权限初始化
         _logger.LogInformation("初始化部门权限: {DepartmentName}", eventEntity.Name);
-        
+
         // 模拟通知部门主管
         if (!string.IsNullOrWhiteSpace(eventEntity.LeaderUserId))
         {
@@ -382,82 +379,81 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 
 ### 基本配置
 
-| 选项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `VerificationToken` | string | - | 飞书事件订阅验证 Token |
-| `EncryptKey` | string | - | 飞书事件加密密钥（32字节） |
-| `RoutePrefix` | string | "feishu/Webhook" | Webhook 路由前缀 |
-| `AutoRegisterEndpoint` | bool | true | 是否自动注册端点 |
+| 选项                   | 类型   | 默认值   | 说明                                   |
+| ---------------------- | ------ | -------- | -------------------------------------- |
+| `VerificationToken`    | string | -        | 飞书事件订阅验证 Token                 |
+| `EncryptKey`           | string | -        | 飞书事件加密密钥（32字节）             |
+| `GlobalRoutePrefix`    | string | "feishu" | 全局路由前缀（所有应用共享的基础路径） |
+| `AutoRegisterEndpoint` | bool   | true     | 是否自动注册端点                       |
 
 ### 多应用配置
 
-| 选项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `Apps` | Dictionary\<string, FeishuAppWebhookOptions\> | {} | 应用配置集合（AppKey -> 应用配置） |
-| `Apps.{AppKey}.AppKey` | string | - | 应用键（用于标识应用） |
-| `Apps.{AppKey}.VerificationToken` | string | - | 应用验证 Token |
-| `Apps.{AppKey}.EncryptKey` | string | - | 应用加密 Key（32字节） |
-| `GlobalRoutePrefix` | string | "feishu" | 全局路由前缀（所有应用共享的基础路径） |
+| 选项                              | 类型                                          | 默认值 | 说明                               |
+| --------------------------------- | --------------------------------------------- | ------ | ---------------------------------- |
+| `Apps`                            | Dictionary\<string, FeishuAppWebhookOptions\> | {}     | 应用配置集合（AppKey -> 应用配置） |
+| `Apps.{AppKey}.AppKey`            | string                                        | -      | 应用键（用于标识应用）             |
+| `Apps.{AppKey}.VerificationToken` | string                                        | -      | 应用验证 Token                     |
+| `Apps.{AppKey}.EncryptKey`        | string                                        | -      | 应用加密 Key（32字节）             |
 
 ### 安全配置
 
-| 选项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `AllowedSourceIPs` | HashSet\<string\> | [] | 允许的源 IP 地址列表（非空时自动启用 IP 验证） |
-| `AllowedHttpMethods` | HashSet\<string\> | ["POST"] | 允许的 HTTP 方法 |
-| `MaxRequestBodySize` | long | 10MB | 最大请求体大小 |
-| `EnforceHeaderSignatureValidation` | bool | true | 是否强制验证请求头签名 |
-| `EnableBodySignatureValidation` | bool | true | 是否在服务层再次验证请求体签名 |
-| `TimestampToleranceSeconds` | int | 60 | 时间戳验证容错范围（秒） |
+| 选项                               | 类型              | 默认值   | 说明                                           |
+| ---------------------------------- | ----------------- | -------- | ---------------------------------------------- |
+| `AllowedSourceIPs`                 | HashSet\<string\> | []       | 允许的源 IP 地址列表（非空时自动启用 IP 验证） |
+| `AllowedHttpMethods`               | HashSet\<string\> | ["POST"] | 允许的 HTTP 方法                               |
+| `MaxRequestBodySize`               | long              | 10MB     | 最大请求体大小                                 |
+| `EnforceHeaderSignatureValidation` | bool              | true     | 是否强制验证请求头签名                         |
+| `EnableBodySignatureValidation`    | bool              | true     | 是否在服务层再次验证请求体签名                 |
+| `TimestampToleranceSeconds`        | int               | 60       | 时间戳验证容错范围（秒）                       |
 
 ### 性能配置
 
-| 选项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `MaxConcurrentEvents` | int | 10 | 最大并发事件数，支持热更新 |
-| `EventHandlingTimeoutMs` | int | 30000 | 事件处理超时时间（毫秒） |
-| `EnablePerformanceMonitoring` | bool | false | 是否启用性能监控 |
-| `EnableBackgroundProcessing` | bool | false | 是否启用异步后台处理模式 |
+| 选项                          | 类型 | 默认值 | 说明                       |
+| ----------------------------- | ---- | ------ | -------------------------- |
+| `MaxConcurrentEvents`         | int  | 10     | 最大并发事件数，支持热更新 |
+| `EventHandlingTimeoutMs`      | int  | 30000  | 事件处理超时时间（毫秒）   |
+| `EnablePerformanceMonitoring` | bool | false  | 是否启用性能监控           |
+| `EnableBackgroundProcessing`  | bool | false  | 是否启用异步后台处理模式   |
 
 ### 日志配置
 
-| 选项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `EnableRequestLogging` | bool | true | 是否启用请求日志记录 |
-| `EnableExceptionHandling` | bool | true | 是否启用异常处理 |
+| 选项                      | 类型 | 默认值 | 说明                 |
+| ------------------------- | ---- | ------ | -------------------- |
+| `EnableRequestLogging`    | bool | true   | 是否启用请求日志记录 |
+| `EnableExceptionHandling` | bool | true   | 是否启用异常处理     |
 
 ### 断路器配置
 
-| 选项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `EnableCircuitBreaker` | bool | true | 是否启用断路器模式 |
-| `CircuitBreaker.ExceptionsAllowedBeforeBreaking` | int | 5 | 断路器断开前的连续失败次数 |
-| `CircuitBreaker.DurationOfBreak` | TimeSpan | 30s | 断路器保持开启状态的持续时间 |
-| `CircuitBreaker.SuccessThresholdToReset` | int | 3 | 断路器进入半开状态后的成功次数阈值 |
+| 选项                                             | 类型     | 默认值 | 说明                               |
+| ------------------------------------------------ | -------- | ------ | ---------------------------------- |
+| `EnableCircuitBreaker`                           | bool     | true   | 是否启用断路器模式                 |
+| `CircuitBreaker.ExceptionsAllowedBeforeBreaking` | int      | 5      | 断路器断开前的连续失败次数         |
+| `CircuitBreaker.DurationOfBreak`                 | TimeSpan | 30s    | 断路器保持开启状态的持续时间       |
+| `CircuitBreaker.SuccessThresholdToReset`         | int      | 3      | 断路器进入半开状态后的成功次数阈值 |
 
 ### 失败事件重试配置
 
-| 选项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `Retry.EnableRetry` | bool | false | 是否启用失败事件重试 |
-| `Retry.MaxRetryCount` | int | 3 | 最大重试次数 |
-| `Retry.InitialRetryDelaySeconds` | int | 10 | 初始重试延迟（秒） |
-| `Retry.RetryDelayMultiplier` | double | 2.0 | 重试延迟倍数（指数退避） |
-| `Retry.MaxRetryDelaySeconds` | int | 300 | 最大重试延迟（秒） |
-| `Retry.RetryPollIntervalSeconds` | int | 30 | 重试轮询间隔（秒） |
-| `Retry.MaxRetryPerPoll` | int | 10 | 每次轮询处理的最大失败事件数 |
+| 选项                             | 类型   | 默认值 | 说明                         |
+| -------------------------------- | ------ | ------ | ---------------------------- |
+| `Retry.EnableRetry`              | bool   | false  | 是否启用失败事件重试         |
+| `Retry.MaxRetryCount`            | int    | 3      | 最大重试次数                 |
+| `Retry.InitialRetryDelaySeconds` | int    | 10     | 初始重试延迟（秒）           |
+| `Retry.RetryDelayMultiplier`     | double | 2.0    | 重试延迟倍数（指数退避）     |
+| `Retry.MaxRetryDelaySeconds`     | int    | 300    | 最大重试延迟（秒）           |
+| `Retry.RetryPollIntervalSeconds` | int    | 30     | 重试轮询间隔（秒）           |
+| `Retry.MaxRetryPerPoll`          | int    | 10     | 每次轮询处理的最大失败事件数 |
 
 ### 请求频率限制配置
 
-| 选项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `RateLimit.EnableRateLimit` | bool | false | 是否启用请求频率限制 |
-| `RateLimit.WindowSizeSeconds` | int | 60 | 时间窗口大小（秒） |
-| `RateLimit.MaxRequestsPerWindow` | int | 100 | 每个时间窗口内允许的最大请求数 |
-| `RateLimit.EnableIpRateLimit` | bool | true | 是否基于 IP 限流 |
-| `RateLimit.TooManyRequestsStatusCode` | int | 429 | 超出限制时的响应状态码 |
-| `RateLimit.TooManyRequestsMessage` | string | "请求过于频繁，请稍后再试" | 超出限制时的响应消息 |
-| `RateLimit.WhitelistIPs` | HashSet\<string\> | [] | 白名单 IP 列表（不参与限流） |
+| 选项                                  | 类型              | 默认值                     | 说明                           |
+| ------------------------------------- | ----------------- | -------------------------- | ------------------------------ |
+| `RateLimit.EnableRateLimit`           | bool              | false                      | 是否启用请求频率限制           |
+| `RateLimit.WindowSizeSeconds`         | int               | 60                         | 时间窗口大小（秒）             |
+| `RateLimit.MaxRequestsPerWindow`      | int               | 100                        | 每个时间窗口内允许的最大请求数 |
+| `RateLimit.EnableIpRateLimit`         | bool              | true                       | 是否基于 IP 限流               |
+| `RateLimit.TooManyRequestsStatusCode` | int               | 429                        | 超出限制时的响应状态码         |
+| `RateLimit.TooManyRequestsMessage`    | string            | "请求过于频繁，请稍后再试" | 超出限制时的响应消息           |
+| `RateLimit.WhitelistIPs`              | HashSet\<string\> | []                         | 白名单 IP 列表（不参与限流）   |
 
 ## 高级功能
 
@@ -502,7 +498,7 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
       "WindowSizeSeconds": 60,
       "MaxRequestsPerWindow": 100,
       "EnableIpRateLimit": true,
-      "WhitelistIPs": [ "127.0.0.1", "::1" ]
+      "WhitelistIPs": ["127.0.0.1", "::1"]
     }
   }
 }
@@ -696,16 +692,19 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 本库支持所有飞书开放平台的事件类型。常见事件类型包括：
 
 ### 消息事件
+
 - `im.message.receive_v1` - 接收消息事件
 - `im.message.recalled_v1` - 消息撤回事件
 
 ### 群聊事件
+
 - `im.chat.member_user.added_v1` - 用户加入群聊
 - `im.chat.member_user.withdrawn_v1` - 用户离开群聊
 - `im.chat.disbanded_v1` - 群聊解散
 - `im.chat.updated_v1` - 群信息变更
 
 ### 通讯录事件
+
 - `contact.user.created_v3` - 员工入职
 - `contact.user.updated_v3` - 员工信息变更
 - `contact.user.deleted_v3` - 员工离职
@@ -714,11 +713,13 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 - `contact.department.deleted_v3` - 部门删除
 
 ### 审批事件
+
 - `approval.approval.approved_v1` - 审批通过
 - `approval.approval.rejected_v1` - 审批拒绝
 - `approval.approval.updated_v1` - 审批更新
 
 ### 任务事件
+
 - `task.task.created_v1` - 任务创建
 - `task.task.updated_v1` - 任务更新
 
@@ -797,9 +798,9 @@ app.Run();
 ```json
 {
   "FeishuWebhook": {
-    "HealthCheckUnhealthyFailureRateThreshold": 0.1,  // 不健康阈值（10%）
-    "HealthCheckDegradedFailureRateThreshold": 0.05,  // 降级阈值（5%）
-    "HealthCheckMinEventsThreshold": 10  // 最小事件数
+    "HealthCheckUnhealthyFailureRateThreshold": 0.1, // 不健康阈值（10%）
+    "HealthCheckDegradedFailureRateThreshold": 0.05, // 降级阈值（5%）
+    "HealthCheckMinEventsThreshold": 10 // 最小事件数
   }
 }
 ```
@@ -852,10 +853,10 @@ public class RobustEventHandler : IFeishuEventHandler
         try
         {
             _logger.LogInformation("开始处理事件: {EventId}", eventData.EventId);
-            
+
             // 你的业务逻辑
             await ProcessBusinessLogicAsync(eventData, cancellationToken);
-            
+
             _logger.LogInformation("事件处理完成: {EventId}", eventData.EventId);
         }
         catch (OperationCanceledException)
@@ -870,7 +871,7 @@ public class RobustEventHandler : IFeishuEventHandler
             // 可以选择记录到失败队列或告警系统
         }
     }
-    
+
     private async Task ProcessBusinessLogicAsync(EventData eventData, CancellationToken cancellationToken)
     {
         // 实际业务逻辑
@@ -889,11 +890,11 @@ public async Task HandleAsync(EventData eventData, CancellationToken cancellatio
     // ✅ 正确：使用异步 API 并传递取消令牌
     await ProcessMessageAsync(eventData, cancellationToken);
     await SaveToDatabaseAsync(eventData, cancellationToken);
-    
+
     // ❌ 错误：不要使用阻塞调用
     // var result = ProcessMessageAsync(eventData).Result;
     // ProcessMessageAsync(eventData).Wait();
-    
+
     // ✅ 正确：尊重取消令牌
     cancellationToken.ThrowIfCancellationRequested();
 }
@@ -1185,15 +1186,15 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 ### 常用配置项速查
 
-| 配置项 | 默认值 | 说明 |
-|--------|--------|------|
-| `RoutePrefix` | `"feishu/Webhook"` | Webhook 路由前缀 |
-| `VerificationToken` | - | 验证令牌（必填） |
-| `EncryptKey` | - | 加密密钥（32字节） |
-| `MaxConcurrentEvents` | `10` | 最大并发事件数 |
-| `EventHandlingTimeoutMs` | `30000` | 事件处理超时（毫秒） |
-| `EnableBackgroundProcessing` | `false` | 后台处理模式 |
-| `EnablePerformanceMonitoring` | `false` | 性能监控 |
+| 配置项                        | 默认值             | 说明                 |
+| ----------------------------- | ------------------ | -------------------- |
+| `RoutePrefix`                 | `"feishu/Webhook"` | Webhook 路由前缀     |
+| `VerificationToken`           | -                  | 验证令牌（必填）     |
+| `EncryptKey`                  | -                  | 加密密钥（32字节）   |
+| `MaxConcurrentEvents`         | `10`               | 最大并发事件数       |
+| `EventHandlingTimeoutMs`      | `30000`            | 事件处理超时（毫秒） |
+| `EnableBackgroundProcessing`  | `false`            | 后台处理模式         |
+| `EnablePerformanceMonitoring` | `false`            | 性能监控             |
 
 ---
 
@@ -1229,11 +1230,11 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
     // App1 处理器
     .AddHandler<App1DepartmentEventHandler>("app1")
     .AddHandler<App1MessageEventHandler>("app1")
-    
+
     // App2 处理器
     .AddHandler<App2DepartmentEventHandler>("app2")
     .AddHandler<App2MessageEventHandler>("app2")
-    
+
     .Build();
 
 var app = builder.Build();
