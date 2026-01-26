@@ -37,9 +37,9 @@ public class RedisFeishuEventDistributedDeduplicatorWithFallbackTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ReturnsAsync(true);
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicatorWithFallback(
@@ -64,8 +64,8 @@ public class RedisFeishuEventDistributedDeduplicatorWithFallbackTests
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
                 It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                When.NotExists
+                ))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection failed"));
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicatorWithFallback(
@@ -89,9 +89,9 @@ public class RedisFeishuEventDistributedDeduplicatorWithFallbackTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection failed"));
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicatorWithFallback(
@@ -115,7 +115,7 @@ public class RedisFeishuEventDistributedDeduplicatorWithFallbackTests
         // Arrange
         var callCount = 0;
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<When>() ))
             .ReturnsAsync(() =>
             {
                 callCount++;
@@ -200,7 +200,7 @@ public class RedisFeishuEventDistributedDeduplicatorWithFallbackTests
         // Arrange
         var callCount = 0;
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<When>() ))
             .ReturnsAsync(() =>
             {
                 callCount++;
@@ -244,7 +244,7 @@ public class RedisFeishuEventDistributedDeduplicatorWithFallbackTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<When>() ))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection failed"));
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicatorWithFallback(

@@ -37,9 +37,9 @@ public class RedisFeishuNonceDistributedDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ReturnsAsync(true);
 
         var deduplicator = new RedisFeishuNonceDistributedDeduplicator(
@@ -55,8 +55,7 @@ public class RedisFeishuNonceDistributedDeduplicatorTests
             It.IsAny<RedisKey>(),
             It.IsAny<RedisValue>(),
             It.IsAny<TimeSpan?>(),
-            When.NotExists,
-            It.IsAny<CommandFlags>()), Times.Once);
+            When.NotExists), Times.Once);
     }
 
     [Fact]
@@ -67,9 +66,9 @@ public class RedisFeishuNonceDistributedDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ReturnsAsync(false);
 
         var deduplicator = new RedisFeishuNonceDistributedDeduplicator(
@@ -108,8 +107,8 @@ public class RedisFeishuNonceDistributedDeduplicatorTests
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
                 customTtl,
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                When.NotExists
+                ))
             .ReturnsAsync(true);
 
         var deduplicator = new RedisFeishuNonceDistributedDeduplicator(
@@ -125,8 +124,7 @@ public class RedisFeishuNonceDistributedDeduplicatorTests
             It.IsAny<RedisKey>(),
             It.IsAny<RedisValue>(),
             customTtl,
-            When.NotExists,
-            It.IsAny<CommandFlags>()), Times.Once);
+            When.NotExists), Times.Once);
     }
 
     [Fact]
@@ -190,9 +188,9 @@ public class RedisFeishuNonceDistributedDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection failed"));
 
         var deduplicator = new RedisFeishuNonceDistributedDeduplicator(
@@ -212,9 +210,9 @@ public class RedisFeishuNonceDistributedDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ThrowsAsync(new RedisTimeoutException("Timeout", CommandStatus.Unknown));
 
         var deduplicator = new RedisFeishuNonceDistributedDeduplicator(

@@ -37,16 +37,18 @@ public class RedisFeishuSeqIDDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ReturnsAsync(true);
         _databaseMock
             .Setup(x => x.SortedSetAddAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
                 It.IsAny<double>(),
-                It.IsAny<CommandFlags>()))
+                It.IsAny<SortedSetWhen>(),
+                It.IsAny<CommandFlags>()
+                ))
             .ReturnsAsync(true);
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -62,12 +64,12 @@ public class RedisFeishuSeqIDDeduplicatorTests
             It.IsAny<RedisKey>(),
             It.IsAny<RedisValue>(),
             It.IsAny<TimeSpan?>(),
-            When.NotExists,
-            It.IsAny<CommandFlags>()), Times.Once);
+            When.NotExists), Times.Once);
         _databaseMock.Verify(x => x.SortedSetAddAsync(
             It.IsAny<RedisKey>(),
             It.IsAny<RedisValue>(),
             It.IsAny<double>(),
+            It.IsAny<SortedSetWhen>(),
             It.IsAny<CommandFlags>()), Times.Once);
     }
 
@@ -79,9 +81,9 @@ public class RedisFeishuSeqIDDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ReturnsAsync(false);
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -103,12 +105,12 @@ public class RedisFeishuSeqIDDeduplicatorTests
             .Setup(x => x.StringSet(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .Returns(true);
         _databaseMock
-            .Setup(x => x.SortedSetAdd(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<double>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.SortedSetAdd(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<double>(), It.IsAny<SortedSetWhen>(), It.IsAny<CommandFlags>()))
             .Returns(true);
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -130,9 +132,9 @@ public class RedisFeishuSeqIDDeduplicatorTests
             .Setup(x => x.StringSet(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .Returns(false);
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -227,7 +229,7 @@ public class RedisFeishuSeqIDDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.SortedSetLength(It.IsAny<RedisKey>(), double.NegativeInfinity, double.PositiveInfinity, Exclude.None, It.IsAny<CommandFlags>()))
+            .Setup(x => x.SortedSetLength(It.IsAny<RedisKey>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<Exclude>(), It.IsAny<CommandFlags>()))
             .Returns(5);
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -249,13 +251,14 @@ public class RedisFeishuSeqIDDeduplicatorTests
         _databaseMock
             .Setup(x => x.SortedSetRangeByScore(
                 It.IsAny<RedisKey>(),
-                double.NegativeInfinity,
-                double.PositiveInfinity,
-                Exclude.None,
-                Order.Descending,
-                0,
-                1,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<double>(),
+                It.IsAny<double>(),
+                It.IsAny<Exclude>(),
+                It.IsAny<Order>(),
+                It.IsAny<long>(),
+                It.IsAny<long>(),
+                It.IsAny<CommandFlags>()
+                ))
             .Returns(new RedisValue[] { maxSeqId.ToString() });
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -276,13 +279,14 @@ public class RedisFeishuSeqIDDeduplicatorTests
         _databaseMock
             .Setup(x => x.SortedSetRangeByScore(
                 It.IsAny<RedisKey>(),
-                double.NegativeInfinity,
-                double.PositiveInfinity,
-                Exclude.None,
-                Order.Descending,
-                0,
-                1,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<double>(),
+                It.IsAny<double>(),
+                It.IsAny<Exclude>(),
+                It.IsAny<Order>(),
+                It.IsAny<long>(),
+                It.IsAny<long>(),
+                It.IsAny<CommandFlags>()
+                ))
             .Returns(Array.Empty<RedisValue>());
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -304,9 +308,9 @@ public class RedisFeishuSeqIDDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection failed"));
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(
@@ -323,7 +327,7 @@ public class RedisFeishuSeqIDDeduplicatorTests
     {
         // Arrange
         _databaseMock
-            .Setup(x => x.StringSet(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+            .Setup(x => x.StringSet(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<When>() ))
             .Throws(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection failed"));
 
         var deduplicator = new RedisFeishuSeqIDDeduplicator(

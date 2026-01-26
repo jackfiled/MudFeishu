@@ -37,7 +37,7 @@ public class RedisFeishuEventDistributedDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
+                It.IsAny<TimeSpan>(),
                 When.NotExists))
             .ReturnsAsync(true);
 
@@ -65,9 +65,9 @@ public class RedisFeishuEventDistributedDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ReturnsAsync(false);
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicator(
@@ -89,9 +89,9 @@ public class RedisFeishuEventDistributedDeduplicatorTests
             .Setup(x => x.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                It.IsAny<TimeSpan>(),
+                When.NotExists
+                ))
             .ThrowsAsync(new RedisException("Redis connection failed"));
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicator(
@@ -127,6 +127,7 @@ public class RedisFeishuEventDistributedDeduplicatorTests
     {
         // Arrange
         _databaseMock
+
             .Setup(x => x.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(false);
 
@@ -181,8 +182,8 @@ public class RedisFeishuEventDistributedDeduplicatorTests
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
                 customTtl,
-                When.NotExists,
-                It.IsAny<CommandFlags>()))
+                When.NotExists
+                ))
             .ReturnsAsync(true);
 
         var deduplicator = new RedisFeishuEventDistributedDeduplicator(
@@ -198,8 +199,7 @@ public class RedisFeishuEventDistributedDeduplicatorTests
             It.IsAny<RedisKey>(),
             It.IsAny<RedisValue>(),
             customTtl,
-            When.NotExists,
-            It.IsAny<CommandFlags>()), Times.Once);
+            When.NotExists), Times.Once);
     }
 
     [Fact]
