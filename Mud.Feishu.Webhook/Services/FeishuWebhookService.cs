@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions;
-using Mud.Feishu.Abstractions.Interceptors;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
@@ -80,7 +79,9 @@ public class FeishuWebhookService : IFeishuWebhookService
         {
             _logger.LogInformation("开始验证飞书事件订阅请求");
 
-            if (!_validator.ValidateSubscriptionRequest(request, Options.VerificationToken))
+            // 注意：这里需要传入一个有效的 token，通常应该从应用配置中获取
+            // 在多应用场景下，应该先设置当前应用键，然后验证器会自动使用对应的配置
+            if (!_validator.ValidateSubscriptionRequest(request, string.Empty))
             {
                 _logger.LogWarning("事件订阅验证失败");
                 return null;
@@ -262,12 +263,19 @@ public class FeishuWebhookService : IFeishuWebhookService
                 return false;
             }
 
+            // 在多应用场景下，应该使用提供的加密密钥
+            if (string.IsNullOrEmpty(_providedEncryptKey))
+            {
+                _logger.LogError("缺少加密密钥，无法验证签名");
+                return false;
+            }
+
             return await _validator.ValidateSignatureAsync(
                 request.Timestamp,
                 request.Nonce,
                 request.Encrypt!,
                 request.Signature,
-                _providedEncryptKey ?? Options.EncryptKey);
+                _providedEncryptKey);
         }
         catch (Exception ex)
         {
@@ -281,7 +289,14 @@ public class FeishuWebhookService : IFeishuWebhookService
     {
         try
         {
-            return await _decryptor.DecryptAsync(encryptedData, _providedEncryptKey ?? Options.EncryptKey, cancellationToken);
+            // 在多应用场景下，应该使用提供的加密密钥
+            if (string.IsNullOrEmpty(_providedEncryptKey))
+            {
+                _logger.LogError("缺少加密密钥，无法解密事件数据");
+                return null;
+            }
+
+            return await _decryptor.DecryptAsync(encryptedData, _providedEncryptKey, cancellationToken);
         }
         catch (Exception ex)
         {

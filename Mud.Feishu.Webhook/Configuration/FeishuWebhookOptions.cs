@@ -14,18 +14,7 @@ namespace Mud.Feishu.Webhook.Configuration;
 /// </summary>
 public class FeishuWebhookOptions
 {
-    /// <summary>
-    /// 应用验证 Token，用于飞书事件订阅验证
-    /// </summary>
-    [Required(ErrorMessage = "生产环境必须配置 VerificationToken")]
-    public string VerificationToken { get; set; } = string.Empty;
 
-    /// <summary>
-    /// 事件加密 Key，用于解密飞书推送的事件数据
-    /// </summary>
-    [Required(ErrorMessage = "启用请求体签名验证时必须配置 EncryptKey")]
-    [StringLength(32, ErrorMessage = "EncryptKey 长度必须为 32 字符", MinimumLength = 32)]
-    public string EncryptKey { get; set; } = string.Empty;
 
     /// <summary>
     /// Webhook 路由前缀
@@ -155,15 +144,6 @@ public class FeishuWebhookOptions
     /// </summary>
     public void Validate()
     {
-        if (string.IsNullOrEmpty(VerificationToken) && EnforceHeaderSignatureValidation)
-            throw new InvalidOperationException("生产环境必须配置 VerificationToken");
-
-        if (string.IsNullOrEmpty(EncryptKey) && EnableBodySignatureValidation)
-            throw new InvalidOperationException("启用请求体签名验证时必须配置 EncryptKey");
-
-        if (!string.IsNullOrEmpty(EncryptKey) && EncryptKey.Length != 32)
-            throw new InvalidOperationException("EncryptKey 长度必须为 32 字符");
-
         if (EventHandlingTimeoutMs < 1000)
             throw new InvalidOperationException("EventHandlingTimeoutMs 必须至少为 1000 毫秒");
 
@@ -230,13 +210,8 @@ public class FeishuWebhookOptions
     /// </summary>
     public override string ToString()
     {
-        return $"FeishuWebhookOptions {{ RoutePrefix: {RoutePrefix}, VerificationToken: {MaskSensitiveData(VerificationToken)}, EncryptKey: {MaskSensitiveData(EncryptKey)}, EventHandlingTimeoutMs: {EventHandlingTimeoutMs}, MaxConcurrentEvents: {MaxConcurrentEvents}, EnforceHeaderSignatureValidation: {EnforceHeaderSignatureValidation} }}";
+        return $"FeishuWebhookOptions {{ RoutePrefix: {RoutePrefix}, EventHandlingTimeoutMs: {EventHandlingTimeoutMs}, MaxConcurrentEvents: {MaxConcurrentEvents}, EnforceHeaderSignatureValidation: {EnforceHeaderSignatureValidation}, Apps: {Apps.Count} }}";
     }
 
-    private static string MaskSensitiveData(string? data)
-    {
-        if (string.IsNullOrEmpty(data) || data!.Length <= 4)
-            return "****";
-        return $"{data.Substring(0, 2)}****{data.Substring(data.Length - 2)}";
-    }
+
 }

@@ -121,22 +121,6 @@ public class ConfigurationValidationService
                 result.AddError($"应用 {appKey} 的加密密钥长度必须为 32 字符，当前长度: {appConfig.EncryptKey.Length}");
             }
 
-            // 检查与全局配置的冲突
-            if (globalOptions != null)
-            {
-                if (!string.IsNullOrEmpty(globalOptions.VerificationToken) &&
-                    appConfig.VerificationToken == globalOptions.VerificationToken)
-                {
-                    result.AddWarning($"应用 {appKey} 的验证 Token 与全局配置相同，建议使用不同的 Token");
-                }
-
-                if (!string.IsNullOrEmpty(globalOptions.EncryptKey) &&
-                    appConfig.EncryptKey == globalOptions.EncryptKey)
-                {
-                    result.AddWarning($"应用 {appKey} 的加密密钥与全局配置相同，建议使用不同的密钥");
-                }
-            }
-
             _logger.LogDebug("应用 {AppKey} 配置验证完成，错误数: {ErrorCount}, 警告数: {WarningCount}",
                 appKey, result.Errors.Count, result.Warnings.Count);
         }

@@ -21,15 +21,6 @@
 
 ---
 
-> 📢 **配置系统重大更新 (v2.0.0)**
-> - ✅ 新增 `RetryDelayMs` 参数，统一 HTTP 和 Token 重试延迟
-> - ✅ `IsDefault` 参数支持自动推断，减少配置负担
-> - ✅ 移除 `FeishuOptions`，全面使用 `FeishuAppConfig` 多应用架构
-> - ✅ `TokenRefreshThreshold` 支持应用级配置
-> - 📖 详见 [配置迁移指南](docs/Configuration-Migration-Guide.md)
-
----
-
 ## 📖 项目简介
 
 MudFeishu 是一套现代化的企业级 .NET 飞书 API 集成 SDK，提供完整的 HTTP API 调用、WebSocket 实时事件订阅和 Webhook 事件处理能力。SDK 采用策略模式和工厂模式设计，内置自动令牌管理、智能重试、高性能缓存等企业级特性，大幅简化飞书应用的开发难度。
@@ -176,11 +167,21 @@ dotnet add package Mud.Feishu.Redis
     "EnableLogging": true
   },
   "Webhook": {
-    "VerificationToken": "your_verification_token",
-    "EncryptKey": "your_encrypt_key_32_bytes_long",
-    "RoutePrefix": "feishu/webhook",
+    "GlobalRoutePrefix": "feishu",
     "EnableRequestLogging": true,
-    "MaxConcurrentEvents": 10
+    "MaxConcurrentEvents": 10,
+    "Apps": {
+      "app1": {
+        "AppKey": "cli_a1b2c3d4e5f6g7h8",
+        "VerificationToken": "your_app1_verification_token",
+        "EncryptKey": "your_app1_encrypt_key_32_bytes_long"
+      },
+      "app2": {
+        "AppKey": "cli_h8g7f6e5d4c3b2a1",
+        "VerificationToken": "your_app2_verification_token",
+        "EncryptKey": "your_app2_encrypt_key_32_bytes_long"
+      }
+    }
   }
 }
 ```
@@ -384,7 +385,7 @@ sequenceDiagram
     participant Middleware as 中间件
     participant Handler as 事件处理器
 
-    Feishu->>Middleware: 1. POST /feishu/webhook
+    Feishu->>Middleware: 1. POST /feishu/{AppKey}
     Middleware->>Middleware: 2. 验证签名
     Middleware->>Middleware: 3. 解密内容
     Middleware->>Webhook: 4. 路由事件
