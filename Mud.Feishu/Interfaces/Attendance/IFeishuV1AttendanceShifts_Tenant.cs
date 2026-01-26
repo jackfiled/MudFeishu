@@ -67,7 +67,7 @@ public interface IFeishuTenantV1AttendanceShifts : IFeishuAppContextSwitcher
 
 
     /// <summary>
-    /// 分布查询所有班次。
+    /// 分页查询所有班次。
     /// <para>对应功能为飞书人事管理后台中假勤设置-班次配置中的翻页查询所有班次功能，展示班次名称、打卡规则、弹性班次规则、休息规则等</para>
     /// </summary>
     /// <param name="page_size">分页大小，即本次请求所返回的用户信息列表内的最大条目数。默认值：10</param>

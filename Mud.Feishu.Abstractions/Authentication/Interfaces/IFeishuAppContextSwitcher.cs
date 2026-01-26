@@ -26,13 +26,11 @@ public interface IFeishuAppContextSwitcher
     /// <remarks>
     /// <para>根据应用键切换到对应的飞书应用上下文。</para>
     /// <para>应用键是在配置中定义的唯一标识，如 "default", "hr-app" 等。</para>
-    /// 
     /// <para>切换上下文后，后续的API调用将使用该应用的配置、凭证和HTTP客户端。</para>
     /// <para>每个应用上下文都是完全独立的，包含该应用的所有资源和配置。</para>
     /// </remarks>
     /// <exception cref="KeyNotFoundException">当指定的应用键不存在时抛出</exception>
     /// <exception cref="InvalidOperationException">当应用上下文切换失败时抛出</exception>
-    [IgnoreImplement]
     IMudAppContext UseApp(string appKey);
 
     /// <summary>
@@ -48,6 +46,5 @@ public interface IFeishuAppContextSwitcher
     /// </remarks>
     /// <exception cref="KeyNotFoundException">当指定的应用键不存在时抛出</exception>
     /// <exception cref="InvalidOperationException">当应用上下文切换失败时抛出</exception>
-    [IgnoreImplement]
     IMudAppContext UseDefaultApp();
 }
