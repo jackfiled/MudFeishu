@@ -1,12 +1,11 @@
 // -----------------------------------------------------------------------
-//  作者：Mud Studio  版权所有 (c) Mud Studio 2025
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
-//  本项目主要遵循 MIT 许可证进行分发和使用。许可证 位于源代码树根目录中的 LICENSE-MIT 文件。
-//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions;
-using Mud.Feishu.Abstractions.Interceptors;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Exceptions;
 using Mud.Feishu.Webhook.Models;
@@ -31,27 +30,27 @@ public class FeishuMultiAppMiddleware
     private readonly ILogger<FeishuMultiAppMiddleware> _logger;
     private readonly IOptionsMonitor<FeishuWebhookOptions> _options;
     private readonly FeishuWebhookHandlerRegistry _handlerRegistry;
-    private readonly FeishuWebhookInterceptorRegistry _interceptorRegistry;
 
     /// <summary>
     /// 获取当前配置选项（支持热更新）
     /// </summary>
     private FeishuWebhookOptions Options => _options.CurrentValue;
 
+    /// <summary>
+    /// 构造函数
+    /// </summary>
     public FeishuMultiAppMiddleware(
         RequestDelegate next,
         IServiceScopeFactory scopeFactory,
         ILogger<FeishuMultiAppMiddleware> logger,
         IOptionsMonitor<FeishuWebhookOptions> options,
-        FeishuWebhookHandlerRegistry handlerRegistry,
-        FeishuWebhookInterceptorRegistry interceptorRegistry)
+        FeishuWebhookHandlerRegistry handlerRegistry)
     {
         _next = next;
         _scopeFactory = scopeFactory;
         _logger = logger;
         _options = options;
         _handlerRegistry = handlerRegistry;
-        _interceptorRegistry = interceptorRegistry;
 
         // 监听配置变更
         _options.OnChange((newOptions, name) =>
@@ -114,6 +113,12 @@ public class FeishuMultiAppMiddleware
         });
     }
 
+    /// <summary>
+    /// 飞书多应用 Webhook 中间件
+    /// 支持根据路径中的 AppKey 动态路由到不同应用的 Webhook 处理
+    /// </summary>
+    /// <param name="context">当前 HTTP 上下文</param>
+    /// <returns></returns>
     public async Task InvokeAsync(HttpContext context)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -144,7 +149,6 @@ public class FeishuMultiAppMiddleware
         }
 
         // 获取应用配置
-        var appConfig = Options.GetAppConfig(appKey ?? string.Empty)!;
         var requestId = RequestIdHelper.GetOrGenerateRequestId(context);
         var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
@@ -218,25 +222,29 @@ public class FeishuMultiAppMiddleware
     /// /feishu/app1 -> app1
     /// /feishu/app2/events -> app2
     /// </example>
+    /// <param name="path">HTTP 请求路径，必须以 '/' 开头</param>
+    /// <returns>提取的 AppKey；若路径不符合格式，则返回 null</returns>
     private string? ExtractAppKeyFromPath(string path)
     {
-        var globalPrefix = $"/{Options.GlobalRoutePrefix}";
+        // 预期前缀如 "/feishu"
+        var prefix = "/" + Options.GlobalRoutePrefix;
 
-        if (!path.StartsWith(globalPrefix, StringComparison.OrdinalIgnoreCase))
-        {
+        if (!path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             return null;
-        }
 
-        var remainingPath = path.Substring(globalPrefix.Length).Trim('/');
-        var segments = remainingPath.Split('/');
+        var pos = prefix.Length;
+        if (pos >= path.Length)
+            return null; // 路径正好等于前缀，无 AppKey
 
-        if (segments.Length > 0 && !string.IsNullOrEmpty(segments[0]))
-        {
-            return segments[0];
-        }
+        // 查找第一个 '/' 之后的结束位置
+        var end = path.IndexOf('/', pos);
+        if (end == -1)
+            end = path.Length;
 
-        return null;
+        var appKey = path.Substring(pos, end - pos);
+        return string.IsNullOrEmpty(appKey) ? null : appKey;
     }
+
 
     /// <summary>
     /// 处理 Webhook 请求
@@ -491,7 +499,7 @@ public class FeishuMultiAppMiddleware
             }
         };
 
-        var json = JsonSerializer.Serialize(errorResponse, Configuration.FeishuJsonOptions.Serialize);
+        var json = JsonSerializer.Serialize(errorResponse, FeishuJsonOptions.Serialize);
         await context.Response.WriteAsync(json);
     }
 }
