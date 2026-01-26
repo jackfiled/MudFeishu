@@ -13,6 +13,12 @@ using Mud.Feishu.WebSocket.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
 // 配置Redis分布式去重服务
 builder.Services.AddFeishuRedisDeduplicators(builder.Configuration);
 

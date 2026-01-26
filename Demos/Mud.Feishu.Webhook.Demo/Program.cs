@@ -14,6 +14,12 @@ using Mud.Feishu.Webhook.Demo.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
 // 注册演示服务
 builder.Services.AddSingleton<DemoEventService>();
 
