@@ -299,7 +299,7 @@ public class DependencyInjectionTests
         var mockSection = new Mock<IConfigurationSection>();
 
         mockConfiguration.Setup(x => x.GetSection("FeishuWebhook")).Returns(mockSection.Object);
-        mockSection.Setup(x => x["RoutePrefix"]).Returns("feishu/webhook");
+        mockSection.Setup(x => x["GlobalRoutePrefix"]).Returns("feishu");
         mockSection.Setup(x => x["TimestampToleranceSeconds"]).Returns("300");
         mockSection.Setup(x => x["EnforceHeaderSignatureValidation"]).Returns("true");
 

@@ -54,6 +54,9 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 var app = builder.Build();
 
+// Add Feishu Webhook rate limit middleware (optional, recommended for production)
+app.UseFeishuRateLimit();
+
 // Add Feishu Webhook middleware
 app.UseFeishuWebhook();
 
@@ -61,6 +64,8 @@ app.Run();
 ```
 
 > 💡 **Note**: Webhook service uses middleware mode, automatically registering endpoints via `app.UseFeishuWebhook()`. Default route is `/feishu/{AppKey}`, where `{AppKey}` is the application key.
+> 
+> ⚠️ **Important**: Rate limit middleware should be registered before Webhook middleware to ensure rate limiting policies are correctly applied.
 
 ### 3. Complete Configuration (Add Multiple Event Handlers)
 
@@ -471,6 +476,22 @@ Built-in sliding window rate limiting middleware to prevent malicious requests:
     }
   }
 }
+```
+
+**Multi-App Support**: Rate limiting is based on `(AppKey, IP)` dimension, so requests from different apps won't affect each other.
+
+**Usage**:
+
+```csharp
+var app = builder.Build();
+
+// Add Feishu Webhook rate limit middleware (optional, recommended for production)
+app.UseFeishuRateLimit();
+
+// Add Feishu Webhook middleware
+app.UseFeishuWebhook();
+
+app.Run();
 ```
 
 ### Background Processing Mode

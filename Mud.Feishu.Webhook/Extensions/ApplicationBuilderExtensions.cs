@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -23,5 +23,23 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseFeishuWebhook(this IApplicationBuilder builder)
     {
         return builder.UseMiddleware<FeishuMultiAppMiddleware>();
+    }
+
+    /// <summary>
+    /// 使用飞书 Webhook 限流中间件
+    /// </summary>
+    /// <param name="builder">应用程序构建器</param>
+    /// <returns>应用程序构建器</returns>
+    /// <remarks>
+    /// 使用示例：
+    /// <code>
+    /// app.UseFeishuRateLimit()
+    ///    .UseFeishuWebhook();
+    /// </code>
+    /// 注意：限流中间件应该在 Webhook 中间件之前注册
+    /// </remarks>
+    public static IApplicationBuilder UseFeishuRateLimit(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<FeishuRateLimitMiddleware>();
     }
 }

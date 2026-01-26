@@ -138,16 +138,6 @@ public class ConfigurationValidationService
     /// </summary>
     private static void ValidateBasicConfiguration(FeishuWebhookOptions options, ConfigurationValidationResult result)
     {
-        // 验证路由前缀
-        if (string.IsNullOrEmpty(options.RoutePrefix))
-        {
-            result.AddWarning("路由前缀为空，将使用默认值");
-        }
-        else if (options.RoutePrefix.Contains("//"))
-        {
-            result.AddError("路由前缀不能包含连续的斜杠");
-        }
-
         // 验证全局路由前缀
         if (string.IsNullOrEmpty(options.GlobalRoutePrefix))
         {

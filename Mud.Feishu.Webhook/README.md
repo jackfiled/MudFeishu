@@ -61,6 +61,9 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration)
 
 var app = builder.Build();
 
+// 添加飞书Webhook限流中间件（可选，推荐在生产环境启用）
+app.UseFeishuRateLimit();
+
 // 添加飞书Webhook中间件
 app.UseFeishuWebhook();
 
@@ -68,6 +71,8 @@ app.Run();
 ```
 
 > 💡 **说明**：Webhook 服务使用中间件模式，通过 `app.UseFeishuWebhook()` 自动注册端点。默认路由为 `/feishu/{AppKey}`，其中 `{AppKey}` 为应用键。
+> 
+> ⚠️ **注意**：限流中间件应该在 Webhook 中间件之前注册，以确保限流策略能够正确应用。
 
 ### 3. 完整配置（添加多个事件处理器）
 
@@ -502,6 +507,22 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
     }
   }
 }
+```
+
+**多应用支持**：限流策略基于 `(AppKey, IP)` 维度，不同应用的请求不会相互影响。
+
+**使用方式**：
+
+```csharp
+var app = builder.Build();
+
+// 添加飞书Webhook限流中间件（可选，推荐在生产环境启用）
+app.UseFeishuRateLimit();
+
+// 添加飞书Webhook中间件
+app.UseFeishuWebhook();
+
+app.Run();
 ```
 
 ### 后台处理模式

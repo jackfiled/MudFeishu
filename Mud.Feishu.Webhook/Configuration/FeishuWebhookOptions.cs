@@ -5,8 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using System.ComponentModel.DataAnnotations;
-
 namespace Mud.Feishu.Webhook.Configuration;
 
 /// <summary>
@@ -15,9 +13,9 @@ namespace Mud.Feishu.Webhook.Configuration;
 public class FeishuWebhookOptions
 {
     /// <summary>
-    /// Webhook 路由前缀
+    /// 全局路由前缀（所有应用共享的基础路径）
     /// </summary>
-    public string RoutePrefix { get; set; } = "feishu/Webhook";
+    public string GlobalRoutePrefix { get; set; } = "feishu";
 
     /// <summary>
     /// 是否自动注册 Webhook 端点
@@ -132,10 +130,6 @@ public class FeishuWebhookOptions
     /// </summary>
     public Dictionary<string, FeishuAppWebhookOptions> Apps { get; set; } = new();
 
-    /// <summary>
-    /// 全局路由前缀（所有应用共享的基础路径）
-    /// </summary>
-    public string GlobalRoutePrefix { get; set; } = "feishu";
 
     /// <summary>
     /// 验证配置的有效性
@@ -208,7 +202,7 @@ public class FeishuWebhookOptions
     /// </summary>
     public override string ToString()
     {
-        return $"FeishuWebhookOptions {{ RoutePrefix: {RoutePrefix}, EventHandlingTimeoutMs: {EventHandlingTimeoutMs}, MaxConcurrentEvents: {MaxConcurrentEvents}, EnforceHeaderSignatureValidation: {EnforceHeaderSignatureValidation}, Apps: {Apps.Count} }}";
+        return $"FeishuWebhookOptions {{ GlobalRoutePrefix: {GlobalRoutePrefix}, EventHandlingTimeoutMs: {EventHandlingTimeoutMs}, MaxConcurrentEvents: {MaxConcurrentEvents}, EnforceHeaderSignatureValidation: {EnforceHeaderSignatureValidation}, Apps: {Apps.Count} }}";
     }
 
 

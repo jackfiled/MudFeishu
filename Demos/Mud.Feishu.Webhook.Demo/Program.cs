@@ -56,6 +56,9 @@ app.MapDiagnostics();
 // 添加测试端点（用于捕获飞书回调数据）
 app.MapTestEndpoints();
 
+// 添加飞书Webhook限流中间件（可选，推荐在生产环境启用）
+app.UseFeishuRateLimit();
+
 // 添加飞书Webhook中间件（自动注册多应用端点）
 app.UseFeishuWebhook();
 

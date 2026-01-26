@@ -395,9 +395,6 @@ public class FeishuWebhookServiceBuilder
             options.AutoRegisterEndpoint = _autoRegisterEndpoint;
 
             // 如果用户没有配置，使用默认配置
-            if (string.IsNullOrEmpty(options.RoutePrefix))
-                options.RoutePrefix = "feishu/Webhook";
-
             if (options.AllowedHttpMethods == null || !options.AllowedHttpMethods.Any())
                 options.AllowedHttpMethods = new HashSet<string> { "POST" };
 
