@@ -20,7 +20,6 @@ namespace Mud.Feishu;
 [Token(TokenType.TenantAccessToken)]
 public interface IFeishuTenantV1AttendanceUserDailyShifts
 {
-
     /// <summary>
     /// 创建或修改排班表
     /// </summary>
@@ -48,4 +47,20 @@ public interface IFeishuTenantV1AttendanceUserDailyShifts
       [Body] QueryUserDailyShiftsRequest userDailyShiftRequest,
       [Query("employee_type")] string employee_type = Consts.User_Id_Type,
       CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// <para>创建或修改临时排班</para>
+    /// <para>可在排班表上创建或修改临时班次，并用于排班。目前支持按日期对一位或多位人员进行排临时班次。</para>
+    /// <para>临时排班为付费功能，如需使用请联系飞书的客户经理。</para>
+    /// </summary>
+    /// <param name="userTmpDailyShiftRequest">创建或修改临时排班请求体</param>
+    /// <param name="employee_type">请求体中的 user_id 和响应体中的 user_id 的员工ID类型。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/attendance/v1/user_daily_shifts/batch_create_temp")]
+    Task<FeishuApiResult<UserTmpDailyShiftResult>?> CreateOrUpdateTempShiftsAsync(
+       [Body] UserTmpDailyShiftRequest userTmpDailyShiftRequest,
+       [Query("employee_type")] string employee_type = Consts.User_Id_Type,
+       CancellationToken cancellationToken = default);
 }
