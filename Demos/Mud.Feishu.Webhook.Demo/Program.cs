@@ -61,6 +61,7 @@ builder.Services.CreateFeishuWebhookServiceBuilder(builder.Configuration, "Feish
     // 为 App2 添加处理器和拦截器（审批相关事件）
     .AddHandler<App2ApprovalPassedEventHandler>("app2")
     .AddHandler<App2ApprovalRejectedEventHandler>("app2")
+    .AddHandler<App2DepartmentDeleteEventHandler>("app2") // App2 部门删除事件处理器
     .AddInterceptor<App2SpecificInterceptor>("app2") // App2 特定的拦截器
 
     .Build();
