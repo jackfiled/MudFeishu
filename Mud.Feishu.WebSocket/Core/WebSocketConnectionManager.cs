@@ -7,6 +7,7 @@
 
 using Microsoft.Extensions.Logging;
 using Mud.Feishu.Abstractions.Utilities;
+using Mud.Feishu.WebSocket.Core;
 using Mud.Feishu.WebSocket.SocketEventArgs;
 using System.Net.WebSockets;
 
@@ -28,6 +29,8 @@ public class WebSocketConnectionManager : IDisposable
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed = false;
     private byte[]? _receiveBuffer;
+    private readonly ErrorRecoveryStrategy _errorRecoveryStrategy;
+    private readonly ILoggerFactory _loggerFactory;
 
     /// <summary>
     /// WebSocket连接成功建立时触发的事件
@@ -61,13 +64,17 @@ public class WebSocketConnectionManager : IDisposable
     /// </summary>
     /// <param name="logger">日志记录器实例</param>
     /// <param name="options">WebSocket配置选项，如果为null则使用默认配置</param>
+    /// <param name="loggerFactory">日志工厂，用于创建ErrorRecoveryStrategy的日志记录器</param>
     /// <exception cref="ArgumentNullException">当logger为null时抛出</exception>
     public WebSocketConnectionManager(
         ILogger<WebSocketConnectionManager> logger,
-        FeishuWebSocketOptions options)
+        FeishuWebSocketOptions options,
+        ILoggerFactory loggerFactory)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? new FeishuWebSocketOptions();
+        _loggerFactory = loggerFactory ?? Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
+        _errorRecoveryStrategy = new ErrorRecoveryStrategy(_loggerFactory.CreateLogger<ErrorRecoveryStrategy>());
     }
 
     /// <summary>
@@ -386,16 +393,35 @@ public class WebSocketConnectionManager : IDisposable
     /// </remarks>
     private void OnError(Exception ex, string context)
     {
-        Error?.Invoke(this, new WebSocketErrorEventArgs
+        // 使用错误恢复策略分析异常
+        var recoveryResult = _errorRecoveryStrategy.AnalyzeError(ex, context);
+
+        var errorArgs = new WebSocketErrorEventArgs
         {
             Exception = ex,
             ErrorMessage = $"{context}: {ex.Message}",
-            ErrorType = ex.GetType().Name,
+            ErrorType = recoveryResult.ErrorType,
             ConnectionState = _webSocket?.State ?? WebSocketState.None,
             IsNetworkError = ex is WebSocketException || ex is IOException,
-            IsAuthError = ex.Message.Contains("auth") ||
-                          ex.Message.Contains("认证")
-        });
+            IsAuthError = ex.Message.Contains("auth") || ex.Message.Contains("认证"),
+            IsRecoverable = recoveryResult.IsRecoverable,
+            RecoveryRecommendation = recoveryResult.RecoveryRecommendation,
+            SuggestedDelay = recoveryResult.SuggestedDelay
+        };
+
+        // 记录错误恢复分析结果
+        if (recoveryResult.IsRecoverable)
+        {
+            _logger.LogWarning("可恢复错误: {ErrorType} - {Recommendation}, 建议延迟: {Delay}",
+                recoveryResult.ErrorType, recoveryResult.RecoveryRecommendation, recoveryResult.SuggestedDelay);
+        }
+        else
+        {
+            _logger.LogError("不可恢复错误: {ErrorType} - {Recommendation}",
+                recoveryResult.ErrorType, recoveryResult.RecoveryRecommendation);
+        }
+
+        Error?.Invoke(this, errorArgs);
     }
 
     /// <summary>

@@ -27,6 +27,12 @@ public class AuthenticationManager
     private int _totalAuthFailures = 0;
     private DateTime _lastAuthFailureTime = DateTime.MinValue;
 
+    // 认证失败冷却期管理
+    private readonly Dictionary<string, DateTime> _authFailureCooldowns = new();
+    private readonly object _cooldownLock = new();
+    private const int MaxAuthFailuresBeforeCooldown = 3;
+    private static readonly TimeSpan AuthFailureCooldownPeriod = TimeSpan.FromMinutes(5);
+
     /// <summary>
     /// 认证成功事件
     /// </summary>
@@ -63,12 +69,20 @@ public class AuthenticationManager
     }
 
     /// <summary>
-    /// 发送认证消息（带重试机制）
+    /// 发送认证消息（带重试机制和冷却期检查）
     /// </summary>
     public async Task AuthenticateAsync(string appAccessToken, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(appAccessToken))
             throw new ArgumentException("应用访问令牌不能为空", nameof(appAccessToken));
+
+        // 检查认证冷却期
+        if (IsInAuthCooldown(appAccessToken))
+        {
+            var cooldownRemaining = GetAuthCooldownRemaining(appAccessToken);
+            _logger.LogWarning("认证失败过多，处于冷却期中，剩余时间: {CooldownRemaining}", cooldownRemaining);
+            throw new InvalidOperationException($"认证失败过多，请在 {cooldownRemaining:mm\\:ss} 后重试");
+        }
 
         await _authLock.WaitAsync(cancellationToken);
         try
@@ -88,12 +102,16 @@ public class AuthenticationManager
                 {
                     _authRetryCount = attempt;
                     await AuthenticateInternalAsync(appAccessToken, cancellationToken);
-                    // 认证成功，退出重试循环
+                    // 认证成功，清除冷却期
+                    ClearAuthCooldown(appAccessToken);
                     break;
                 }
                 catch (Exception ex) when (attempt < maxRetries)
                 {
                     _logger.LogWarning(ex, "WebSocket认证失败（第 {Attempt} 次尝试），准备重试...", attempt + 1);
+
+                    // 记录认证失败
+                    RecordAuthFailure(appAccessToken);
 
                     // 计算退避延迟时间：baseDelay * (2^attempt)，最大不超过 MaxReconnectDelayMs
                     var baseDelay = TimeSpan.FromMilliseconds(_options.ReconnectDelayMs);
@@ -250,7 +268,7 @@ public class AuthenticationManager
         catch (Exception ex)
         {
             _isAuthenticated = false;
-           _logger.LogError(ex, "处理认证响应时发生错误");
+            _logger.LogError(ex, "处理认证响应时发生错误");
 
             var errorArgs = new WebSocketErrorEventArgs
             {
@@ -288,6 +306,108 @@ public class AuthenticationManager
     /// 获取最近一次认证失败时间
     /// </summary>
     public DateTime LastAuthFailureTime => _lastAuthFailureTime;
+
+    /// <summary>
+    /// 检查是否处于认证冷却期
+    /// </summary>
+    /// <param name="appAccessToken">应用访问令牌（用作标识）</param>
+    /// <returns>是否处于冷却期</returns>
+    private bool IsInAuthCooldown(string appAccessToken)
+    {
+        lock (_cooldownLock)
+        {
+            var tokenHash = GetTokenHash(appAccessToken);
+            if (_authFailureCooldowns.TryGetValue(tokenHash, out var cooldownEnd))
+            {
+                if (DateTime.UtcNow < cooldownEnd)
+                {
+                    return true;
+                }
+                else
+                {
+                    // 冷却期已过，移除记录
+                    _authFailureCooldowns.Remove(tokenHash);
+                }
+            }
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 获取认证冷却期剩余时间
+    /// </summary>
+    /// <param name="appAccessToken">应用访问令牌</param>
+    /// <returns>剩余冷却时间</returns>
+    private TimeSpan GetAuthCooldownRemaining(string appAccessToken)
+    {
+        lock (_cooldownLock)
+        {
+            var tokenHash = GetTokenHash(appAccessToken);
+            if (_authFailureCooldowns.TryGetValue(tokenHash, out var cooldownEnd))
+            {
+                var remaining = cooldownEnd - DateTime.UtcNow;
+                return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+            }
+            return TimeSpan.Zero;
+        }
+    }
+
+    /// <summary>
+    /// 记录认证失败
+    /// </summary>
+    /// <param name="appAccessToken">应用访问令牌</param>
+    private void RecordAuthFailure(string appAccessToken)
+    {
+        lock (_cooldownLock)
+        {
+            _totalAuthFailures++;
+            _lastAuthFailureTime = DateTime.UtcNow;
+
+            // 如果连续失败次数达到阈值，设置冷却期
+            if (_totalAuthFailures >= MaxAuthFailuresBeforeCooldown)
+            {
+                var tokenHash = GetTokenHash(appAccessToken);
+                var cooldownEnd = DateTime.UtcNow.Add(AuthFailureCooldownPeriod);
+                _authFailureCooldowns[tokenHash] = cooldownEnd;
+
+                _logger.LogWarning("认证失败次数达到阈值 {MaxFailures}，设置冷却期至 {CooldownEnd}",
+                    MaxAuthFailuresBeforeCooldown, cooldownEnd);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 清除认证冷却期
+    /// </summary>
+    /// <param name="appAccessToken">应用访问令牌</param>
+    private void ClearAuthCooldown(string appAccessToken)
+    {
+        lock (_cooldownLock)
+        {
+            var tokenHash = GetTokenHash(appAccessToken);
+            if (_authFailureCooldowns.Remove(tokenHash))
+            {
+                _logger.LogDebug("已清除认证冷却期");
+            }
+            // 认证成功后重置失败计数
+            _totalAuthFailures = 0;
+        }
+    }
+
+    /// <summary>
+    /// 获取令牌哈希（用于冷却期标识，避免在内存中存储完整令牌）
+    /// </summary>
+    /// <param name="appAccessToken">应用访问令牌</param>
+    /// <returns>令牌哈希</returns>
+    private static string GetTokenHash(string appAccessToken)
+    {
+        // 使用令牌的哈希值作为标识，避免在内存中存储完整令牌
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(appAccessToken));
+        var base64Hash = Convert.ToBase64String(hashBytes);
+        // 兼容netstandard2.0，使用Substring代替Range
+        return base64Hash.Length > 16 ? base64Hash.Substring(0, 16) : base64Hash;
+    }
 
     /// <summary>
     /// 记录详细的认证错误信息

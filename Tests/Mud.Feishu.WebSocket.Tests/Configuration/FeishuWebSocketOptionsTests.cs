@@ -106,7 +106,7 @@ public class FeishuWebSocketOptionsTests
         options.HeartbeatIntervalMs = 500;
 
         // Assert
-        options.HeartbeatIntervalMs.Should().Be(1000, "minimum value should be enforced");
+        options.HeartbeatIntervalMs.Should().Be(5000, "minimum value should be enforced to 5000ms for improved stability");
     }
 
     [Fact]

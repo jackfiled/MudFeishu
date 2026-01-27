@@ -50,7 +50,17 @@ public class WebSocketErrorEventArgs : EventArgs
     public bool IsAuthError { get; set; }
 
     /// <summary>
-    /// 是否可恢复。
+    /// 是否可恢复
     /// </summary>
-    public bool IsRecoverable{ get; set; }
+    public bool IsRecoverable { get; set; }
+
+    /// <summary>
+    /// 恢复建议
+    /// </summary>
+    public string? RecoveryRecommendation { get; set; }
+
+    /// <summary>
+    /// 建议延迟时间
+    /// </summary>
+    public TimeSpan SuggestedDelay { get; set; } = TimeSpan.FromSeconds(5);
 }

@@ -119,7 +119,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
         _onErrorFromBinary = (s, e) => Error?.Invoke(this, e);
 
         // 初始化组件
-        _connectionManager = new WebSocketConnectionManager(_loggerFactory.CreateLogger<WebSocketConnectionManager>(), _options);
+        _connectionManager = new WebSocketConnectionManager(_loggerFactory.CreateLogger<WebSocketConnectionManager>(), _options, _loggerFactory);
         _authManager = new AuthenticationManager(_loggerFactory.CreateLogger<AuthenticationManager>(), _options, (message) => SendMessageAsync(message), _sessionManager);
         _messageRouter = new MessageRouter(_loggerFactory.CreateLogger<MessageRouter>(), _options);
         _binaryProcessor = new BinaryMessageProcessor(_loggerFactory.CreateLogger<BinaryMessageProcessor>(), _connectionManager, _options, _messageRouter, _seqIdDeduplicator, _sequenceValidator);

@@ -54,12 +54,12 @@ public class FeishuWebSocketOptions
     public int InitialReceiveBufferSize { get; set; } = 4096;
 
     /// <summary>
-    /// 心跳间隔时间（毫秒），默认为30000毫秒，最小为1000毫秒
+    /// 心跳间隔时间（毫秒），默认为30000毫秒，最小为5000毫秒
     /// </summary>
     public int HeartbeatIntervalMs
     {
         get => _heartbeatIntervalMs;
-        set => _heartbeatIntervalMs = Math.Max(1000, value);
+        set => _heartbeatIntervalMs = Math.Max(5000, value); // 最小5秒，避免过于频繁的心跳
     }
 
     /// <summary>
@@ -138,8 +138,8 @@ public class FeishuWebSocketOptions
         if (InitialReceiveBufferSize < 1024)
             throw new InvalidOperationException("InitialReceiveBufferSize必须至少为1024字节");
 
-        if (HeartbeatIntervalMs < 1000)
-            throw new InvalidOperationException("HeartbeatIntervalMs必须至少为1000毫秒");
+        if (HeartbeatIntervalMs < 5000)
+            throw new InvalidOperationException("HeartbeatIntervalMs必须至少为5000毫秒");
 
         if (ConnectionTimeoutMs < 1000)
             throw new InvalidOperationException("ConnectionTimeoutMs必须至少为1000毫秒");
