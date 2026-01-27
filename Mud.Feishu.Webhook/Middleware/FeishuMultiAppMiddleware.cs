@@ -127,7 +127,7 @@ public class FeishuMultiAppMiddleware
 
         // 尝试从路径中提取 AppKey
         var appKey = ExtractAppKeyFromPath(path);
-        _logger.LogWarning("当前应用: {appKey}", appKey);
+        _logger.LogWarning("当前应用键 AppKey: {appKey}", appKey);
         if (string.IsNullOrEmpty(appKey))
         {
             await _next(context);
@@ -172,7 +172,7 @@ public class FeishuMultiAppMiddleware
         try
         {
             // 验证 HTTP 方法
-            if (context.Request.Method != "POST")
+            if (!Options.AllowedHttpMethods.Contains(context.Request.Method))
             {
                 await WriteErrorResponse(context, 405, "Method Not Allowed", requestId);
                 return;
@@ -414,13 +414,11 @@ public class FeishuMultiAppMiddleware
         {
             try
             {
-                using (var jsonDoc = JsonDocument.Parse(eventJson))
+                using var jsonDoc = JsonDocument.Parse(eventJson);
+                var root = jsonDoc.RootElement;
+                if (root.TryGetProperty("challenge", out var challengeElement))
                 {
-                    var root = jsonDoc.RootElement;
-                    if (root.TryGetProperty("challenge", out var challengeElement))
-                    {
-                        challenge = challengeElement.GetString();
-                    }
+                    challenge = challengeElement.GetString();
                 }
             }
             catch (JsonException ex)
