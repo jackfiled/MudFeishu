@@ -217,7 +217,8 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
                 }
                 else
                 {
-                    throw new FeishuException(500, $"Failed to acquire {_tokenType} after {maxRetries} retries");
+                    var errorMessage = $"Failed to acquire {_tokenType} after {maxRetries} retries: {ex.Message}";
+                    throw new FeishuException(500, errorMessage);
                 }
             }
         }

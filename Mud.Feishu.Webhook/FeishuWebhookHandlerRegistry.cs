@@ -19,7 +19,7 @@ public class FeishuWebhookHandlerRegistry
     /// </summary>
     /// <param name="appKey">应用键</param>
     /// <param name="handlerType">处理器类型</param>
-    public void Register(string appKey, Type handlerType)
+    public virtual void Register(string appKey, Type handlerType)
     {
         if (string.IsNullOrEmpty(appKey))
             throw new ArgumentException("应用键不能为空", nameof(appKey));
@@ -37,7 +37,7 @@ public class FeishuWebhookHandlerRegistry
     /// </summary>
     /// <param name="appKey">应用键</param>
     /// <returns>处理器类型列表</returns>
-    public IReadOnlyList<Type> GetHandlers(string appKey)
+    public virtual IReadOnlyList<Type> GetHandlers(string appKey)
     {
         if (_registry.TryGetValue(appKey, out var handlers))
         {
@@ -50,7 +50,7 @@ public class FeishuWebhookHandlerRegistry
     /// 获取所有已注册的应用键
     /// </summary>
     /// <returns>应用键列表</returns>
-    public IReadOnlyList<string> GetAllAppKeys()
+    public virtual IReadOnlyList<string> GetAllAppKeys()
     {
         return _registry.Keys.ToList().AsReadOnly();
     }
@@ -60,7 +60,7 @@ public class FeishuWebhookHandlerRegistry
     /// </summary>
     /// <param name="appKey">应用键</param>
     /// <returns>是否已注册</returns>
-    public bool HasHandlers(string appKey)
+    public virtual bool HasHandlers(string appKey)
     {
         return _registry.ContainsKey(appKey) && _registry[appKey].Count > 0;
     }

@@ -603,14 +603,15 @@ public class HttpRetryPolicyBuilderTests
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync((HttpRequestMessage request, CancellationToken ct) =>
+            .Returns((HttpRequestMessage request, CancellationToken ct) =>
             {
                 callCount++;
                 if (callCount == 2)
                 {
-                    ct.ThrowIfCancellationRequested();
+                    // 返回一个带有OperationCanceledException的Task
+                    return Task.FromException<HttpResponseMessage>(new OperationCanceledException());
                 }
-                return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
             });
 
         var httpClient = new HttpClient(mockHandler.Object)

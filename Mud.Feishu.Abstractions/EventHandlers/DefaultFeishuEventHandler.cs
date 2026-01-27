@@ -88,20 +88,50 @@ public abstract class DefaultFeishuEventHandler<T> : IFeishuEventHandler
 
         try
         {
-            var eventJson = eventData.Event?.ToString();
+            string? eventJson = null;
+            
+            if (eventData.Event != null)
+            {
+                if (eventData.Event is JsonDocument jsonDocument)
+                {
+                    // 处理 JsonDocument 类型
+                    eventJson = jsonDocument.RootElement.GetRawText();
+                }
+                else if (eventData.Event is string stringEvent)
+                {
+                    // 处理字符串类型
+                    eventJson = stringEvent;
+                }
+                else
+                {
+                    // 处理其他类型，尝试序列化为 JSON
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    eventJson = JsonSerializer.Serialize(eventData.Event, options);
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(eventJson) && _logger.IsEnabled(LogLevel.Debug))
             {
                 _logger.LogWarning("事件JSON数据为空，事件ID：{EventId}，事件类型: {EventType}", eventData.EventId, eventData.EventType);
                 return default;
             }
 
-            var options = new JsonSerializerOptions
+            var deserializeOptions = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             };
 
-            var result = JsonSerializer.Deserialize<T>(eventJson, options);
+            if (string.IsNullOrWhiteSpace(eventJson))
+            {
+                return default;
+            }
+            
+            var result = JsonSerializer.Deserialize<T>(eventJson, deserializeOptions);
             return result ?? default;
         }
         catch (JsonException ex)

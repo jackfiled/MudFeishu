@@ -114,14 +114,24 @@ public class SubscriptionValidator : ISubscriptionValidator
     /// <returns>有效的验证 Token</returns>
     private string? GetEffectiveToken(string? fallbackToken)
     {
+        FeishuWebhookOptions? options = null;
         try
         {
-            var options = _optionsMonitor.CurrentValue;
+            options = _optionsMonitor.CurrentValue;
+        }
+        catch (Exception ex)
+        {
+            // 配置访问异常，直接使用 fallback token
+            _logger.LogWarning(ex, "配置访问异常，将使用后备验证 Token, AppKey: {AppKey}", _currentAppKey ?? "null");
+            return fallbackToken;
+        }
 
+        try
+        {
             // 多应用场景：优先使用应用特定配置
             if (!string.IsNullOrEmpty(_currentAppKey))
             {
-                var appConfig = options.GetAppConfig(_currentAppKey);
+                var appConfig = options?.GetAppConfig(_currentAppKey);
                 if (appConfig != null && !string.IsNullOrEmpty(appConfig.VerificationToken))
                 {
                     _logger.LogDebug("使用应用 {AppKey} 的验证 Token", _currentAppKey);

@@ -7,7 +7,6 @@
 
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Webhook.Configuration;
-using Mud.Feishu.Webhook.Exceptions;
 using Mud.Feishu.Webhook.Models;
 using Mud.Feishu.Webhook.Serialization;
 using Mud.Feishu.Webhook.Utils;
@@ -124,8 +123,11 @@ public class FeishuMultiAppMiddleware
         var stopwatch = Stopwatch.StartNew();
         var path = context.Request.Path.Value ?? string.Empty;
 
+        _logger.LogWarning("当前请求路径: {path}", path);
+
         // 尝试从路径中提取 AppKey
         var appKey = ExtractAppKeyFromPath(path);
+        _logger.LogWarning("当前应用: {appKey}", appKey);
         if (string.IsNullOrEmpty(appKey))
         {
             await _next(context);
@@ -225,22 +227,34 @@ public class FeishuMultiAppMiddleware
     /// <returns>提取的 AppKey；若路径不符合格式，则返回 null</returns>
     private string? ExtractAppKeyFromPath(string path)
     {
-        // 预期前缀如 "/feishu"
+        if (string.IsNullOrEmpty(path))
+            return null;
+
         var prefix = "/" + Options.GlobalRoutePrefix;
 
         if (!path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             return null;
 
-        var pos = prefix.Length;
-        if (pos >= path.Length)
-            return null; // 路径正好等于前缀，无 AppKey
+        var afterPrefixIndex = prefix.Length;
 
-        // 查找第一个 '/' 之后的结束位置
-        var end = path.IndexOf('/', pos);
+        // 路径正好等于前缀（如 "/feishu"）→ 无效
+        if (afterPrefixIndex >= path.Length)
+            return null;
+
+        // 必须紧跟一个 '/'（即路径形如 "/feishu/..."）
+        if (path[afterPrefixIndex] != '/')
+            return null;
+
+        // AppKey 从 afterPrefixIndex + 1 开始
+        var start = afterPrefixIndex + 1;
+        if (start >= path.Length)
+            return null; // 路径以 "/feishu/" 结尾，无 AppKey
+
+        var end = path.IndexOf('/', start);
         if (end == -1)
             end = path.Length;
 
-        var appKey = path.Substring(pos, end - pos);
+        var appKey = path.Substring(start, end - start);
         return string.IsNullOrEmpty(appKey) ? null : appKey;
     }
 
@@ -295,7 +309,7 @@ public class FeishuMultiAppMiddleware
 
             // 先解密以判断是否为验证请求，并验证签名
             var decryptedData = await webhookService.DecryptEventAsync(eventRequest.Encrypt!);
-            
+
             if (decryptedData == null)
             {
                 _logger.LogError("解密失败");

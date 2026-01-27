@@ -32,6 +32,7 @@ public class RequestIdHelperTests
         Assert.Equal("feishu-request-id-123", httpContext.Items[RequestIdHelper.RequestIdItemKey]);
     }
 
+
     [Fact]
     public void GetOrGenerateRequestId_WithXTraceId_ReturnsTraceId()
     {
