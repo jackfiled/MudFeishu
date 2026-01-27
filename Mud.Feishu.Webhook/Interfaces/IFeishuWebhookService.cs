@@ -47,32 +47,19 @@ public interface IFeishuWebhookService
     Task<(bool Success, string? ErrorReason)> HandleEventAsync(EventData eventData, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 处理飞书事件推送（完整流程）
-    /// </summary>
-    /// <param name="request">Webhook 请求</param>
-    /// <param name="encryptKey">加密密钥（可选，用于多密钥场景）</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>处理结果</returns>
-    /// <remarks>
-    /// 完整处理流程：
-    /// 1. 验证请求签名（如果启用）
-    /// 2. 解密事件数据
-    /// 3. 执行前置拦截器
-    /// 4. 去重检查
-    /// 5. 调用事件处理器
-    /// 6. 执行后置拦截器
-    ///
-    /// 推荐在大多数场景下分别使用 DecryptEventAsync、ValidateRequestSignature 和 HandleEventAsync(EventData)
-    /// 以获得更灵活的控制（如先解密判断事件类型再决定是否验证签名）。
-    /// </remarks>
-    Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, string? encryptKey = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// 验证请求签名
     /// </summary>
     /// <param name="request">Webhook 请求</param>
     /// <returns>是否验证通过</returns>
     Task<bool> ValidateRequestSignature(FeishuWebhookRequest request);
+
+    /// <summary>
+    /// 处理飞书事件推送（使用飞书官方算法验证签名）
+    /// </summary>
+    /// <param name="request">Webhook 请求</param>
+    /// <param name="body">请求体</param>
+    /// <returns>是否验证通过</returns>
+    Task<bool> HandleEventAsync(FeishuWebhookRequest request, string body);
 
     /// <summary>
     /// 解密事件数据

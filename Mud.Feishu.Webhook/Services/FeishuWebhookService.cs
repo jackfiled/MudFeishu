@@ -193,23 +193,6 @@ public class FeishuWebhookService : IFeishuWebhookService
         return await HandleEventWithInterceptorsAsync(eventData, null, cancellationToken);
     }
 
-    /// <inheritdoc />
-    public async Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, string? encryptKey = null, CancellationToken cancellationToken = default)
-    {
-        // 保存提供的密钥
-        _providedEncryptKey.Value = encryptKey;
-
-        try
-        {
-            return await HandleEventWithInterceptorsAsync(request, null, cancellationToken);
-        }
-        finally
-        {
-            // 清理密钥
-            _providedEncryptKey.Value = null;
-        }
-    }
-
     /// <summary>
     /// 使用拦截器处理事件（已解密的 EventData）
     /// </summary>
@@ -349,8 +332,8 @@ public class FeishuWebhookService : IFeishuWebhookService
             }
 
             // 在多应用场景下，优先使用提供的加密密钥，否则从应用配置获取
-            var encryptKey = _providedEncryptKey;
-            if (string.IsNullOrEmpty(encryptKey.Value) && !string.IsNullOrEmpty(_currentAppKey.Value))
+            string? encryptKey = _providedEncryptKey.Value;
+            if (string.IsNullOrEmpty(encryptKey) && !string.IsNullOrEmpty(_currentAppKey.Value))
             {
                 var appConfig = Options.GetAppConfig(_currentAppKey.Value);
                 if (appConfig == null)
@@ -358,10 +341,10 @@ public class FeishuWebhookService : IFeishuWebhookService
                     _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
                     return false;
                 }
-                encryptKey.Value = appConfig.EncryptKey;
+                encryptKey = appConfig.EncryptKey;
             }
 
-            if (string.IsNullOrEmpty(encryptKey.Value))
+            if (string.IsNullOrEmpty(encryptKey))
             {
                 _logger.LogError("缺少加密密钥，无法验证签名, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
                 return false;
@@ -372,13 +355,83 @@ public class FeishuWebhookService : IFeishuWebhookService
                 request.Nonce,
                 request.Encrypt!,
                 request.Signature,
-                encryptKey.Value);
+                encryptKey);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "验证请求签名时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
             return false;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> HandleEventAsync(FeishuWebhookRequest request, string body)
+    {
+        try
+        {
+            var appConfig = Options.GetAppConfig(_currentAppKey.Value);
+            if (appConfig == null)
+            {
+                _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
+                return false;
+            }
+            string encryptKey = appConfig.EncryptKey;
+            // 构建签名字符串：timestamp + nonce + encryptKey + body
+            var signString = $"{request.Timestamp}{request.Nonce}{encryptKey}{body}";
+
+            // 使用 SHA-256 计算签名
+            using var sha256 = SHA256.Create();
+            var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(signString));
+            var computedSignature = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+
+            // 使用固定时间比较防止计时攻击
+            var isValid = FixedTimeEquals(
+                Encoding.UTF8.GetBytes(computedSignature),
+                Encoding.UTF8.GetBytes(request.Signature));
+
+            if (!isValid)
+            {
+                var computedPrefix = computedSignature.Length > 8 ? computedSignature.Substring(0, 8) : computedSignature;
+                var signaturePrefix = request.Signature.Length > 8 ? request.Signature.Substring(0, 8) : request.Signature;
+                _logger.LogWarning("签名验证失败: 计算 {ComputedSignaturePrefix}..., 期望 {ExpectedSignaturePrefix}..., AppKey: {AppKey}",
+                    computedPrefix + "...",
+                    signaturePrefix + "...",
+                    _currentAppKey.Value ?? "null");
+            }
+            else
+            {
+                _logger.LogDebug("签名验证成功, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
+            }
+
+            return isValid;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "验证请求签名时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 固定时间比较方法，防止计时攻击
+    /// </summary>
+    /// <param name="left">第一个字节数组</param>
+    /// <param name="right">第二个字节数组</param>
+    /// <returns>如果两个数组相等返回 true，否则返回 false</returns>
+    private static bool FixedTimeEquals(byte[] left, byte[] right)
+    {
+        if (left.Length != right.Length)
+        {
+            return false;
+        }
+
+        var result = 0;
+        for (var i = 0; i < left.Length; i++)
+        {
+            result |= left[i] ^ right[i];
+        }
+
+        return result == 0;
     }
 
     /// <inheritdoc />

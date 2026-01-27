@@ -310,42 +310,30 @@ public class FeishuWebhookServiceConcurrencyTests
     }
 
     [Fact]
-    public async Task HandleEventAsync_WithEncryptedRequest_ConcurrentDifferentApps_ShouldProcessCorrectly()
+    public async Task HandleEventAsync_WithEventData_ConcurrentDifferentApps_ShouldProcessCorrectly()
     {
         // Arrange
         var service = CreateService();
         var tasks = new List<Task<(bool Success, string? ErrorReason)>>();
         var appKeys = new[] { "app1", "app2", "app3" };
 
-        // 设置解密器
-        _decryptorMock
-            .Setup(x => x.DecryptAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string encrypted, string key, CancellationToken ct) => new EventData
-            {
-                EventId = $"event_{encrypted}",
-                EventType = "test.event",
-                CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            });
-
         // 创建并发任务
         for (int i = 0; i < 30; i++)
         {
             var appKey = appKeys[i % appKeys.Length];
-            var encryptKey = _options.Apps[appKey].EncryptKey;
 
             var task = Task.Run(async () =>
             {
                 service.SetCurrentAppKey(appKey);
 
-                var request = new FeishuWebhookRequest
+                var eventData = new EventData
                 {
-                    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                    Nonce = $"nonce_{i}",
-                    Encrypt = $"encrypted_{i}",
-                    Signature = $"signature_{i}"
+                    EventId = $"event_{i}",
+                    EventType = "test.event",
+                    CreateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
                 };
 
-                return await service.HandleEventAsync(request, encryptKey);
+                return await service.HandleEventAsync(eventData);
             });
 
             tasks.Add(task);
@@ -360,5 +348,45 @@ public class FeishuWebhookServiceConcurrencyTests
             It.IsAny<string>(),
             It.IsAny<EventData>(),
             It.IsAny<CancellationToken>()), Times.Exactly(30));
+    }
+
+    [Fact]
+    public async Task HandleEventAsync_WithFeishuWebhookRequest_ConcurrentDifferentApps_ShouldValidateSignatureCorrectly()
+    {
+        // Arrange
+        var service = CreateService();
+        var tasks = new List<Task<bool>>();
+        var appKeys = new[] { "app1", "app2", "app3" };
+
+        // 创建并发任务
+        for (int i = 0; i < 30; i++)
+        {
+            var appKey = appKeys[i % appKeys.Length];
+
+            var task = Task.Run(async () =>
+            {
+                service.SetCurrentAppKey(appKey);
+
+                var request = new FeishuWebhookRequest
+                {
+                    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    Nonce = $"nonce_{i}",
+                    Encrypt = $"encrypted_{i}",
+                    Signature = $"signature_{i}"
+                };
+
+                var body = $"{{\"encrypt\":\"encrypted_{i}\",\"signature\":\"signature_{i}\",\"nonce\":\"nonce_{i}\",\"timestamp\":\"{request.Timestamp}\"}}";
+
+                return await service.HandleEventAsync(request, body);
+            });
+
+            tasks.Add(task);
+        }
+
+        // Act
+        var results = await Task.WhenAll(tasks);
+
+        // Assert
+        Assert.All(results, result => Assert.True(result));
     }
 }

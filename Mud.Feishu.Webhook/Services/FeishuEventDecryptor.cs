@@ -68,11 +68,8 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                 }
                 else
                 {
-                    // v1.0版本：直接反序列化
-                    eventData = JsonSerializer.Deserialize<EventData>(decryptedJson!, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }) ?? new EventData();
+                    // v1.0版本：手动解析，以正确处理create_time字段是字符串的情况
+                    eventData = ParseV1Event(root);
                 }
             }
 
@@ -131,6 +128,50 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
             if (headerElement.TryGetProperty("app_id", out var appIdElement))
                 eventData.AppId = appIdElement.GetString() ?? string.Empty;
         }
+
+        // 解析event
+        if (root.TryGetProperty("event", out var eventElement))
+        {
+            // 将event对象转换为原始JSON字符串,避免依赖已释放的JsonDocument
+            // 这样可以确保eventData.Event不依赖于using块内的JsonDocument
+            eventData.Event = eventElement.GetRawText();
+        }
+
+        return eventData;
+    }
+
+    /// <summary>
+    /// 解析v1.0版本的事件
+    /// </summary>
+    private EventData ParseV1Event(JsonElement root)
+    {
+        var eventData = new EventData();
+
+        // 解析基本字段
+        if (root.TryGetProperty("event_id", out var eventIdElement))
+            eventData.EventId = eventIdElement.GetString() ?? string.Empty;
+
+        if (root.TryGetProperty("event_type", out var eventTypeElement))
+            eventData.EventType = eventTypeElement.GetString() ?? string.Empty;
+
+        if (root.TryGetProperty("create_time", out var createTimeElement))
+        {
+            if (createTimeElement.ValueKind == JsonValueKind.String &&
+                long.TryParse(createTimeElement.GetString(), out var createTimeLong))
+            {
+                eventData.CreateTime = createTimeLong / 1000; // 转换为秒
+            }
+            else if (createTimeElement.TryGetInt64(out var createTimeInt))
+            {
+                eventData.CreateTime = createTimeInt / 1000;
+            }
+        }
+
+        if (root.TryGetProperty("tenant_key", out var tenantKeyElement))
+            eventData.TenantKey = tenantKeyElement.GetString() ?? string.Empty;
+
+        if (root.TryGetProperty("app_id", out var appIdElement))
+            eventData.AppId = appIdElement.GetString() ?? string.Empty;
 
         // 解析event
         if (root.TryGetProperty("event", out var eventElement))

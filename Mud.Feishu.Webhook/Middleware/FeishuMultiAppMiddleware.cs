@@ -323,15 +323,22 @@ public class FeishuMultiAppMiddleware
                 decryptedData.AppId ?? "(null)");
 
             // 检查是否为加密验证请求
-            if (decryptedData.EventType == "url_verification" ||
-                (string.IsNullOrEmpty(decryptedData.EventType) && string.IsNullOrEmpty(decryptedData.EventId)))
+            if (decryptedData.EventType == "url_verification")
             {
                 await HandleEncryptedVerificationAsync(context, decryptedData);
                 return;
             }
 
+            // 检查事件数据是否有效
+            if (string.IsNullOrEmpty(decryptedData.EventType) && string.IsNullOrEmpty(decryptedData.EventId))
+            {
+                _logger.LogError("事件数据无效：EventType 和 EventId 均为空");
+                await WriteErrorResponse(context, 400, "Bad Request: Invalid event data", requestId);
+                return;
+            }
+
             // 验证请求签名（如果不是验证请求）
-            if (!await webhookService.ValidateRequestSignature(eventRequest))
+            if (!await webhookService.HandleEventAsync(eventRequest, requestBody))
             {
                 _logger.LogWarning("签名验证失败");
                 await WriteErrorResponse(context, 403, "Forbidden: Signature validation failed", requestId);

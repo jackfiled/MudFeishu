@@ -8,7 +8,6 @@
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
-using Mud.Feishu.Webhook;
 
 namespace Mud.Feishu.Webhook.Tests.Services;
 
@@ -43,7 +42,7 @@ public class FeishuWebhookServiceTests
         };
 
         _optionsMonitorMock.Setup(x => x.CurrentValue).Returns(_options);
-        
+
         var concurrencyLoggerMock = new Mock<ILogger<FeishuWebhookConcurrencyService>>();
         _concurrencyService = new FeishuWebhookConcurrencyService(_optionsMonitorMock.Object, concurrencyLoggerMock.Object);
     }
@@ -135,8 +134,8 @@ public class FeishuWebhookServiceTests
         Assert.True(result.Success);
         Assert.Null(result.ErrorReason);
         _handlerFactoryMock.Verify(x => x.HandleEventParallelAsync(
-            eventData.EventType, 
-            eventData, 
+            eventData.EventType,
+            eventData,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -162,8 +161,8 @@ public class FeishuWebhookServiceTests
         // Assert
         Assert.True(result.Success); // 幂等性：返回成功
         _handlerFactoryMock.Verify(x => x.HandleEventParallelAsync(
-            It.IsAny<string>(), 
-            It.IsAny<EventData>(), 
+            It.IsAny<string>(),
+            It.IsAny<EventData>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -227,7 +226,7 @@ public class FeishuWebhookServiceTests
     }
 
     [Fact]
-    public async Task HandleEventAsync_WithFeishuWebhookRequest_ShouldProcessSuccessfully()
+    public async Task HandleEventAsync_WithFeishuWebhookRequest_ShouldValidateSignatureSuccessfully()
     {
         // Arrange
         var request = new FeishuWebhookRequest
@@ -238,35 +237,9 @@ public class FeishuWebhookServiceTests
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
         };
 
-        var expectedEventData = new EventData
-        {
-            EventId = "test_event_123",
-            EventType = "test.event",
-            CreateTime = 1234567890
-        };
+        var body = "{\"encrypt\":\"encrypted_data\",\"signature\":\"test_signature\",\"nonce\":\"test_nonce_12345\",\"timestamp\":\"" + request.Timestamp + "\"}";
 
         var encryptKey = "test_key_32_characters_long____";
-
-        _validatorMock
-            .Setup(x => x.ValidateSignatureAsync(
-                request.Timestamp,
-                request.Nonce,
-                request.Encrypt!,
-                request.Signature,
-                encryptKey))
-            .ReturnsAsync(true);
-
-        _decryptorMock
-            .Setup(x => x.DecryptAsync(request.Encrypt!, encryptKey, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expectedEventData);
-
-        _deduplicatorMock
-            .Setup(x => x.TryMarkAsProcessing(expectedEventData.EventId))
-            .Returns(false);
-
-        _handlerFactoryMock
-            .Setup(x => x.HandleEventParallelAsync(expectedEventData.EventType, expectedEventData, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
         var service = CreateService();
         service.SetCurrentAppKey("test-app");
@@ -277,11 +250,10 @@ public class FeishuWebhookServiceTests
         };
 
         // Act
-        var result = await service.HandleEventAsync(request, encryptKey);
+        var result = await service.HandleEventAsync(request, body);
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Null(result.ErrorReason);
+        Assert.True(result);
     }
 
     private FeishuWebhookService CreateService()
