@@ -43,7 +43,7 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
 
             _logger.LogDebug("解密后的JSON数据: {DecryptedJson}", decryptedJson);
 
-            // 解析事件数据（支持 v1.0 和 v2.0 版本）
+            // 解析事件数据（支持 v1.0 和 v2.0 版本，以及 URL 验证请求）
             EventData eventData;
             string? schemaVersion = null;
 
@@ -51,14 +51,18 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
             {
                 var root = jsonDoc.RootElement;
 
+                // 检查是否为 URL 验证请求
+                if (root.TryGetProperty("type", out var typeElement) && typeElement.GetString() == "url_verification")
+                {
+                    // 特殊处理 URL 验证请求
+                    eventData = new EventData();
+                    // 将整个 JSON 作为 Event，这样 HandleEncryptedVerificationAsync 可以从中提取 challenge
+                    eventData.Event = decryptedJson;
+                }
                 // 检查是否为v2.0版本
-                if (root.TryGetProperty("schema", out var schemaElement))
+                else if (root.TryGetProperty("schema", out var schemaElement))
                 {
                     schemaVersion = schemaElement.GetString();
-                }
-
-                if (schemaVersion == "2.0")
-                {
                     // v2.0版本解析
                     eventData = ParseV2Event(root);
                 }

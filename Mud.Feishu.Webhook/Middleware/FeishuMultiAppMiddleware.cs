@@ -400,16 +400,33 @@ public class FeishuMultiAppMiddleware
     /// </summary>
     private async Task HandleEncryptedVerificationAsync(HttpContext context, EventData decryptedData)
     {
-        string? challenge;
-        if (decryptedData.Event is JsonElement eventElement)
+        string? challenge = string.Empty;
+
+        // 尝试从 Event 中解析 challenge 字段
+        if (decryptedData.Event is string eventJson)
         {
-            challenge = eventElement.ValueKind == JsonValueKind.String
-                ? eventElement.GetString()
-                : string.Empty;
+            try
+            {
+                using (var jsonDoc = JsonDocument.Parse(eventJson))
+                {
+                    var root = jsonDoc.RootElement;
+                    if (root.TryGetProperty("challenge", out var challengeElement))
+                    {
+                        challenge = challengeElement.GetString();
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "解析挑战码时发生错误");
+            }
         }
-        else
+        else if (decryptedData.Event is JsonElement eventElement)
         {
-            challenge = decryptedData.Event?.ToString() ?? string.Empty;
+            if (eventElement.TryGetProperty("challenge", out var challengeElement))
+            {
+                challenge = challengeElement.GetString();
+            }
         }
 
         var verificationResponse = new EventVerificationResponse
@@ -417,7 +434,7 @@ public class FeishuMultiAppMiddleware
             Challenge = challenge ?? string.Empty
         };
 
-        _logger.LogInformation("加密验证成功，返回挑战码");
+        _logger.LogInformation("加密验证成功，返回挑战码: {Challenge}", challenge);
         await WriteJsonResponse(context, 200, verificationResponse);
     }
 
