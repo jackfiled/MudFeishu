@@ -62,7 +62,8 @@ public interface IFeishuWebhookService
     /// 5. 调用事件处理器
     /// 6. 执行后置拦截器
     ///
-    /// 推荐在大多数场景下使用此方法以获得完整的验证和处理流程。
+    /// 推荐在大多数场景下分别使用 DecryptEventAsync、ValidateRequestSignature 和 HandleEventAsync(EventData)
+    /// 以获得更灵活的控制（如先解密判断事件类型再决定是否验证签名）。
     /// </remarks>
     Task<(bool Success, string? ErrorReason)> HandleEventAsync(FeishuWebhookRequest request, string? encryptKey = null, CancellationToken cancellationToken = default);
 

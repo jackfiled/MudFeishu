@@ -199,7 +199,6 @@ public class FeishuMultiAppMiddleware
                 context,
                 requestBody,
                 requestId,
-                clientIp,
                 appKey ?? string.Empty);
         }
         catch (Exception ex)
@@ -253,7 +252,6 @@ public class FeishuMultiAppMiddleware
         HttpContext context,
         string requestBody,
         string requestId,
-        string clientIp,
         string appKey)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -281,9 +279,23 @@ public class FeishuMultiAppMiddleware
                 return;
             }
 
-            // 解密请求数据
-            var decryptedData = await webhookService.DecryptEventAsync(eventRequest.Encrypt!);
+            // 从请求头提取签名相关信息
+            eventRequest.Signature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault() ?? string.Empty;
+            eventRequest.Nonce = context.Request.Headers["X-Lark-Request-Nonce"].FirstOrDefault() ?? string.Empty;
+            eventRequest.Timestamp = long.TryParse(context.Request.Headers["X-Lark-Request-Timestamp"].FirstOrDefault(), out var ts) ? ts : 0;
 
+            // 获取应用配置的加密密钥
+            var appConfig = Options.GetAppConfig(appKey);
+            if (appConfig == null)
+            {
+                _logger.LogError("未找到应用配置, AppKey: {AppKey}", appKey);
+                await WriteErrorResponse(context, 500, "Internal Server Error: App configuration not found", requestId);
+                return;
+            }
+
+            // 先解密以判断是否为验证请求，并验证签名
+            var decryptedData = await webhookService.DecryptEventAsync(eventRequest.Encrypt!);
+            
             if (decryptedData == null)
             {
                 _logger.LogError("解密失败");
@@ -304,21 +316,31 @@ public class FeishuMultiAppMiddleware
                 return;
             }
 
-            // 验证签名
-            await ValidateRequestSignatureAsync(
-                context,
-                eventRequest,
-                clientIp,
-                requestId,
+            // 验证请求签名（如果不是验证请求）
+            if (!await webhookService.ValidateRequestSignature(eventRequest))
+            {
+                _logger.LogWarning("签名验证失败");
+                await WriteErrorResponse(context, 403, "Forbidden: Signature validation failed", requestId);
+                return;
+            }
+
+            // 使用已解密的数据直接处理事件
+            var result = await webhookService.HandleEventAsync(decryptedData);
+
+            // 检查事件处理结果
+            if (!result.Success)
+            {
+                _logger.LogError("事件处理失败: {Reason}", result.ErrorReason ?? "未知错误");
+                await WriteErrorResponse(context, 500, "Internal Server Error: " + (result.ErrorReason ?? "Unknown error"), requestId);
+                return;
+            }
+
+            _logger.LogInformation("事件处理完成: {EventType}, 事件ID: {EventId}, AppKey: {AppKey}",
+                decryptedData.EventType ?? "(null)",
+                decryptedData.EventId ?? "(null)",
                 appKey);
 
-            // 处理事件请求
-            await HandleEventRequestAsync(
-                context,
-                decryptedData,
-                requestId,
-                appKey,
-                webhookService);
+            await WriteJsonResponse(context, 200, new { });
         }
         catch (JsonException ex)
         {
@@ -383,75 +405,6 @@ public class FeishuMultiAppMiddleware
 
         _logger.LogInformation("加密验证成功，返回挑战码");
         await WriteJsonResponse(context, 200, verificationResponse);
-    }
-
-    /// <summary>
-    /// 验证请求签名
-    /// </summary>
-    private async Task ValidateRequestSignatureAsync(
-        HttpContext context,
-        FeishuWebhookRequest eventRequest,
-        string clientIp,
-        string requestId,
-        string appKey)
-    {
-        // 构造请求对象用于签名验证
-        var webhookRequest = new FeishuWebhookRequest
-        {
-            Encrypt = eventRequest.Encrypt,
-            Signature = context.Request.Headers["X-Lark-Signature"].FirstOrDefault() ?? string.Empty,
-            Nonce = context.Request.Headers["X-Lark-Request-Nonce"].FirstOrDefault() ?? string.Empty,
-            Timestamp = long.TryParse(context.Request.Headers["X-Lark-Request-Timestamp"].FirstOrDefault(), out var ts) ? ts : 0
-        };
-
-        using var scope = _scopeFactory.CreateScope();
-        var webhookService = scope.ServiceProvider.GetRequiredService<IFeishuWebhookService>();
-        webhookService.SetCurrentAppKey(appKey);
-
-        if (!await webhookService.ValidateRequestSignature(webhookRequest))
-        {
-            throw new FeishuWebhookSecurityException(
-                "X-Lark-Signature 请求头签名验证失败",
-                clientIp: clientIp,
-                requestId: requestId);
-        }
-
-        _logger.LogInformation("签名验证成功，AppKey: {AppKey}", appKey);
-    }
-
-    /// <summary>
-    /// 处理事件请求
-    /// </summary>
-    private async Task HandleEventRequestAsync(
-        HttpContext context,
-        EventData eventData,
-        string requestId,
-        string appKey,
-        IFeishuWebhookService webhookService)
-    {
-        try
-        {
-            // 使用 Webhook 服务处理事件
-            var result = await webhookService.HandleEventAsync(eventData);
-
-            if (!result.Success)
-            {
-                _logger.LogError("事件处理失败: {EventType}, 事件ID: {EventId}, 原因: {Reason}",
-                    eventData.EventType, eventData.EventId, result.ErrorReason ?? "未知错误");
-                await WriteErrorResponse(context, 500, "Internal Server Error", requestId);
-                return;
-            }
-
-            _logger.LogInformation("事件处理完成: {EventType}, 事件ID: {EventId}, AppKey: {AppKey}",
-                eventData.EventType, eventData.EventId, appKey);
-
-            await WriteJsonResponse(context, 200, new { });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "处理事件时发生错误");
-            await WriteErrorResponse(context, 500, "Internal Server Error", requestId);
-        }
     }
 
     /// <summary>
