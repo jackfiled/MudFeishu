@@ -31,7 +31,7 @@
 - ✅ **内容安全**：仅接受 `application/json` 请求，防止深度嵌套 JSON 导致的 DoS 攻击
 - ✅ **流式处理**：流式请求体读取，防止伪造 Content-Length 的 DoS 攻击
 - ✅ **内存管理**：Nonce 过期清理，防止内存泄漏
-- ✅ **容错机制**：断路器模式（使用 Polly 实现）和失败事件指数退避重试
+- ✅ **容错机制**：失败事件指数退避重试
 - ✅ **事件处理拦截器**：前置/后置事件处理拦截器机制
 - ✅ **日志脱敏**：自动脱敏敏感字段防止信息泄露
 - ✅ **配置锁定**：生产环境强制安全检查
@@ -118,12 +118,6 @@ app.Run();
     "EnableBodySignatureValidation": true,
     "TimestampToleranceSeconds": 30,
     "EnableBackgroundProcessing": false,
-    "EnableCircuitBreaker": true,
-    "CircuitBreaker": {
-      "ExceptionsAllowedBeforeBreaking": 5,
-      "DurationOfBreak": "00:00:30",
-      "SuccessThresholdToReset": 3
-    },
     "Retry": {
       "EnableRetry": false,
       "MaxRetryCount": 3,
@@ -429,12 +423,6 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 
 ### 断路器配置
 
-| 选项                                             | 类型     | 默认值 | 说明                               |
-| ------------------------------------------------ | -------- | ------ | ---------------------------------- |
-| `EnableCircuitBreaker`                           | bool     | true   | 是否启用断路器模式                 |
-| `CircuitBreaker.ExceptionsAllowedBeforeBreaking` | int      | 5      | 断路器断开前的连续失败次数         |
-| `CircuitBreaker.DurationOfBreak`                 | TimeSpan | 30s    | 断路器保持开启状态的持续时间       |
-| `CircuitBreaker.SuccessThresholdToReset`         | int      | 3      | 断路器进入半开状态后的成功次数阈值 |
 
 ### 失败事件重试配置
 
@@ -486,10 +474,6 @@ public class DemoDepartmentEventHandler : DepartmentCreatedEventHandler
 ```
 
 每个应用的路由将自动注册为 `/feishu/{AppKey}`。
-
-### 断路器模式
-
-使用 Polly 实现熔断机制，防止级联故障：
 
 ### 请求频率限制
 

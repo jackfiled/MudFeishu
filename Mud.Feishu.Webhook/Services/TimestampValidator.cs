@@ -69,10 +69,11 @@ public class TimestampValidator : ITimestampValidator
                     var appConfig = options.GetAppConfig(_currentAppKey);
                     if (appConfig != null)
                     {
-                        // 注意：当前 FeishuAppWebhookOptions 没有 TimestampToleranceSeconds 属性
-                        // 这里使用全局配置作为后备
-                        effectiveToleranceSeconds = options.TimestampToleranceSeconds;
-                        _logger.LogDebug("使用应用 {AppKey} 的全局时间戳容错配置: {ToleranceSeconds}秒",
+                        // 优先使用应用特定配置，如果没有设置则使用全局配置
+                        effectiveToleranceSeconds = appConfig.TimestampToleranceSeconds > 0
+                            ? appConfig.TimestampToleranceSeconds
+                            : options.TimestampToleranceSeconds;
+                        _logger.LogDebug("使用应用 {AppKey} 的时间戳容错配置: {ToleranceSeconds}秒",
                             _currentAppKey, effectiveToleranceSeconds);
                     }
                 }

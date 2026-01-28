@@ -111,12 +111,6 @@ app.Run();
     "EnableBodySignatureValidation": true,
     "TimestampToleranceSeconds": 30,
     "EnableBackgroundProcessing": false,
-    "EnableCircuitBreaker": true,
-    "CircuitBreaker": {
-      "ExceptionsAllowedBeforeBreaking": 5,
-      "DurationOfBreak": "00:00:30",
-      "SuccessThresholdToReset": 3
-    },
     "Retry": {
       "EnableRetry": false,
       "MaxRetryCount": 3,
