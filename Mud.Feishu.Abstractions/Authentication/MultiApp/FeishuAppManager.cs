@@ -185,6 +185,10 @@ internal class FeishuAppManager : IFeishuAppManager
         if (!_apps.TryGetValue(appKey, out var app))
             return false;
 
+        // 如果是最后一个应用，不允许移除
+        if (_apps.Count == 1)
+            throw new InvalidOperationException("不能移除唯一的飞书应用");
+
         if (app.Config.IsDefault && _apps.Count > 1)
             throw new InvalidOperationException("不能移除默认应用");
 

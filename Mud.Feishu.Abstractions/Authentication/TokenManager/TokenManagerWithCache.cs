@@ -373,11 +373,15 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// <returns>从当前时间到过期时间的时间间隔</returns>
     /// <remarks>
     /// 根据令牌的过期时间戳计算剩余有效时间。
+    /// 会考虑刷新阈值，提前认为令牌过期，以便自动刷新。
     /// </remarks>
     protected TimeSpan CalculateExpirationFromTimestamp(long expirationTime)
     {
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var remainingMs = expirationTime - currentTime;
+        // 考虑刷新阈值，提前认为令牌过期
+        var refreshThresholdMs = TimeSpan.FromSeconds(_options.TokenRefreshThreshold).TotalMilliseconds;
+        var effectiveExpirationTime = expirationTime - (long)refreshThresholdMs;
+        var remainingMs = effectiveExpirationTime - currentTime;
         return TimeSpan.FromMilliseconds(Math.Max(0, remainingMs));
     }
 

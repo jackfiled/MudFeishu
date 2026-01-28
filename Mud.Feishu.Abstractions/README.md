@@ -437,7 +437,57 @@ public class AppSwitchingService
 }
 ```
 
-#### 3. 动态管理应用
+#### 3. 多应用最佳实践
+
+```csharp
+public class MessageService
+{
+    private readonly IServiceProvider _serviceProvider;
+
+    /// <summary>
+    /// ❌ 错误做法 - 没有显式切换应用上下文
+    /// </summary>
+    /// <remarks>
+    /// 直接从 DI 容器获取的服务可能使用默认应用，无法保证使用正确的应用凭证。
+    /// </remarks>
+    public async Task SendMessageAsync_Wrong(string message)
+    {
+        var userApi = _serviceProvider.GetRequiredService<IFeishuTenantV3User>();
+        // 此时使用的可能是错误的应用凭证！
+        await userApi.SendMessageAsync(message);
+    }
+
+    /// <summary>
+    /// ✅ 正确做法 - 显式切换应用上下文
+    /// </summary>
+    /// <remarks>
+    /// 使用 IFeishuAppManager 获取指定应用的 API，确保使用正确的应用凭证。
+    /// </remarks>
+    public async Task SendMessageAsync_Correct(string message)
+    {
+        var appManager = _serviceProvider.GetRequiredService<IFeishuAppManager>();
+
+        // 方法1: 直接使用 IFeishuAppManager 获取指定应用的 API（推荐）
+        var approvalUserApi = appManager.GetFeishuApi<IFeishuTenantV3User>("approval-app");
+
+        // 方法2: 使用 UseApp 切换（注意：有线程安全问题）
+        // var userApi = _serviceProvider.GetRequiredService<IFeishuTenantV3User>();
+        // var appContext = userApi.UseApp("approval-app");
+
+        await approvalUserApi.SendMessageAsync(message);
+    }
+}
+```
+
+**重要提示**：
+
+- ⚠️ **线程安全警告**：直接使用 `UseApp()` 方法会改变服务实例的状态，在多线程环境下可能导致应用上下文混乱。**推荐使用 `IFeishuAppManager.GetFeishuApi<T>(appKey)` 方法获取独立的服务实例。**
+
+- ✅ **推荐做法**：始终通过 `IFeishuAppManager` 获取指定应用的 API 实例，这样可以确保每次都使用正确的应用凭证，并避免线程安全问题。
+
+- 📝 **后台任务**：在后台任务中，必须明确指定应用，不能依赖默认应用，否则可能导致应用上下文错误。
+
+#### 4. 动态管理应用
 
 ```csharp
 public class DynamicAppManager
