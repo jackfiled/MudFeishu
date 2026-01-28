@@ -142,4 +142,54 @@ public class FeishuMetrics
         "feishu_cached_tokens",
         observeValue: () => 0,
         description: "当前缓存的令牌数");
+
+    /// <summary>
+    /// 记录 WebSocket 发送消息数
+    /// </summary>
+    public static readonly Counter<long> WebSocketMessageSentCount = Meter.CreateCounter<long>(
+        "feishu_websocket_messages_sent_total",
+        description: "WebSocket 发送消息数");
+
+    /// <summary>
+    /// 记录 WebSocket 接收消息数
+    /// </summary>
+    public static readonly Counter<long> WebSocketMessageReceivedCount = Meter.CreateCounter<long>(
+        "feishu_websocket_messages_received_total",
+        description: "WebSocket 接收消息数");
+
+    /// <summary>
+    /// 记录 WebSocket 发送字节数
+    /// </summary>
+    public static readonly Counter<long> WebSocketBytesSentCount = Meter.CreateCounter<long>(
+        "feishu_websocket_bytes_sent_total",
+        description: "WebSocket 发送字节数");
+
+    /// <summary>
+    /// 记录 WebSocket 接收字节数
+    /// </summary>
+    public static readonly Counter<long> WebSocketBytesReceivedCount = Meter.CreateCounter<long>(
+        "feishu_websocket_bytes_received_total",
+        description: "WebSocket 接收字节数");
+
+    /// <summary>
+    /// 记录 WebSocket 连接错误数
+    /// </summary>
+    public static readonly Counter<long> WebSocketConnectionErrorCount = Meter.CreateCounter<long>(
+        "feishu_websocket_connection_errors_total",
+        description: "WebSocket 连接错误数");
+
+    /// <summary>
+    /// 记录 WebSocket 认证错误数
+    /// </summary>
+    public static readonly Counter<long> WebSocketAuthenticationErrorCount = Meter.CreateCounter<long>(
+        "feishu_websocket_authentication_errors_total",
+        description: "WebSocket 认证错误数");
+
+    /// <summary>
+    /// 记录 WebSocket 消息处理持续时间（毫秒）
+    /// </summary>
+    public static readonly Histogram<double> WebSocketMessageProcessingDuration = Meter.CreateHistogram<double>(
+        "feishu_websocket_message_processing_duration_ms",
+        unit: "ms",
+        description: "WebSocket 消息处理持续时间（毫秒）");
 }

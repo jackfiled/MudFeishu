@@ -460,6 +460,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
 
                 // 路由消息到处理器并记录指标
                 using (FeishuMetricsHelper.RecordEventHandling("websocket_message", "text"))
+                using (FeishuMetricsHelper.RecordWebSocketMessageProcessing())
                 {
                     await _messageRouter.RouteMessageAsync(message, cancellationToken);
                 }
@@ -477,6 +478,7 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
             else if (result.MessageType == WebSocketMessageType.Binary)
             {
                 using (FeishuMetricsHelper.RecordEventHandling("websocket_message", "binary"))
+                using (FeishuMetricsHelper.RecordWebSocketMessageProcessing())
                 {
                     await _binaryProcessor.ProcessBinaryDataAsync(buffer.Array!, buffer.Offset, buffer.Count, result.EndOfMessage, cancellationToken);
                 }

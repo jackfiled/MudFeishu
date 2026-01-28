@@ -170,4 +170,66 @@ public static class FeishuMetricsHelper
             FeishuMetrics.HttpRequestDuration.Record(_stopwatch.ElapsedMilliseconds, _tags);
         }
     }
+
+    /// <summary>
+    /// 记录 WebSocket 消息发送
+    /// </summary>
+    public static void RecordWebSocketMessageSent(long bytes = 0)
+    {
+        FeishuMetrics.WebSocketMessageSentCount.Add(1);
+        if (bytes > 0)
+        {
+            FeishuMetrics.WebSocketBytesSentCount.Add(bytes);
+        }
+    }
+
+    /// <summary>
+    /// 记录 WebSocket 消息接收
+    /// </summary>
+    public static void RecordWebSocketMessageReceived(long bytes = 0)
+    {
+        FeishuMetrics.WebSocketMessageReceivedCount.Add(1);
+        if (bytes > 0)
+        {
+            FeishuMetrics.WebSocketBytesReceivedCount.Add(bytes);
+        }
+    }
+
+    /// <summary>
+    /// 记录 WebSocket 连接错误
+    /// </summary>
+    public static void RecordWebSocketConnectionError()
+    {
+        FeishuMetrics.WebSocketConnectionErrorCount.Add(1);
+    }
+
+    /// <summary>
+    /// 记录 WebSocket 认证错误
+    /// </summary>
+    public static void RecordWebSocketAuthenticationError()
+    {
+        FeishuMetrics.WebSocketAuthenticationErrorCount.Add(1);
+    }
+
+    /// <summary>
+    /// 记录 WebSocket 消息处理持续时间
+    /// </summary>
+    public static IDisposable RecordWebSocketMessageProcessing()
+    {
+        return new WebSocketMessageProcessingInstrumentation();
+    }
+
+    /// <summary>
+    /// WebSocket 消息处理指标记录器
+    /// </summary>
+    private sealed class WebSocketMessageProcessingInstrumentation : IDisposable
+    {
+        private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+
+        public void Dispose()
+        {
+            _stopwatch.Stop();
+            FeishuMetrics.WebSocketMessageProcessingDuration.Record(_stopwatch.ElapsedMilliseconds);
+        }
+    }
 }

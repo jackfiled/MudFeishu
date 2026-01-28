@@ -8,6 +8,7 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Mud.Feishu.Abstractions.Metrics;
 
 namespace Mud.Feishu.WebSocket;
 
@@ -94,6 +95,9 @@ public class ConnectionMetrics
         {
             _connectionErrors++;
         }
+
+        // 使用 FeishuMetricsHelper 记录指标
+        FeishuMetricsHelper.RecordWebSocketConnectionError();
     }
 
     /// <summary>
@@ -106,6 +110,9 @@ public class ConnectionMetrics
             _messagesSent++;
             _bytesSent += bytes;
         }
+
+        // 使用 FeishuMetricsHelper 记录指标
+        FeishuMetricsHelper.RecordWebSocketMessageSent(bytes);
     }
 
     /// <summary>
@@ -119,6 +126,9 @@ public class ConnectionMetrics
             _messagesReceivedTotal++;
             _bytesReceived += bytes;
         }
+
+        // 使用 FeishuMetricsHelper 记录指标
+        FeishuMetricsHelper.RecordWebSocketMessageReceived(bytes);
     }
 
     /// <summary>
@@ -165,6 +175,9 @@ public class ConnectionMetrics
         {
             _authenticationErrors++;
         }
+
+        // 使用 FeishuMetricsHelper 记录指标
+        FeishuMetricsHelper.RecordWebSocketAuthenticationError();
     }
 
     /// <summary>
