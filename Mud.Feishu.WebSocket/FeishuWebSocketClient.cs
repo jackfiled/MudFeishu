@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
+using Mud.Feishu.Abstractions.Metrics;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.DataModels.WsEndpoint;
 using Mud.Feishu.WebSocket.DataModels;
@@ -222,7 +223,10 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
         if (endpoint == null)
             throw new ArgumentNullException(nameof(endpoint));
 
-        await _connectionManager.ConnectAsync(endpoint.Url, cancellationToken);
+        using (FeishuMetricsHelper.RecordHttpRequest("GET", endpoint.Url))
+        {
+            await _connectionManager.ConnectAsync(endpoint.Url, cancellationToken);
+        }
 
         // 启动消息接收
         _cancellationTokenSource = new CancellationTokenSource();
@@ -454,8 +458,11 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
                     QueueCount = _messageQueue.Count
                 });
 
-                // 路由消息到处理器
-                await _messageRouter.RouteMessageAsync(message, cancellationToken);
+                // 路由消息到处理器并记录指标
+                using (FeishuMetricsHelper.RecordEventHandling("websocket_message", "text"))
+                {
+                    await _messageRouter.RouteMessageAsync(message, cancellationToken);
+                }
 
                 // 加入消息队列
                 if (_options.EnableMessageQueue)
@@ -469,7 +476,10 @@ public sealed class FeishuWebSocketClient : IFeishuWebSocketClient, IDisposable
             }
             else if (result.MessageType == WebSocketMessageType.Binary)
             {
-                await _binaryProcessor.ProcessBinaryDataAsync(buffer.Array!, buffer.Offset, buffer.Count, result.EndOfMessage, cancellationToken);
+                using (FeishuMetricsHelper.RecordEventHandling("websocket_message", "binary"))
+                {
+                    await _binaryProcessor.ProcessBinaryDataAsync(buffer.Array!, buffer.Offset, buffer.Count, result.EndOfMessage, cancellationToken);
+                }
             }
         }
         catch (JsonException jsonEx)

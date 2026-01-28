@@ -315,6 +315,9 @@ public class FeishuWebSocketServiceBuilder
         // 注册WebSocket管理器
         _services.AddSingleton<IFeishuWebSocketManager, FeishuWebSocketManager>();
 
+        // 设置 WebSocket 连接数提供器
+        Mud.Feishu.Abstractions.Metrics.FeishuMetrics.WebSocketConnectionCountProvider = () => WebSocketConnectionManager.ConnectionCount;
+
         // 添加后台服务
         _services.AddHostedService<FeishuWebSocketHostedService>();
     }

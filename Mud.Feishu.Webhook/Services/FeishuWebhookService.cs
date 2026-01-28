@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions;
+using Mud.Feishu.Abstractions.Metrics;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
@@ -203,6 +204,9 @@ public class FeishuWebhookService : IFeishuWebhookService
 
         try
         {
+            // 记录事件处理开始
+            using var eventMetrics = FeishuMetricsHelper.RecordEventHandling(eventData.EventType, "webhook");
+
             // 前置拦截器
             foreach (var interceptor in _interceptors)
             {
@@ -211,6 +215,7 @@ public class FeishuWebhookService : IFeishuWebhookService
                 {
                     _logger.LogWarning("事件被拦截器中断: {EventType}, EventId: {EventId}, Interceptor: {InterceptorType}, AppKey: {AppKey}",
                         eventData.EventType, eventData.EventId, interceptor.GetType().Name, appKey ?? "null");
+                    FeishuMetricsHelper.RecordEventHandlingFailure(eventData.EventType, "intercepted");
                     return (false, "Event intercepted");
                 }
             }
@@ -220,6 +225,7 @@ public class FeishuWebhookService : IFeishuWebhookService
             if (deduplicationResult.shouldSkip)
             {
                 _logger.LogWarning("检测到重复事件 {EventId}（AppKey: {AppKey}），跳过处理（幂等性）", eventData.EventId, appKey ?? "null");
+                FeishuMetricsHelper.RecordEventDeduplicationHit("event_id");
                 return (true, null); // 幂等性：返回成功避免飞书重试
             }
 
@@ -238,6 +244,9 @@ public class FeishuWebhookService : IFeishuWebhookService
                 // 处理成功，标记为已完成
                 MarkDeduplicationCompletedAsync(eventData.EventId);
 
+                // 记录事件处理成功
+                FeishuMetricsHelper.RecordEventHandlingSuccess(eventData.EventType);
+
                 _logger.LogInformation("事件处理完成: {EventType}, 事件ID: {EventId}, AppKey: {AppKey}",
                     eventData.EventType, eventData.EventId, appKey ?? "null");
 
@@ -249,6 +258,7 @@ public class FeishuWebhookService : IFeishuWebhookService
 
                 _logger.LogWarning("事件处理超时: {EventType}, 事件ID: {EventId}, 超时时间: {TimeoutMs}ms, AppKey: {AppKey}",
                     eventData.EventType, eventData.EventId, Options.EventHandlingTimeoutMs, appKey ?? "null");
+                FeishuMetricsHelper.RecordEventHandlingFailure(eventData.EventType, "timeout");
                 throw;
             }
         }
@@ -256,6 +266,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         {
             RollbackDeduplicationAsync(eventData.EventId);
             _logger.LogWarning("事件处理被取消，EventId: {EventId}, AppKey: {AppKey}", eventData.EventId, appKey ?? "null");
+            FeishuMetricsHelper.RecordEventHandlingFailure(eventData.EventType, "canceled");
             throw;
         }
         catch (Exception ex)
@@ -263,6 +274,9 @@ public class FeishuWebhookService : IFeishuWebhookService
             processingException = ex;
             RollbackDeduplicationAsync(eventData.EventId);
             _logger.LogError(ex, "处理飞书事件时发生错误，EventId: {EventId}, AppKey: {AppKey}", eventData.EventId, appKey ?? "null");
+
+            // 记录事件处理失败
+            FeishuMetricsHelper.RecordEventHandlingFailure(eventData.EventType, ex.GetType().Name);
 
             if (Options.EnableExceptionHandling)
             {
@@ -322,6 +336,9 @@ public class FeishuWebhookService : IFeishuWebhookService
     /// <summary />
     public async Task<bool> ValidateRequestSignature(FeishuWebhookRequest request)
     {
+        // 记录签名验证开始
+        using var signatureMetrics = FeishuMetricsHelper.RecordEventHandling("signature_validation", "webhook");
+
         try
         {
             if (string.IsNullOrEmpty(request.Encrypt) ||
@@ -329,6 +346,7 @@ public class FeishuWebhookService : IFeishuWebhookService
                 string.IsNullOrEmpty(request.Nonce))
             {
                 _logger.LogWarning("请求缺少必要的签名字段, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
+                FeishuMetricsHelper.RecordEventHandlingFailure("signature_validation", "missing_fields");
                 return false;
             }
 
@@ -340,6 +358,7 @@ public class FeishuWebhookService : IFeishuWebhookService
                 if (appConfig == null)
                 {
                     _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
+                    FeishuMetricsHelper.RecordEventHandlingFailure("signature_validation", "app_config_not_found");
                     return false;
                 }
                 encryptKey = appConfig.EncryptKey;
@@ -348,19 +367,32 @@ public class FeishuWebhookService : IFeishuWebhookService
             if (string.IsNullOrEmpty(encryptKey))
             {
                 _logger.LogError("缺少加密密钥，无法验证签名, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
+                FeishuMetricsHelper.RecordEventHandlingFailure("signature_validation", "missing_encrypt_key");
                 return false;
             }
 
-            return await _validator.ValidateSignatureAsync(
+            var isValid = await _validator.ValidateSignatureAsync(
                 request.Timestamp,
                 request.Nonce,
                 request.Encrypt!,
                 request.Signature,
                 encryptKey);
+
+            if (isValid)
+            {
+                FeishuMetricsHelper.RecordEventHandlingSuccess("signature_validation");
+            }
+            else
+            {
+                FeishuMetricsHelper.RecordEventHandlingFailure("signature_validation", "invalid_signature");
+            }
+
+            return isValid;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "验证请求签名时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
+            FeishuMetricsHelper.RecordEventHandlingFailure("signature_validation", ex.GetType().Name);
             return false;
         }
     }
@@ -427,6 +459,9 @@ public class FeishuWebhookService : IFeishuWebhookService
     /// <inheritdoc />
     public async Task<EventData?> DecryptEventAsync(string encryptedData, CancellationToken cancellationToken = default)
     {
+        // 记录事件解密开始
+        using var decryptMetrics = FeishuMetricsHelper.RecordEventHandling("event_decryption", "webhook");
+
         try
         {
             // 在多应用场景下，优先使用提供的加密密钥，否则从应用配置获取
@@ -437,6 +472,7 @@ public class FeishuWebhookService : IFeishuWebhookService
                 if (appConfig == null)
                 {
                     _logger.LogError("未找到应用配置, AppKey: {AppKey}", _currentAppKey);
+                    FeishuMetricsHelper.RecordEventHandlingFailure("event_decryption", "app_config_not_found");
                     return null;
                 }
                 encryptKey = appConfig.EncryptKey;
@@ -445,14 +481,26 @@ public class FeishuWebhookService : IFeishuWebhookService
             if (string.IsNullOrEmpty(encryptKey))
             {
                 _logger.LogError("缺少加密密钥，无法解密事件数据, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
+                FeishuMetricsHelper.RecordEventHandlingFailure("event_decryption", "missing_encrypt_key");
                 return null;
             }
 
-            return await _decryptor.DecryptAsync(encryptedData, encryptKey, cancellationToken);
+            var eventData = await _decryptor.DecryptAsync(encryptedData, encryptKey, cancellationToken);
+            if (eventData != null)
+            {
+                FeishuMetricsHelper.RecordEventHandlingSuccess("event_decryption");
+            }
+            else
+            {
+                FeishuMetricsHelper.RecordEventHandlingFailure("event_decryption", "decryption_failed");
+            }
+
+            return eventData;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "解密事件数据时发生错误, AppKey: {AppKey}", _currentAppKey.Value ?? "null");
+            FeishuMetricsHelper.RecordEventHandlingFailure("event_decryption", ex.GetType().Name);
             return null;
         }
     }

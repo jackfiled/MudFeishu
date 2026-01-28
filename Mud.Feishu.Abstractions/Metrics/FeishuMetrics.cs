@@ -120,10 +120,20 @@ public class FeishuMetrics
     /// <summary>
     /// 记录 WebSocket 连接数
     /// </summary>
-    public static readonly ObservableGauge<int> WebSocketConnectionCount = Meter.CreateObservableGauge<int>(
-        "feishu_websocket_connections",
-        observeValue: () => 0,
-        description: "WebSocket 连接数");
+    public static readonly ObservableGauge<int> WebSocketConnectionCount;
+
+    /// <summary>
+    /// WebSocket 连接数提供器
+    /// </summary>
+    public static Func<int> WebSocketConnectionCountProvider { get; set; } = () => 0;
+
+    static FeishuMetrics()
+    {
+        WebSocketConnectionCount = Meter.CreateObservableGauge<int>(
+            "feishu_websocket_connections",
+            observeValue: () => WebSocketConnectionCountProvider(),
+            description: "WebSocket 连接数");
+    }
 
     /// <summary>
     /// 记录当前缓存的令牌数

@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
+using Mud.Feishu.Abstractions.Metrics;
 using Mud.Feishu.WebSocket.DataModels;
 
 namespace Mud.Feishu.WebSocket.Handlers;
@@ -41,10 +42,13 @@ public class AuthMessageHandler : JsonMessageHandler
 
         if (authResponse?.Code == 0)
         {
+            FeishuMetricsHelper.RecordEventHandlingSuccess("auth");
             _onAuthResult(true);
         }
         else
         {
+            var errorType = authResponse?.Code.ToString() ?? "unknown";
+            FeishuMetricsHelper.RecordEventHandlingFailure("auth", errorType);
             _logger.LogError("WebSocket认证失败: {Code} - {Message}", authResponse?.Code, authResponse?.Message);
             _onAuthResult(false);
         }

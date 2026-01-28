@@ -126,7 +126,11 @@ internal static class HttpClientExtensions
         catch (HttpRequestException ex)
         {
             // 记录请求失败
+#if NETSTANDARD2_0
+            var statusCode = 0;
+#else
             var statusCode = ex.StatusCode.HasValue ? (int)ex.StatusCode.Value : 0;
+#endif
             FeishuMetricsHelper.RecordHttpRequestFailure(
                 httpRequestMessage.Method.Method,
                 statusCode,
@@ -204,7 +208,11 @@ internal static class HttpClientExtensions
         catch (HttpRequestException ex)
         {
             // 记录请求失败
+#if NETSTANDARD2_0
+            var statusCode = 0;
+#else
             var statusCode = ex.StatusCode.HasValue ? (int)ex.StatusCode.Value : 0;
+#endif
             FeishuMetricsHelper.RecordHttpRequestFailure(
                 httpRequestMessage.Method.Method,
                 statusCode,
@@ -340,7 +348,11 @@ internal static class HttpClientExtensions
         catch (HttpRequestException ex)
         {
             // 记录请求失败
+#if NETSTANDARD2_0
+            var statusCode = 0;
+#else
             var statusCode = ex.StatusCode.HasValue ? (int)ex.StatusCode.Value : 0;
+#endif
             FeishuMetricsHelper.RecordHttpRequestFailure(
                 httpRequestMessage.Method.Method,
                 statusCode,

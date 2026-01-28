@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
+using Mud.Feishu.Abstractions.Metrics;
 using Mud.Feishu.WebSocket.DataModels;
 using Mud.Feishu.WebSocket.SocketEventArgs;
 using System.Text.Json;
@@ -214,6 +215,9 @@ public class AuthenticationManager
                 _isAuthenticated = true;
                 _logger.LogInformation("WebSocket认证成功: {Message}", authResponse.Message);
 
+                // 记录认证成功指标
+                FeishuMetricsHelper.RecordEventHandlingSuccess("auth");
+
                 // 如果响应中包含 session_id，保存到会话管理器
                 if (!string.IsNullOrEmpty(authResponse.SessionId) && _sessionManager != null)
                 {
@@ -227,6 +231,10 @@ public class AuthenticationManager
                 _isAuthenticated = false;
                 _totalAuthFailures++;
                 _lastAuthFailureTime = DateTime.UtcNow;
+
+                // 记录认证失败指标
+                var errorType = authResponse?.Code.ToString() ?? "unknown";
+                FeishuMetricsHelper.RecordEventHandlingFailure("auth", errorType);
 
                 _logger.LogError("WebSocket认证失败: {Code} - {Message}, 总失败次数: {TotalFailures}",
                     authResponse?.Code, authResponse?.Message, _totalAuthFailures);
@@ -255,6 +263,9 @@ public class AuthenticationManager
             _isAuthenticated = false;
             _logger.LogError(ex, "解析认证响应失败: {Message}", responseMessage);
 
+            // 记录认证失败指标
+            FeishuMetricsHelper.RecordEventHandlingFailure("auth", "json_parse_error");
+
             var errorArgs = new WebSocketErrorEventArgs
             {
                 Exception = ex,
@@ -269,6 +280,9 @@ public class AuthenticationManager
         {
             _isAuthenticated = false;
             _logger.LogError(ex, "处理认证响应时发生错误");
+
+            // 记录认证失败指标
+            FeishuMetricsHelper.RecordEventHandlingFailure("auth", "unknown_error");
 
             var errorArgs = new WebSocketErrorEventArgs
             {

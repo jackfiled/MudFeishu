@@ -138,7 +138,7 @@ public static class FeishuMetricsHelper
         if (url.Length <= maxLength)
             return url;
 
-        return string.Concat(url.AsSpan(0, maxLength), "...");
+        return string.Concat(url.Substring(0, maxLength), "...");
     }
 
     /// <summary>

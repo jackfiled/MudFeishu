@@ -6,10 +6,12 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
+using Mud.Feishu.Abstractions.Metrics;
 using Mud.Feishu.Abstractions.Utilities;
 using Mud.Feishu.WebSocket.Core;
 using Mud.Feishu.WebSocket.SocketEventArgs;
 using System.Net.WebSockets;
+using System.Threading;
 
 namespace Mud.Feishu.WebSocket;
 
@@ -22,6 +24,7 @@ namespace Mud.Feishu.WebSocket;
 /// </remarks>
 public class WebSocketConnectionManager : IDisposable
 {
+    private static int _connectionCount = 0;
     private readonly ILogger<WebSocketConnectionManager> _logger;
     private readonly FeishuWebSocketOptions _options;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
@@ -31,6 +34,11 @@ public class WebSocketConnectionManager : IDisposable
     private byte[]? _receiveBuffer;
     private readonly ErrorRecoveryStrategy _errorRecoveryStrategy;
     private readonly ILoggerFactory _loggerFactory;
+
+    /// <summary>
+    /// 获取当前WebSocket连接数
+    /// </summary>
+    public static int ConnectionCount => _connectionCount;
 
     /// <summary>
     /// WebSocket连接成功建立时触发的事件
@@ -129,6 +137,7 @@ public class WebSocketConnectionManager : IDisposable
                 {
                     _logger.LogInformation("已连接到飞书WebSocket服务: {Url}", url);
                 }
+                Interlocked.Increment(ref _connectionCount);
                 Connected?.Invoke(this, EventArgs.Empty);
             }
             catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested)
@@ -174,6 +183,8 @@ public class WebSocketConnectionManager : IDisposable
             {
                 _logger.LogInformation("已断开飞书WebSocket连接");
             }
+
+            Interlocked.Decrement(ref _connectionCount);
 
             Disconnected?.Invoke(this, new WebSocketCloseEventArgs
             {
@@ -364,6 +375,8 @@ public class WebSocketConnectionManager : IDisposable
             _logger.LogInformation("服务器请求关闭连接: {Status} - {Description}",
                 result.CloseStatus, result.CloseStatusDescription);
         }
+
+        Interlocked.Decrement(ref _connectionCount);
 
         Disconnected?.Invoke(this, new WebSocketCloseEventArgs
         {

@@ -8,6 +8,7 @@
 using Microsoft.Extensions.Logging;
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.Interceptors;
+using Mud.Feishu.Abstractions.Metrics;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.WebSocket.DataModels;
 using System.Text.Json;
@@ -124,6 +125,8 @@ public class FeishuEventMessageHandler : JsonMessageHandler
             {
                 _logger.LogDebug("事件 {EventId} 已在处理中或已处理，跳过", eventData.EventId);
                 shouldSkip = true;
+                // 记录事件去重命中
+                FeishuMetricsHelper.RecordEventDeduplicationHit("event_id");
             }
 
             if (!shouldSkip)
@@ -131,50 +134,59 @@ public class FeishuEventMessageHandler : JsonMessageHandler
                 Exception? processingException = null;
                 bool isInterrupted = false;
 
-                try
+                using (FeishuMetricsHelper.RecordEventHandling(eventData.EventType))
                 {
-                    // 前置拦截器
-                    foreach (var interceptor in _interceptors)
+                    try
                     {
-                        var shouldContinue = await interceptor.BeforeHandleAsync(eventData.EventType, eventData, cancellationToken);
-                        if (!shouldContinue)
+                        // 前置拦截器
+                        foreach (var interceptor in _interceptors)
                         {
-                            _logger.LogWarning("事件被拦截器中断: {EventType}, EventId: {EventId}, Interceptor: {InterceptorType}",
-                                eventData.EventType, eventData.EventId, interceptor.GetType().Name);
-                            isInterrupted = true;
-                            break;
+                            var shouldContinue = await interceptor.BeforeHandleAsync(eventData.EventType, eventData, cancellationToken);
+                            if (!shouldContinue)
+                            {
+                                _logger.LogWarning("事件被拦截器中断: {EventType}, EventId: {EventId}, Interceptor: {InterceptorType}",
+                                    eventData.EventType, eventData.EventId, interceptor.GetType().Name);
+                                isInterrupted = true;
+                                break;
+                            }
+                        }
+
+                        if (!isInterrupted)
+                        {
+                            // 使用事件处理器工厂并行处理事件
+                            await _eventHandlerFactory.HandleEventParallelAsync(eventData.EventType, eventData, cancellationToken);
+
+                            // 处理成功，标记为已完成
+                            if (_options.EventDeduplication.Mode == EventDeduplicationMode.InMemory && _deduplicator != null)
+                            {
+                                _deduplicator.MarkAsCompleted(eventData.EventId);
+                            }
+
+                            // 记录事件处理成功
+                            FeishuMetricsHelper.RecordEventHandlingSuccess(eventData.EventType);
                         }
                     }
-
-                    if (!isInterrupted)
+                    catch (Exception ex)
                     {
-                        // 使用事件处理器工厂并行处理事件
-                        await _eventHandlerFactory.HandleEventParallelAsync(eventData.EventType, eventData, cancellationToken);
+                        processingException = ex;
 
-                        // 处理成功，标记为已完成
+                        // 处理失败，回滚处理中状态
                         if (_options.EventDeduplication.Mode == EventDeduplicationMode.InMemory && _deduplicator != null)
                         {
-                            _deduplicator.MarkAsCompleted(eventData.EventId);
+                            _deduplicator.RollbackProcessing(eventData.EventId);
                         }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    processingException = ex;
 
-                    // 处理失败，回滚处理中状态
-                    if (_options.EventDeduplication.Mode == EventDeduplicationMode.InMemory && _deduplicator != null)
-                    {
-                        _deduplicator.RollbackProcessing(eventData.EventId);
+                        // 记录事件处理失败
+                        FeishuMetricsHelper.RecordEventHandlingFailure(eventData.EventType, ex.GetType().Name);
+                        throw;
                     }
-                    throw;
-                }
-                finally
-                {
-                    // 后置拦截器（无论成功或失败都执行）
-                    foreach (var interceptor in _interceptors)
+                    finally
                     {
-                        await interceptor.AfterHandleAsync(eventData.EventType, eventData, processingException, cancellationToken);
+                        // 后置拦截器（无论成功或失败都执行）
+                        foreach (var interceptor in _interceptors)
+                        {
+                            await interceptor.AfterHandleAsync(eventData.EventType, eventData, processingException, cancellationToken);
+                        }
                     }
                 }
             }
