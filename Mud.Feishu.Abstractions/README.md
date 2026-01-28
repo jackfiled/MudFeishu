@@ -3,19 +3,32 @@
 [![NuGet](https://img.shields.io/nuget/v/Mud.Feishu.Abstractions.svg)](https://www.nuget.org/packages/Mud.Feishu.Abstractions/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
 
-Mud.Feishu.Abstractions 是 MudFeishu 库的 WebSocket 事件订阅组件和 HTTP 事件订阅组件抽象层，专用于处理飞书事件订阅。它提供了完整的事件订阅策略模式的事件处理机制，使开发人员能够轻松地在 .NET 应用程序中接收和处理飞书实时事件。
+Mud.Feishu.Abstractions 是 MudFeishu 库的抽象层，提供了完整的飞书 API 访问能力，包括认证授权、令牌管理、多应用支持、事件订阅处理等核心功能。它支持 WebSocket 事件订阅和 HTTP 事件订阅两种模式，提供基于策略模式的事件处理机制，使开发人员能够轻松地在 .NET 应用程序中集成飞书服务。
 
 ## 🚀 特性
 
+### 核心功能
+- **🔐 完整的认证授权** - 支持应用令牌、租户令牌、用户令牌三种认证方式
+- **🔑 智能令牌管理** - 带缓存的令牌管理器，自动刷新、过期检测、重试机制
+- **🏢 多应用支持** - 统一管理多个飞书应用，每个应用拥有独立的配置和资源
+- **🎭 令牌缓存抽象** - 支持内存缓存、Redis 等多种缓存实现
+- **🛡️ 安全防护** - URL 白名单验证、私有 IP 检测、敏感信息脱敏
+
+### 事件处理
 - **📡 事件订阅抽象** - 提供完整的事件订阅和处理抽象层
 - **🔧 策略模式** - 基于策略模式的事件处理器，支持多种事件类型
 - **🏭 工厂模式** - 内置事件处理器工厂，支持动态注册和发现
 - **⚡ 异步处理** - 完全异步的事件处理，支持并行处理
+- **🔄 事件去重** - 支持事件 ID 去重和 SeqID 去重，保证幂等性
 - **🎯 类型安全** - 强类型事件数据模型，避免运行时错误
-- **📋 丰富事件类型** - 支持飞书所有主要事件类型
+- **🛠️ 拦截器机制** - 支持事件处理前后的自定义逻辑
+
+### 开发体验
+- **📋 丰富事件类型** - 支持飞书 40+ 种事件类型
 - **🔄 可扩展** - 易于扩展新的事件类型和处理器
 - **🛡️ 内置基类** - 提供默认事件处理器基类，简化开发
-- **📦 多框架支持** - 支持.NET4.6+、 .NET 6.0 - .NET 10.0
+- **📦 多框架支持** - 支持 netstandard2.0、.NET 6.0 - .NET 10.0
+- **🌐 HTTP 客户端** - 增强的 HTTP 客户端，支持重试、日志、文件下载
 
 ## 📦 安装
 
@@ -25,22 +38,460 @@ dotnet add package Mud.Feishu.Abstractions
 
 ## 🏛️ 核心架构
 
+### 系统架构
+
+```mermaid
+graph TB
+    subgraph "Mud.Feishu.Abstractions"
+        subgraph 认证与授权
+            A[ITokenManager]
+            B[ITokenCache]
+            C[IFeishuAuth]
+        end
+
+        subgraph 事件处理
+            D[EventHandler]
+            E[Interceptor]
+            F[Deduplicator]
+        end
+
+        subgraph 核心服务
+            G[IHttpClient]
+            H[FailedEventStore]
+            I[Config]
+        end
+
+        subgraph 多应用管理
+            J[IFeishuAppManager]
+            K[IMudAppContext]
+            L[AppSwitcher]
+        end
+
+        subgraph 工具类
+            M[UrlValidator]
+            N[MessageSanitizer]
+            O[RetryPolicy]
+        end
+    end
+```
+
+### 令牌管理流程
+
+```mermaid
+graph LR
+    A[应用请求] --> B[TokenManager]
+    B --> C{检查缓存}
+    C -->|命中| D[返回令牌]
+    C -->|未命中| E[调用飞书API获取令牌]
+    E --> F[存入缓存]
+    F --> G[返回令牌]
+    B --> H[后台任务自动刷新过期令牌]
+```
+
+### 多应用架构
+
+```mermaid
+graph TB
+    A[IFeishuAppManager<br/>应用管理器] --> B[App1<br/>默认]
+    A --> C[App2]
+    A --> D[App3]
+
+    B --> B1[AppContext]
+    B --> B2[TokenManager]
+    B --> B3[TokenCache]
+    B --> B4[HttpClient]
+
+    C --> C1[AppContext]
+    C --> C2[TokenManager]
+    C --> C3[TokenCache]
+    C --> C4[HttpClient]
+
+    D --> D1[AppContext]
+    D --> D2[TokenManager]
+    D --> D3[TokenCache]
+    D --> D4[HttpClient]
+
+    B --> E[GetApi&lt;T&gt;]
+    C --> E
+    D --> E
+
+    E --> F[统一的 API 调用接口<br/>根据 appKey 自动切换应用]
+```
+
 ### 事件处理流程
 
-```
-飞书事件 → EventData → EventHandlerFactory → IFeishuEventHandler → 业务逻辑
+```mermaid
+graph LR
+    A[飞书事件] --> B[EventData]
+    B --> C[EventHandlerFactory]
+    C --> D[IFeishuEventHandler]
+    C --> E[事件拦截器<br/>Interceptor]
+    C --> F[事件去重<br/>Deduplicator]
+    D --> G[业务逻辑]
+    E --> G
+    F --> G
+    D --> H[失败事件存储<br/>可选]
 ```
 
 ### 核心组件
 
-- **`EventData`** - 事件数据模型，包含飞书事件的所有基本信息
-- **`IFeishuEventHandler`** - 事件处理器接口，定义事件处理契约
-- **`DefaultFeishuEventHandler<T>`** - 抽象事件处理器基类，提供默认的反序列化和错误处理
-- **`DefaultFeishuObjectEventHandler<T>`** - 对象事件处理器基类，继承自DefaultFeishuEventHandler
-- **`IFeishuEventHandlerFactory`** - 事件处理器工厂，负责处理器的注册、发现和调用
-- **`IEventResult`** - 事件结果接口，用于标识不同类型事件的结果
-- **`ObjectEventResult<T>`** - 对象事件结果类，包装事件处理后返回的对象
-- **`FeishuEventTypes`** - 事件类型常量，定义所有支持的飞书事件类型
+#### 认证与令牌管理
+- **`ITokenManager`** - 令牌管理器基础接口
+- **`IAppTokenManager`** - 应用令牌管理器
+- **`ITenantTokenManager`** - 租户令牌管理器
+- **`IUserTokenManager`** - 用户令牌管理器（支持多用户）
+- **`ITokenCache`** - 令牌缓存抽象接口
+- **`IFeishuAuthentication`** - 飞书认证 API 客户端
+- **`TokenManagerWithCache`** - 带缓存的令牌管理器基类
+- **`MemoryTokenCache`** - 内存缓存实现
+
+#### 多应用管理
+- **`IFeishuAppManager`** - 应用管理器接口
+- **`IMudAppContext`** - 应用上下文接口
+- **`IFeishuAppContextSwitcher`** - 应用上下文切换接口
+- **`FeishuAppManager`** - 应用管理器实现
+- **`FeishuAppContext`** - 应用上下文实现
+- **`FeishuAppConfig`** - 应用配置类
+- **`FeishuAppConfigBuilder`** - 应用配置构建器
+
+#### 事件处理
+- **`EventData`** - 事件数据模型
+- **`IFeishuEventHandler`** - 事件处理器接口
+- **`DefaultFeishuEventHandler<T>`** - 抽象事件处理器基类
+- **`IdempotentFeishuEventHandler<T>`** - 幂等性事件处理器
+- **`IFeishuEventHandlerFactory`** - 事件处理器工厂
+- **`IFeishuEventInterceptor`** - 事件拦截器接口
+- **`IFeishuEventDeduplicator`** - 事件去重服务接口
+- **`IFeishuSeqIDDeduplicator`** - SeqID 去重服务接口
+
+#### 核心服务
+- **`IEnhancedHttpClient`** - 增强型 HTTP 客户端接口
+- **`IFailedEventStore`** - 失败事件存储接口
+- **`IEventResult`** - 事件结果接口
+- **`ObjectEventResult<T>`** - 对象事件结果类
+
+#### 数据模型
+- **`FeishuApiResult<T>`** - API 响应结果模型
+- **`AppCredentials`** - 应用凭证模型
+- **`FeishuEventTypes`** - 事件类型常量
+- 组织事件模型、IM 事件模型、审批事件模型等
+
+## 🔑 令牌管理
+
+### 令牌类型
+
+Mud.Feishu.Abstractions 支持三种飞书令牌类型：
+
+| 令牌类型 | 接口 | 用途 | 有效期 |
+|---------|------|------|--------|
+| **应用令牌** | `IAppTokenManager` | 应用级别的权限验证 | 2 小时 |
+| **租户令牌** | `ITenantTokenManager` | 租户级别的权限验证 | 2 小时 |
+| **用户令牌** | `IUserTokenManager` | 用户级别的权限验证 | 根据授权类型而定 |
+
+### 令牌管理器特性
+
+- **自动缓存** - 自动缓存令牌，减少 API 调用
+- **智能刷新** - 令牌即将过期时自动刷新
+- **并发控制** - 使用 Lazy 加载防止并发请求导致的缓存击穿
+- **重试机制** - 获取令牌失败时自动重试（最多 2 次，指数退避）
+- **线程安全** - 所有操作都是线程安全的
+- **统计信息** - 提供缓存统计信息（总数、过期数）
+
+### 使用示例
+
+#### 1. 基本使用
+
+```csharp
+// 注入应用令牌管理器
+public class MyService
+{
+    private readonly IAppTokenManager _appTokenManager;
+
+    public MyService(IAppTokenManager appTokenManager)
+    {
+        _appTokenManager = appTokenManager;
+    }
+
+    public async Task CallFeishuApiAsync()
+    {
+        // 获取令牌（自动处理缓存、刷新等）
+        var token = await _appTokenManager.GetTokenAsync();
+
+        // 使用令牌调用飞书 API
+        var client = new HttpClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+
+        // ...
+    }
+}
+```
+
+#### 2. 多用户令牌管理
+
+```csharp
+public class UserService
+{
+    private readonly IUserTokenManager _userTokenManager;
+
+    public UserService(IUserTokenManager userTokenManager)
+    {
+        _userTokenManager = userTokenManager;
+    }
+
+    // 获取特定用户的令牌
+    public async Task<string> GetUserTokenAsync(string userId)
+    {
+        return await _userTokenManager.GetTokenAsync(userId);
+    }
+
+    // 使用授权码获取用户令牌
+    public async Task<string> GetUserTokenWithCodeAsync(string code, string redirectUri)
+    {
+        return await _userTokenManager.GetUserTokenWithCodeAsync(code, redirectUri);
+    }
+
+    // 刷新用户令牌
+    public async Task<string> RefreshUserTokenAsync(string userId, string refreshToken)
+    {
+        return await _userTokenManager.RefreshUserTokenAsync(userId, refreshToken);
+    }
+}
+```
+
+#### 3. 自定义令牌缓存
+
+```csharp
+// 实现 ITokenCache 接口
+public class RedisTokenCache : ITokenCache
+{
+    private readonly IConnectionMultiplexer _redis;
+    private readonly IDatabase _db;
+
+    public RedisTokenCache(IConnectionMultiplexer redis)
+    {
+        _redis = redis;
+        _db = _redis.GetDatabase();
+    }
+
+    public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
+    {
+        return await _db.StringGetAsync(key);
+    }
+
+    public async Task SetAsync(string key, string value, TimeSpan expiration, CancellationToken cancellationToken = default)
+    {
+        await _db.StringSetAsync(key, value, expiration);
+    }
+
+    public async Task<bool> RemoveAsync(string key, CancellationToken cancellationToken = default)
+    {
+        return await _db.KeyDeleteAsync(key);
+    }
+
+    // 实现其他方法...
+}
+
+// 注册自定义缓存
+builder.Services.AddTokenCache<RedisTokenCache>();
+```
+
+#### 4. 获取缓存统计
+
+```csharp
+public class TokenStatisticsService
+{
+    private readonly ITokenManager _tokenManager;
+
+    public async Task PrintStatisticsAsync()
+    {
+        var (total, expired) = await _tokenManager.GetCacheStatisticsAsync();
+        Console.WriteLine($"缓存统计: 总数={total}, 过期={expired}");
+    }
+}
+```
+
+### 令牌缓存策略
+
+令牌管理器使用以下策略来优化性能：
+
+1. **首次访问** - 调用飞书 API 获取令牌
+2. **后续访问** - 从缓存返回令牌（如果未过期）
+3. **即将过期** - 令牌过期前 5 分钟（默认）自动刷新
+4. **并发请求** - 使用 Lazy 加载，多个并发请求只触发一次刷新
+5. **失败重试** - 获取令牌失败时自动重试 2 次，使用指数退避策略
+
+## 🏢 多应用支持
+
+### 核心概念
+
+Mud.Feishu.Abstractions 提供完整的多应用管理能力，允许在同一个系统中管理多个飞书应用：
+
+- **独立配置** - 每个应用拥有独立的 AppId、AppSecret、BaseUrl 等配置
+- **独立资源** - 每个应用拥有独立的令牌管理器、缓存、HTTP 客户端
+- **统一管理** - 通过 IFeishuAppManager 统一管理所有应用
+- **动态切换** - 支持运行时动态添加、移除、切换应用
+- **缓存隔离** - 使用 PrefixedTokenCache 确保不同应用的令牌缓存互不干扰
+
+### 应用配置
+
+```csharp
+// 方式 1: 使用配置文件
+{
+  "Feishu": {
+    "Apps": [
+      {
+        "AppKey": "default",
+        "AppId": "cli_xxxxxx",
+        "AppSecret": "xxxxxx",
+        "BaseUrl": "https://open.feishu.cn",
+        "IsDefault": true
+      },
+      {
+        "AppKey": "approval",
+        "AppId": "cli_yyyyyy",
+        "AppSecret": "yyyyyy",
+        "BaseUrl": "https://open.feishu.cn"
+      }
+    ]
+  }
+}
+
+// 方式 2: 使用代码配置
+builder.Services.AddFeishuApp(configs =>
+{
+    configs.AddDefaultApp("default", "cli_xxxxxx", "xxxxxx")
+            .SetBaseUrl("https://open.feishu.cn")
+            .SetTimeout(30)
+            .SetRetryCount(3);
+
+    configs.AddApp("approval", "cli_yyyyyy", "yyyyyy")
+            .SetTimeout(60)
+            .SetRetryCount(5);
+});
+
+// 方式 3: 使用构建器
+builder.Services.AddFeishuApp(builder =>
+{
+    builder.AddDefaultApp("default", "cli_xxxxxx", "xxxxxx")
+           .AddApp("approval", "cli_yyyyyy", "yyyyyy")
+           .AddApp("im", "cli_zzzzzz", "zzzzzz");
+});
+```
+
+### 使用多应用
+
+#### 1. 获取指定应用的 API
+
+```csharp
+public class MultiAppService
+{
+    private readonly IFeishuAppManager _appManager;
+
+    public MultiAppService(IFeishuAppManager appManager)
+    {
+        _appManager = appManager;
+    }
+
+    public async Task UseDefaultAppAsync()
+    {
+        // 获取默认应用的 API
+        var api = _appManager.GetFeishuApi<IMyApi>();
+        await api.DoSomethingAsync();
+    }
+
+    public async Task UseSpecificAppAsync(string appKey)
+    {
+        // 获取指定应用的 API
+        var api = _appManager.GetFeishuApi<IMyApi>(appKey);
+        await api.DoSomethingAsync();
+    }
+}
+```
+
+#### 2. 应用上下文切换
+
+```csharp
+public class AppSwitchingService
+{
+    private readonly IFeishuAppContextSwitcher _switcher;
+
+    public async Task WorkWithAppsAsync()
+    {
+        // 切换到默认应用
+        var defaultContext = _switcher.UseDefaultApp();
+        var defaultToken = await defaultContext
+            .GetTokenManager(TokenType.App)
+            .GetTokenAsync();
+
+        // 切换到审批应用
+        var approvalContext = _switcher.UseApp("approval");
+        var approvalToken = await approvalContext
+            .GetTokenManager(TokenType.App)
+            .GetTokenAsync();
+
+        // 使用应用上下文访问资源
+        var httpClient = approvalContext.HttpClient;
+        var auth = approvalContext.Authentication;
+    }
+}
+```
+
+#### 3. 动态管理应用
+
+```csharp
+public class DynamicAppManager
+{
+    private readonly IFeishuAppManager _appManager;
+
+    // 运行时添加新应用
+    public void AddNewApp()
+    {
+        var newConfig = new FeishuAppConfig
+        {
+            AppKey = "newApp",
+            AppId = "cli_newxxx",
+            AppSecret = "newsecret",
+            IsDefault = false
+        };
+
+        _appManager.AddApp(newConfig);
+    }
+
+    // 检查应用是否存在
+    public bool CheckAppExists(string appKey)
+    {
+        return _appManager.HasApp(appKey);
+    }
+
+    // 获取所有应用
+    public IEnumerable<IMudAppContext> GetAllApps()
+    {
+        return _appManager.GetAllApps();
+    }
+
+    // 移除应用
+    public bool RemoveApp(string appKey)
+    {
+        return _appManager.RemoveApp(appKey);
+    }
+}
+```
+
+### 应用配置选项
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `AppKey` | string | - | 应用唯一标识（必需） |
+| `AppId` | string | - | 飞书应用 ID（必需） |
+| `AppSecret` | string | - | 飞书应用密钥（必需） |
+| `BaseUrl` | string | https://open.feishu.cn | API 基础地址 |
+| `TimeOut` | int | 30 | HTTP 请求超时时间（秒） |
+| `RetryCount` | int | 3 | 失败重试次数 |
+| `RetryDelayMs` | int | 1000 | 重试延迟时间（毫秒） |
+| `TokenRefreshThreshold` | int | 300 | 令牌刷新阈值（秒） |
+| `EnableLogging` | bool | true | 是否启用日志记录 |
+| `IsDefault` | bool | false | 是否为默认应用 |
 
 ## 🎯 支持的事件类型
 
@@ -77,6 +528,21 @@ dotnet add package Mud.Feishu.Abstractions
 ### 审批事件
 - `approval.approval.approved_v1` - 审批通过事件
 - `approval.approval.rejected_v1` - 审批拒绝事件
+- `approval.approval.updated_v1` - 审批更新事件
+- `approval.cc_v1` - 审批抄送事件
+- `approval.instance_v1` - 审批实例事件
+- `approval.instance.remedy_group.updated_v1` - 审批实例补丁分组更新事件
+- `approval.instance.trip_group.updated_v1` - 审批实例行程分组更新事件
+- `approval.task_v1` - 审批任务事件
+- `approval.leave_v1` - 请假审批事件
+- `approval.out_v1` - 外出审批事件
+- `approval.shift_v1` - 排班审批事件
+- `approval.work_v1` - 工作审批事件
+
+### 任务事件
+- `task.update_tenant_v1` - 任务信息变更-租户维度事件
+- `task.updated_v1` - 任务信息变更事件
+- `task.comment.updated_v1` - 任务评论信息变更事件
 
 ### 日程和会议事件
 - `calendar.event.updated_v4` - 日程事件
@@ -390,6 +856,249 @@ public class DemoEventService
 }
 ```
 
+## 🛠️ 核心服务
+
+### 增强型 HTTP 客户端 (IEnhancedHttpClient)
+
+提供飞书 API 调用的统一 HTTP 客户端，支持自动重试、日志记录、文件下载等功能。
+
+```csharp
+public class ApiClient
+{
+    private readonly IEnhancedHttpClient _httpClient;
+
+    public ApiClient(IEnhancedHttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    // 发送请求并反序列化响应
+    public async Task<FeishuApiResult<UserInfo>> GetUserInfoAsync(string userId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get,
+            $"https://open.feishu.cn/open-apis/user/v4/info/{userId}");
+
+        return await _httpClient.SendAsync<FeishuApiResult<UserInfo>>(request);
+    }
+
+    // 下载小文件
+    public async Task<byte[]?> DownloadImageAsync(string mediaId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get,
+            $"https://open.feishu.cn/open-apis/drive/v1/medias/{mediaId}/download");
+
+        return await _httpClient.DownloadAsync(request);
+    }
+
+    // 下载大文件（流式下载）
+    public async Task<FileInfo> DownloadLargeFileAsync(string mediaId, string filePath)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get,
+            $"https://open.feishu.cn/open-apis/drive/v1/medias/{mediaId}/download");
+
+        return await _httpClient.DownloadLargeAsync(request, filePath, overwrite: true);
+    }
+}
+```
+
+### 事件去重服务 (IFeishuEventDeduplicator)
+
+防止重复事件的处理，保证事件处理的幂等性。
+
+```csharp
+public class DeduplicatedEventHandler : IFeishuEventHandler
+{
+    private readonly IFeishuEventDeduplicator _deduplicator;
+
+    public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
+    {
+        // 检查事件是否已处理
+        if (_deduplicator.IsProcessed(eventData.EventId))
+        {
+            _logger.LogInformation("事件 {EventId} 已处理，跳过", eventData.EventId);
+            return;
+        }
+
+        // 标记事件为处理中
+        if (!_deduplicator.TryMarkAsProcessing(eventData.EventId))
+        {
+            _logger.LogInformation("事件 {EventId} 正在处理中，跳过", eventData.EventId);
+            return;
+        }
+
+        try
+        {
+            // 处理业务逻辑
+            await ProcessEventAsync(eventData, cancellationToken);
+
+            // 标记事件为已完成
+            _deduplicator.MarkAsCompleted(eventData.EventId);
+        }
+        catch
+        {
+            // 处理失败，回滚状态以便重试
+            _deduplicator.RollbackProcessing(eventData.EventId);
+            throw;
+        }
+    }
+}
+```
+
+### 失败事件存储 (IFailedEventStore)
+
+持久化后台处理失败的事件，支持重试。
+
+```csharp
+public class FailedEventRetryService
+{
+    private readonly IFailedEventStore _failedEventStore;
+    private readonly IFeishuEventHandlerFactory _factory;
+
+    // 存储失败事件
+    public async Task StoreFailedEventAsync(EventData eventData, Exception exception)
+    {
+        await _failedEventStore.StoreFailedEventAsync(
+            eventData,
+            exception,
+            retryCount: 0,
+            nextRetryTime: DateTimeOffset.Now.AddMinutes(5)
+        );
+    }
+
+    // 获取待重试的事件
+    public async Task<List<FailedEventInfo>> GetPendingRetryEventsAsync()
+    {
+        return await _failedEventStore.GetPendingRetryEventsAsync(
+            beforeTime: DateTimeOffset.Now,
+            maxCount: 10
+        );
+    }
+
+    // 重试失败事件
+    public async Task RetryFailedEventAsync(FailedEventInfo eventInfo)
+    {
+        var handler = _factory.GetHandler(eventInfo.EventData.EventType);
+
+        try
+        {
+            await handler.HandleAsync(eventInfo.EventData);
+
+            // 重试成功，移除失败记录
+            await _failedEventStore.RemoveFailedEventAsync(eventInfo.EventId);
+        }
+        catch
+        {
+            // 重试失败，增加重试次数并更新下次重试时间
+            await _failedEventStore.UpdateRetryCountAsync(
+                eventInfo.EventId,
+                eventInfo.RetryCount + 1,
+                DateTimeOffset.Now.AddMinutes(5 * (eventInfo.RetryCount + 1))
+            );
+        }
+    }
+}
+```
+
+### 事件拦截器 (IFeishuEventInterceptor)
+
+在事件处理前后执行自定义逻辑。
+
+```csharp
+public class CustomEventInterceptor : IFeishuEventInterceptor
+{
+    private readonly ILogger<CustomEventInterceptor> _logger;
+
+    public async Task<bool> BeforeHandleAsync(
+        string eventType,
+        EventData eventData,
+        CancellationToken cancellationToken)
+    {
+        // 事件处理前执行
+        _logger.LogInformation("准备处理事件: {EventType}, EventId: {EventId}",
+            eventType, eventData.EventId);
+
+        // 返回 false 可以中断事件处理
+        return true;
+    }
+
+    public async Task AfterHandleAsync(
+        string eventType,
+        EventData eventData,
+        Exception? exception,
+        CancellationToken cancellationToken)
+    {
+        // 事件处理后执行
+        if (exception == null)
+        {
+            _logger.LogInformation("事件处理成功: {EventId}", eventData.EventId);
+        }
+        else
+        {
+            _logger.LogError(exception, "事件处理失败: {EventId}", eventData.EventId);
+        }
+    }
+}
+
+// 注册拦截器
+builder.Services.AddSingleton<IFeishuEventInterceptor, CustomEventInterceptor>();
+```
+
+### URL 验证器 (UrlValidator)
+
+防止 SSRF（服务端请求伪造）攻击。
+
+```csharp
+public class SafeUrlDownloader
+{
+    private readonly UrlValidator _urlValidator;
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public async Task<byte[]> DownloadFromUrlAsync(string url)
+    {
+        // 验证 URL 是否安全
+        if (!_urlValidator.Validate(url))
+        {
+            throw new InvalidOperationException($"URL 不被允许: {url}");
+        }
+
+        var client = _httpClientFactory.CreateClient();
+        return await client.GetByteArrayAsync(url);
+    }
+}
+
+// 默认配置：仅允许飞书官方域名
+// 可以自定义添加信任域名
+urlValidator.AddTrustedDomain("https://api.yourcompany.com");
+```
+
+### 消息脱敏 (MessageSanitizer)
+
+对敏感信息进行脱敏处理。
+
+```csharp
+public class LoggingService
+{
+    private readonly MessageSanitizer _sanitizer;
+
+    public void LogSensitiveData(string message)
+    {
+        // 自动脱敏敏感信息
+        var sanitized = _sanitizer.Sanitize(message);
+
+        _logger.LogInformation("处理后的消息: {SanitizedMessage}", sanitized);
+    }
+
+    // 支持的脱敏字段：
+    // - Token: access_token, refresh_token, app_secret, api_key, private_key
+    // - 个人信息: phone, mobile, email, name, id_card, address
+    // - 金融信息: card_no, card_number, bank_card
+}
+
+// 示例：
+// 原始: "access_token=abcdef1234567890, phone=13812345678"
+// 脱敏: "access_token=abcd****7890, phone=138****5678"
+```
+
 ## 🏗️ 高级用法
 
 ### 多处理器策略
@@ -408,7 +1117,7 @@ public class MultiHandlerService
     {
         // 获取所有匹配的处理器
         var handlers = _factory.GetHandlers(eventData.EventType);
-        
+
         // 按优先级处理
         foreach (var handler in handlers.OrderBy(h => h.GetType().Name))
         {
@@ -421,6 +1130,35 @@ public class MultiHandlerService
                 // 记录错误但继续处理其他处理器
                 Console.WriteLine($"处理器 {handler.GetType().Name} 失败: {ex.Message}");
             }
+        }
+    }
+}
+```
+
+### 幂等性事件处理器
+
+```csharp
+public class IdempotentUserEventHandler : IdempotentFeishuEventHandler<UserCreateEvent>
+{
+    private readonly IFeishuEventDeduplicator _deduplicator;
+
+    public IdempotentUserEventHandler(
+        ILogger<IdempotentUserEventHandler> logger,
+        IFeishuEventDeduplicator deduplicator) : base(logger, deduplicator)
+    {
+    }
+
+    public override string SupportedEventType => FeishuEventTypes.UserCreated;
+
+    protected override async Task ProcessBusinessLogicAsync(
+        EventData eventData,
+        UserCreateEvent? eventEntity,
+        CancellationToken cancellationToken = default)
+    {
+        // 处理业务逻辑，基类已自动保证幂等性
+        if (eventEntity != null)
+        {
+            await CreateUserAsync(eventEntity.User, cancellationToken);
         }
     }
 }
@@ -533,6 +1271,14 @@ public class MyCustomEventHandler : DefaultFeishuEventHandler<MyCustomEvent>
 | `IEventHandler` 直接实现 | 最大灵活性 | 需要手动反序列化 | 简单事件或特殊需求 |
 | `DefaultFeishuEventHandler<T>` | 自动反序列化、错误处理 | 继承层次增加 | 大多数标准事件 |
 | `DefaultFeishuObjectEventHandler<T>` | 专为对象结果优化 | 功能相对固定 | 返回对象的事件 |
+| `IdempotentFeishuEventHandler<T>` | 自动去重、幂等保证 | 需要配置去重服务 | 需要幂等性保证的事件 |
+
+### 令牌缓存选择策略
+
+| 缓存类型 | 优点 | 缺点 | 适用场景 |
+|---------|------|------|----------|
+| `MemoryTokenCache` | 简单、无需外部依赖 | 重启丢失、不支持分布式 | 单实例部署 |
+| 自定义 `ITokenCache` | 灵活、支持 Redis 等多种实现 | 需要自己实现 | 分布式部署、需要持久化 |
 
 ### 性能建议
 
@@ -540,6 +1286,11 @@ public class MyCustomEventHandler : DefaultFeishuEventHandler<MyCustomEvent>
 - ⚡ **优化** 对高频事件使用 `ValueTask`
 - 🔄 **并发** 使用 `HandleEventParallelAsync` 处理复杂事件
 - 🛡️ **安全** 基类内置了异常处理和日志记录
+- 🔐 **令牌** 使用带缓存的令牌管理器，减少 API 调用
+- 🏢 **多应用** 合理规划应用配置，避免过多应用导致资源浪费
+- 🔄 **去重** 使用 `IdempotentFeishuEventHandler<T>` 保证幂等性
+- 📝 **日志** 使用事件拦截器统一记录日志
+- 🔒 **安全** 对敏感信息进行脱敏处理
 
 
 ## 🛠️ 开发和构建
@@ -548,6 +1299,12 @@ public class MyCustomEventHandler : DefaultFeishuEventHandler<MyCustomEvent>
 
 - .NET 6.0 或更高版本
 - Visual Studio 2022 或 Visual Studio Code
+
+### 依赖项
+
+- **Microsoft.Extensions.Http** - HTTP 客户端支持
+- **Microsoft.Extensions.Http.Polly** - HTTP 重试策略支持
+- **Mud.HttpUtils** - HTTP 工具类及HttpClient代码生成器
 
 ### 构建项目
 
@@ -568,9 +1325,11 @@ dotnet test
 
 ## 📚 相关项目
 
-- [Mud.Feishu](../Mud.Feishu) - 主要的飞书SDK实现
-- [Mud.Feishu.WebSocket](../Mud.Feishu.WebSocket) - WebSocket事件订阅实现
-- [Mud.Feishu.Test](../Mud.Feishu.Test) - 测试项目和使用示例
+- [Mud.Feishu](../Mud.Feishu) - 主要的飞书 SDK 实现
+- [Mud.Feishu.WebSocket](../Mud.Feishu.WebSocket) - WebSocket 事件订阅实现
+- [Mud.Feishu.Webhook](../Mud.Feishu.Webhook) - HTTP Webhook 事件订阅实现
+- [Mud.Feishu.Redis](../Mud.Feishu.Redis) - Redis 缓存实现
+- [Mud.Feishu.Test](../Tests) - 测试项目和使用示例
 
 ## 🤝 贡献
 
@@ -584,4 +1343,16 @@ dotnet test
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启 Pull Request
 
-**Mud.Feishu.Abstractions** - 让飞书事件处理变得简单而强大！ 🚀
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](../../LICENSE) 文件
+
+## 🌟 Star History
+
+如果这个项目对你有帮助，请给我们一个 Star ⭐️
+
+---
+
+**Mud.Feishu.Abstractions** - 让飞书集成变得简单而强大！ 🚀
+
+提供完整的飞书 API 访问能力，包括认证授权、令牌管理、多应用支持、事件订阅处理等核心功能，助力开发者快速构建飞书应用。
