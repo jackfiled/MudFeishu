@@ -116,7 +116,11 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// </remarks>
     public virtual async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
     {
-        using var _ = FeishuMetricsHelper.RecordTokenFetch(_tokenType.ToString(), fromCache: false);
+        var cacheKey = GenerateCacheKey();
+        var cachedToken = await _tokenCache.GetAsync(cacheKey, cancellationToken);
+        var fromCache = !string.IsNullOrEmpty(cachedToken);
+
+        using var _ = FeishuMetricsHelper.RecordTokenFetch(_tokenType.ToString(), fromCache);
         return await GetTokenInternalAsync(cancellationToken);
     }
 
@@ -139,14 +143,9 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
         if (!string.IsNullOrEmpty(cachedToken))
         {
             _logger.LogDebug("Using cached token for {TokenType}, AppId: {AppId}", _tokenType, _options.AppId);
-            // 记录缓存命中
-            FeishuMetrics.TokenCacheHitCount.Add(1, new KeyValuePair<string, object?>("token_type", _tokenType.ToString()));
             // 确保返回的token格式统一：Bearer {token}
             return FormatBearerToken(cachedToken);
         }
-
-        // 记录缓存未命中
-        FeishuMetrics.TokenCacheMissCount.Add(1, new KeyValuePair<string, object?>("token_type", _tokenType.ToString()));
 
         try
         {
