@@ -156,9 +156,12 @@ public static class FeishuMultiAppExtensions
 
         if (hasTenantTokenManager)
         {
-            Console.WriteLine(
-                "⚠️  警告: 检测到已注册单应用模式的TokenManager。" +
-                "多应用模式已启用,单应用模式的TokenManager将被忽略。" +
+            // 使用 ILoggerFactory 获取日志记录器
+            var loggerFactory = services.BuildServiceProvider().GetService<ILoggerFactory>();
+            var logger = loggerFactory?.CreateLogger("FeishuMultiAppExtensions");
+
+            logger?.LogWarning(
+                "检测到已注册单应用模式的TokenManager。多应用模式已启用,单应用模式的TokenManager将被忽略。" +
                 "建议移除 AddTokenManagers() 等单应用API的调用。" +
                 "请参考文档: https://github.com/mudtools/MudFeishu/wiki/Multi-App-Migration");
         }

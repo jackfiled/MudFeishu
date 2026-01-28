@@ -6,8 +6,6 @@
 // -----------------------------------------------------------------------
 
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Mud.Feishu.Abstractions.Metrics;
 

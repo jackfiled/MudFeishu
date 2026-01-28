@@ -239,24 +239,8 @@ public class ConfigurationValidationService
             result.AddWarning("最大并发事件数过大，可能影响系统稳定性");
         }
 
-        // 验证断路器配置
-        if (options.EnableCircuitBreaker)
-        {
-            if (options.CircuitBreaker.ExceptionsAllowedBeforeBreaking <= 0)
-            {
-                result.AddError("断路器异常阈值必须大于 0");
-            }
+        // 注意：CircuitBreaker 功能已被移除，不再验证相关配置
 
-            if (options.CircuitBreaker.DurationOfBreak.TotalSeconds <= 0)
-            {
-                result.AddError("断路器开启持续时间必须大于 0");
-            }
-
-            if (options.CircuitBreaker.SuccessThresholdToReset <= 0)
-            {
-                result.AddError("断路器重置成功阈值必须大于 0");
-            }
-        }
     }
 
     /// <summary>

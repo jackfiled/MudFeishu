@@ -29,7 +29,6 @@ public class FeishuWebhookService : IFeishuWebhookService
     private readonly IFeishuEventDeduplicator _deduplicator;
     private readonly IFeishuEventDistributedDeduplicator? _distributedDeduplicator;
     private readonly ISecurityAuditService? _securityAuditService;
-    private readonly IThreatDetectionService? _threatDetectionService;
 
     /// <summary>
     /// 提供的加密密钥（支持多密钥场景，使用 AsyncLocal 确保线程安全）
@@ -57,8 +56,7 @@ public class FeishuWebhookService : IFeishuWebhookService
         FeishuWebhookConcurrencyService concurrencyService,
         IFeishuEventDeduplicator deduplicator,
         ISecurityAuditService? securityAuditService,
-        IFeishuEventDistributedDeduplicator? distributedDeduplicator = null,
-        IThreatDetectionService? threatDetectionService = null)
+        IFeishuEventDistributedDeduplicator? distributedDeduplicator = null)
     {
         _optionsMonitor = optionsMonitor;
         _validator = validator;
@@ -70,7 +68,6 @@ public class FeishuWebhookService : IFeishuWebhookService
         _deduplicator = deduplicator;
         _distributedDeduplicator = distributedDeduplicator;
         _securityAuditService = securityAuditService;
-        _threatDetectionService = threatDetectionService;
 
         // 监听配置变更
         _optionsMonitor.OnChange((newOptions, name) =>
@@ -99,10 +96,8 @@ public class FeishuWebhookService : IFeishuWebhookService
                 changes.Add($"EnableBackgroundProcessing: {oldOptions.EnableBackgroundProcessing} → {newOptions.EnableBackgroundProcessing}");
             }
 
-            if (oldOptions.EnableCircuitBreaker != newOptions.EnableCircuitBreaker)
-            {
-                changes.Add($"EnableCircuitBreaker: {oldOptions.EnableCircuitBreaker} → {newOptions.EnableCircuitBreaker}");
-            }
+            // 注意：CircuitBreaker 配置变更已被移除
+
 
             if (oldOptions.EnablePerformanceMonitoring != newOptions.EnablePerformanceMonitoring)
             {

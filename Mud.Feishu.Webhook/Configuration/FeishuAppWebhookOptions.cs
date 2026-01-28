@@ -27,4 +27,14 @@ public class FeishuAppWebhookOptions
     /// 事件加密 Key
     /// </summary>
     public string EncryptKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 时间戳容错范围（秒），默认 300 秒（5 分钟）
+    /// </summary>
+    public int TimestampToleranceSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// 是否强制验证请求头签名，默认 false
+    /// </summary>
+    public bool EnforceHeaderSignatureValidation { get; set; } = false;
 }

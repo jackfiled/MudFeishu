@@ -110,15 +110,10 @@ public class FeishuWebhookOptions
 
     /// <summary>
     /// 是否启用断路器模式
-    /// 启用后，当连续失败次数达到阈值时，断路器将开启并拒绝新请求
-    /// 这可以防止级联故障，保护下游服务
+    /// 注意：CircuitBreaker 功能已被移除，此配置项已废弃
     /// </summary>
-    public bool EnableCircuitBreaker { get; set; } = true;
-
-    /// <summary>
-    /// 断路器配置
-    /// </summary>
-    public CircuitBreakerOptions CircuitBreaker { get; set; } = new();
+    [Obsolete("CircuitBreaker 功能已被移除，此配置项已废弃", true)]
+    public bool EnableCircuitBreaker { get; set; } = false;
 
     /// <summary>
     /// 失败事件重试配置
@@ -148,15 +143,7 @@ public class FeishuWebhookOptions
         if (TimestampToleranceSeconds < 0)
             throw new InvalidOperationException("TimestampToleranceSeconds 不能为负数");
 
-        // 验证断路器配置
-        if (CircuitBreaker.ExceptionsAllowedBeforeBreaking < 1)
-            throw new InvalidOperationException("CircuitBreaker.ExceptionsAllowedBeforeBreaking 必须至少为 1");
-
-        if (CircuitBreaker.DurationOfBreak.TotalSeconds < 1)
-            throw new InvalidOperationException("CircuitBreaker.DurationOfBreak 必须至少为 1 秒");
-
-        if (CircuitBreaker.SuccessThresholdToReset < 1)
-            throw new InvalidOperationException("CircuitBreaker.SuccessThresholdToReset 必须至少为 1");
+        // 注意：CircuitBreaker 功能已被移除，不再验证相关配置
 
         // 验证重试配置
         Retry.Validate();

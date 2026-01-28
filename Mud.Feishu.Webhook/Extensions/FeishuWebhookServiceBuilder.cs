@@ -461,28 +461,9 @@ public class FeishuWebhookServiceBuilder
         _services.TryAddScoped<IFeishuEventDecryptor, FeishuEventDecryptor>();
         _services.TryAddScoped<IFeishuWebhookService, FeishuWebhookService>();
         _services.TryAddScoped<ISecurityAuditService, SecurityAuditService>();
-        _services.TryAddScoped<IThreatDetectionService, ThreatDetectionService>();
 
-        // 注册断路器服务（单例）
-        _services.TryAddSingleton(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<FeishuWebhookOptions>>();
-            var logger = sp.GetService<ILogger<CircuitBreakerService>>();
-
-            if (options.Value.EnableCircuitBreaker)
-            {
-                return new CircuitBreakerService(options.Value.CircuitBreaker, logger);
-            }
-
-            // 返回禁用的断路器（总是允许请求）
-            var disabledOptions = new CircuitBreakerOptions
-            {
-                ExceptionsAllowedBeforeBreaking = int.MaxValue,
-                DurationOfBreak = TimeSpan.FromMilliseconds(1),
-                SuccessThresholdToReset = 1
-            };
-            return new CircuitBreakerService(disabledOptions, logger);
-        });
+        // 注意：ThreatDetectionService 和 CircuitBreakerService 已被移除
+        // 这些服务已注册但未在主要服务中使用，已清理冗余代码
     }
 
 

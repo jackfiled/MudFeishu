@@ -98,7 +98,6 @@ public class FeishuWebhookServiceConcurrencyTests
             _concurrencyService,
             _deduplicatorMock.Object,
             null,
-            null,
             null);
     }
 
