@@ -3,19 +3,32 @@
 [![NuGet](https://img.shields.io/nuget/v/Mud.Feishu.Abstractions.svg)](https://www.nuget.org/packages/Mud.Feishu.Abstractions/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
 
-Mud.Feishu.Abstractions is the abstraction layer for the WebSocket event subscription component and HTTP event subscription component of the MudFeishu library, specifically designed for handling Feishu event subscriptions. It provides a complete event subscription strategy pattern event handling mechanism, enabling developers to easily receive and process Feishu real-time events in .NET applications.
+Mud.Feishu.Abstractions is the abstraction layer of the MudFeishu library, providing complete Feishu API access capabilities, including authentication and authorization, token management, multi-application support, event subscription processing, and other core features. It supports both WebSocket event subscription and HTTP event subscription modes, providing a strategy pattern-based event processing mechanism that enables developers to easily integrate Feishu services into .NET applications.
 
 ## 🚀 Features
 
-- **📡 Event Subscription Abstraction** - Provides a complete event subscription and handling abstraction layer
+### Core Features
+- **🔐 Complete Authentication & Authorization** - Supports application tokens, tenant tokens, and user tokens
+- **🔑 Smart Token Management** - Token manager with caching, automatic refresh, expiration detection, and retry mechanism
+- **🏢 Multi-Application Support** - Unified management of multiple Feishu applications, each with independent configuration and resources
+- **🎭 Token Cache Abstraction** - Supports multiple cache implementations including memory cache and Redis
+- **🛡️ Security Protection** - URL whitelist validation, private IP detection, sensitive information masking
+
+### Event Processing
+- **📡 Event Subscription Abstraction** - Provides complete event subscription and processing abstraction layer
 - **🔧 Strategy Pattern** - Event handlers based on strategy pattern, supporting multiple event types
 - **🏭 Factory Pattern** - Built-in event handler factory, supporting dynamic registration and discovery
 - **⚡ Async Processing** - Fully asynchronous event processing with parallel processing support
+- **🔄 Event Deduplication** - Supports event ID deduplication and SeqID deduplication, ensuring idempotency
 - **🎯 Type Safety** - Strongly-typed event data models, avoiding runtime errors
-- **📋 Rich Event Types** - Supports all major Feishu event types
+- **🛠️ Interceptor Mechanism** - Supports custom logic before and after event processing
+
+### Developer Experience
+- **📋 Rich Event Types** - Supports 40+ Feishu event types
 - **🔄 Extensible** - Easy to extend with new event types and handlers
 - **🛡️ Built-in Base Classes** - Provides default event handler base classes to simplify development
-- **📦 Multi-framework Support** - Supports .NET Framework 4.6+, .NET 6.0 - .NET 10.0
+- **📦 Multi-Framework Support** - Supports netstandard2.0, .NET 6.0 - .NET 10.0
+- **🌐 HTTP Client** - Enhanced HTTP client with retry, logging, and file download support
 
 ## 📦 Installation
 
@@ -25,22 +38,460 @@ dotnet add package Mud.Feishu.Abstractions
 
 ## 🏛️ Core Architecture
 
-### Event Handling Flow
+### System Architecture
 
+```mermaid
+graph TB
+    subgraph "Mud.Feishu.Abstractions"
+        subgraph "Authentication & Authorization"
+            A[ITokenManager]
+            B[ITokenCache]
+            C[IFeishuAuth]
+        end
+
+        subgraph "Event Processing"
+            D[EventHandler]
+            E[Interceptor]
+            F[Deduplicator]
+        end
+
+        subgraph "Core Services"
+            G[IHttpClient]
+            H[FailedEventStore]
+            I[Config]
+        end
+
+        subgraph "Multi-Application Management"
+            J[IFeishuAppManager]
+            K[IMudAppContext]
+            L[AppSwitcher]
+        end
+
+        subgraph "Utilities"
+            M[UrlValidator]
+            N[MessageSanitizer]
+            O[RetryPolicy]
+        end
+    end
 ```
-Feishu Event → EventData → EventHandlerFactory → IFeishuEventHandler → Business Logic
+
+### Token Management Flow
+
+```mermaid
+graph LR
+    A[Application Request] --> B[TokenManager]
+    B --> C{Check Cache}
+    C -->|Hit| D[Return Token]
+    C -->|Miss| E[Call Feishu API to Get Token]
+    E --> F[Store in Cache]
+    F --> G[Return Token]
+    B --> H[Background Task Auto-Refresh Expired Tokens]
+```
+
+### Multi-Application Architecture
+
+```mermaid
+graph TB
+    A[IFeishuAppManager<br/>Application Manager] --> B[App1<br/>Default]
+    A --> C[App2]
+    A --> D[App3]
+
+    B --> B1[AppContext]
+    B --> B2[TokenManager]
+    B --> B3[TokenCache]
+    B --> B4[HttpClient]
+
+    C --> C1[AppContext]
+    C --> C2[TokenManager]
+    C --> C3[TokenCache]
+    C --> C4[HttpClient]
+
+    D --> D1[AppContext]
+    D --> D2[TokenManager]
+    D --> D3[TokenCache]
+    D --> D4[HttpClient]
+
+    B --> E[GetApi&lt;T&gt;]
+    C --> E
+    D --> E
+
+    E --> F[Unified API Call Interface<br/>Auto-switch application based on appKey]
+```
+
+### Event Processing Flow
+
+```mermaid
+graph LR
+    A[Feishu Event] --> B[EventData]
+    B --> C[EventHandlerFactory]
+    C --> D[IFeishuEventHandler]
+    C --> E[Event Interceptor<br/>Interceptor]
+    C --> F[Event Deduplication<br/>Deduplicator]
+    D --> G[Business Logic]
+    E --> G
+    F --> G
+    D --> H[Failed Event Storage<br/>Optional]
 ```
 
 ### Core Components
 
-- **`EventData`** - Event data model, containing all basic information of Feishu events
-- **`IFeishuEventHandler`** - Event handler interface, defining event handling contracts
-- **`DefaultFeishuEventHandler<T>`** - Abstract event handler base class, providing default deserialization and error handling
-- **`DefaultFeishuObjectEventHandler<T>`** - Object event handler base class, inheriting from DefaultFeishuEventHandler
-- **`IFeishuEventHandlerFactory`** - Event handler factory, responsible for handler registration, discovery, and invocation
-- **`IEventResult`** - Event result interface, used to identify different types of event results
-- **`ObjectEventResult<T>`** - Object event result class, wrapping objects returned after event processing
-- **`FeishuEventTypes`** - Event type constants, defining all supported Feishu event types
+#### Authentication & Token Management
+- **`ITokenManager`** - Token manager base interface
+- **`IAppTokenManager`** - Application token manager
+- **`ITenantTokenManager`** - Tenant token manager
+- **`IUserTokenManager`** - User token manager (supports multiple users)
+- **`ITokenCache`** - Token cache abstraction interface
+- **`IFeishuAuthentication`** - Feishu authentication API client
+- **`TokenManagerWithCache`** - Token manager base class with caching
+- **`MemoryTokenCache`** - Memory cache implementation
+
+#### Multi-Application Management
+- **`IFeishuAppManager`** - Application manager interface
+- **`IMudAppContext`** - Application context interface
+- **`IFeishuAppContextSwitcher`** - Application context switcher interface
+- **`FeishuAppManager`** - Application manager implementation
+- **`FeishuAppContext`** - Application context implementation
+- **`FeishuAppConfig`** - Application configuration class
+- **`FeishuAppConfigBuilder`** - Application configuration builder
+
+#### Event Processing
+- **`EventData`** - Event data model
+- **`IFeishuEventHandler`** - Event handler interface
+- **`DefaultFeishuEventHandler<T>`** - Abstract event handler base class
+- **`IdempotentFeishuEventHandler<T>`** - Idempotent event handler
+- **`IFeishuEventHandlerFactory`** - Event handler factory
+- **`IFeishuEventInterceptor`** - Event interceptor interface
+- **`IFeishuEventDeduplicator`** - Event deduplication service interface
+- **`IFeishuSeqIDDeduplicator`** - SeqID deduplication service interface
+
+#### Core Services
+- **`IEnhancedHttpClient`** - Enhanced HTTP client interface
+- **`IFailedEventStore`** - Failed event storage interface
+- **`IEventResult`** - Event result interface
+- **`ObjectEventResult<T>`** - Object event result class
+
+#### Data Models
+- **`FeishuApiResult<T>`** - API response result model
+- **`AppCredentials`** - Application credential model
+- **`FeishuEventTypes`** - Event type constants
+- Organization event models, IM event models, approval event models, etc.
+
+## 🔑 Token Management
+
+### Token Types
+
+Mud.Feishu.Abstractions supports three Feishu token types:
+
+| Token Type | Interface | Purpose | Validity Period |
+|------------|-----------|---------|-----------------|
+| **Application Token** | `IAppTokenManager` | Application-level permission validation | 2 hours |
+| **Tenant Token** | `ITenantTokenManager` | Tenant-level permission validation | 2 hours |
+| **User Token** | `IUserTokenManager` | User-level permission validation | Depends on authorization type |
+
+### Token Manager Features
+
+- **Automatic Caching** - Automatically caches tokens to reduce API calls
+- **Smart Refresh** - Automatically refreshes tokens before expiration
+- **Concurrency Control** - Uses Lazy loading to prevent cache penetration from concurrent requests
+- **Retry Mechanism** - Automatically retries (up to 2 times with exponential backoff) when token acquisition fails
+- **Thread Safety** - All operations are thread-safe
+- **Statistics** - Provides cache statistics (total count, expired count)
+
+### Usage Examples
+
+#### 1. Basic Usage
+
+```csharp
+// Inject application token manager
+public class MyService
+{
+    private readonly IAppTokenManager _appTokenManager;
+
+    public MyService(IAppTokenManager appTokenManager)
+    {
+        _appTokenManager = appTokenManager;
+    }
+
+    public async Task CallFeishuApiAsync()
+    {
+        // Get token (automatically handles caching, refresh, etc.)
+        var token = await _appTokenManager.GetTokenAsync();
+
+        // Use token to call Feishu API
+        var client = new HttpClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+
+        // ...
+    }
+}
+```
+
+#### 2. Multi-User Token Management
+
+```csharp
+public class UserService
+{
+    private readonly IUserTokenManager _userTokenManager;
+
+    public UserService(IUserTokenManager userTokenManager)
+    {
+        _userTokenManager = userTokenManager;
+    }
+
+    // Get token for specific user
+    public async Task<string> GetUserTokenAsync(string userId)
+    {
+        return await _userTokenManager.GetTokenAsync(userId);
+    }
+
+    // Get user token using authorization code
+    public async Task<string> GetUserTokenWithCodeAsync(string code, string redirectUri)
+    {
+        return await _userTokenManager.GetUserTokenWithCodeAsync(code, redirectUri);
+    }
+
+    // Refresh user token
+    public async Task<string> RefreshUserTokenAsync(string userId, string refreshToken)
+    {
+        return await _userTokenManager.RefreshUserTokenAsync(userId, refreshToken);
+    }
+}
+```
+
+#### 3. Custom Token Cache
+
+```csharp
+// Implement ITokenCache interface
+public class RedisTokenCache : ITokenCache
+{
+    private readonly IConnectionMultiplexer _redis;
+    private readonly IDatabase _db;
+
+    public RedisTokenCache(IConnectionMultiplexer redis)
+    {
+        _redis = redis;
+        _db = _redis.GetDatabase();
+    }
+
+    public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
+    {
+        return await _db.StringGetAsync(key);
+    }
+
+    public async Task SetAsync(string key, string value, TimeSpan expiration, CancellationToken cancellationToken = default)
+    {
+        await _db.StringSetAsync(key, value, expiration);
+    }
+
+    public async Task<bool> RemoveAsync(string key, CancellationToken cancellationToken = default)
+    {
+        return await _db.KeyDeleteAsync(key);
+    }
+
+    // Implement other methods...
+}
+
+// Register custom cache
+builder.Services.AddTokenCache<RedisTokenCache>();
+```
+
+#### 4. Get Cache Statistics
+
+```csharp
+public class TokenStatisticsService
+{
+    private readonly ITokenManager _tokenManager;
+
+    public async Task PrintStatisticsAsync()
+    {
+        var (total, expired) = await _tokenManager.GetCacheStatisticsAsync();
+        Console.WriteLine($"Cache Statistics: Total={total}, Expired={expired}");
+    }
+}
+```
+
+### Token Cache Strategy
+
+The token manager uses the following strategies to optimize performance:
+
+1. **First Access** - Call Feishu API to get token
+2. **Subsequent Access** - Return token from cache (if not expired)
+3. **About to Expire** - Automatically refresh 5 minutes (default) before token expiration
+4. **Concurrent Requests** - Use Lazy loading, multiple concurrent requests trigger only one refresh
+5. **Failure Retry** - Automatically retry 2 times with exponential backoff when token acquisition fails
+
+## 🏢 Multi-Application Support
+
+### Core Concepts
+
+Mud.Feishu.Abstractions provides complete multi-application management capabilities, allowing you to manage multiple Feishu applications in the same system:
+
+- **Independent Configuration** - Each application has independent AppId, AppSecret, BaseUrl, and other configurations
+- **Independent Resources** - Each application has independent token manager, cache, and HTTP client
+- **Unified Management** - Unified management of all applications through IFeishuAppManager
+- **Dynamic Switching** - Supports runtime dynamic addition, removal, and switching of applications
+- **Cache Isolation** - Uses PrefixedTokenCache to ensure token caches of different applications do not interfere
+
+### Application Configuration
+
+```csharp
+// Method 1: Use configuration file
+{
+  "Feishu": {
+    "Apps": [
+      {
+        "AppKey": "default",
+        "AppId": "cli_xxxxxx",
+        "AppSecret": "xxxxxx",
+        "BaseUrl": "https://open.feishu.cn",
+        "IsDefault": true
+      },
+      {
+        "AppKey": "approval",
+        "AppId": "cli_yyyyyy",
+        "AppSecret": "yyyyyy",
+        "BaseUrl": "https://open.feishu.cn"
+      }
+    ]
+  }
+}
+
+// Method 2: Use code configuration
+builder.Services.AddFeishuApp(configs =>
+{
+    configs.AddDefaultApp("default", "cli_xxxxxx", "xxxxxx")
+            .SetBaseUrl("https://open.feishu.cn")
+            .SetTimeout(30)
+            .SetRetryCount(3);
+
+    configs.AddApp("approval", "cli_yyyyyy", "yyyyyy")
+            .SetTimeout(60)
+            .SetRetryCount(5);
+});
+
+// Method 3: Use builder
+builder.Services.AddFeishuApp(builder =>
+{
+    builder.AddDefaultApp("default", "cli_xxxxxx", "xxxxxx")
+           .AddApp("approval", "cli_yyyyyy", "yyyyyy")
+           .AddApp("im", "cli_zzzzzz", "zzzzzz");
+});
+```
+
+### Using Multiple Applications
+
+#### 1. Get API for Specific Application
+
+```csharp
+public class MultiAppService
+{
+    private readonly IFeishuAppManager _appManager;
+
+    public MultiAppService(IFeishuAppManager appManager)
+    {
+        _appManager = appManager;
+    }
+
+    public async Task UseDefaultAppAsync()
+    {
+        // Get API for default application
+        var api = _appManager.GetFeishuApi<IMyApi>();
+        await api.DoSomethingAsync();
+    }
+
+    public async Task UseSpecificAppAsync(string appKey)
+    {
+        // Get API for specific application
+        var api = _appManager.GetFeishuApi<IMyApi>(appKey);
+        await api.DoSomethingAsync();
+    }
+}
+```
+
+#### 2. Application Context Switching
+
+```csharp
+public class AppSwitchingService
+{
+    private readonly IFeishuAppContextSwitcher _switcher;
+
+    public async Task WorkWithAppsAsync()
+    {
+        // Switch to default application
+        var defaultContext = _switcher.UseDefaultApp();
+        var defaultToken = await defaultContext
+            .GetTokenManager(TokenType.App)
+            .GetTokenAsync();
+
+        // Switch to approval application
+        var approvalContext = _switcher.UseApp("approval");
+        var approvalToken = await approvalContext
+            .GetTokenManager(TokenType.App)
+            .GetTokenAsync();
+
+        // Use application context to access resources
+        var httpClient = approvalContext.HttpClient;
+        var auth = approvalContext.Authentication;
+    }
+}
+```
+
+#### 3. Dynamic Application Management
+
+```csharp
+public class DynamicAppManager
+{
+    private readonly IFeishuAppManager _appManager;
+
+    // Add new application at runtime
+    public void AddNewApp()
+    {
+        var newConfig = new FeishuAppConfig
+        {
+            AppKey = "newApp",
+            AppId = "cli_newxxx",
+            AppSecret = "newsecret",
+            IsDefault = false
+        };
+
+        _appManager.AddApp(newConfig);
+    }
+
+    // Check if application exists
+    public bool CheckAppExists(string appKey)
+    {
+        return _appManager.HasApp(appKey);
+    }
+
+    // Get all applications
+    public IEnumerable<IMudAppContext> GetAllApps()
+    {
+        return _appManager.GetAllApps();
+    }
+
+    // Remove application
+    public bool RemoveApp(string appKey)
+    {
+        return _appManager.RemoveApp(appKey);
+    }
+}
+```
+
+### Application Configuration Options
+
+| Configuration | Type | Default | Description |
+|---------------|------|---------|-------------|
+| `AppKey` | string | - | Application unique identifier (required) |
+| `AppId` | string | - | Feishu application ID (required) |
+| `AppSecret` | string | - | Feishu application secret (required) |
+| `BaseUrl` | string | https://open.feishu.cn | API base URL |
+| `TimeOut` | int | 30 | HTTP request timeout (seconds) |
+| `RetryCount` | int | 3 | Failure retry count |
+| `RetryDelayMs` | int | 1000 | Retry delay (milliseconds) |
+| `TokenRefreshThreshold` | int | 300 | Token refresh threshold (seconds) |
+| `EnableLogging` | bool | true | Whether to enable logging |
+| `IsDefault` | bool | false | Whether it's the default application |
 
 ## 🎯 Supported Event Types
 
@@ -77,6 +528,21 @@ Feishu Event → EventData → EventHandlerFactory → IFeishuEventHandler → B
 ### Approval Events
 - `approval.approval.approved_v1` - Approval approved event
 - `approval.approval.rejected_v1` - Approval rejected event
+- `approval.approval.updated_v1` - Approval updated event
+- `approval.cc_v1` - Approval cc event
+- `approval.instance_v1` - Approval instance event
+- `approval.instance.remedy_group.updated_v1` - Approval instance remedy group updated event
+- `approval.instance.trip_group.updated_v1` - Approval instance trip group updated event
+- `approval.task_v1` - Approval task event
+- `approval.leave_v1` - Leave approval event
+- `approval.out_v1` - Out approval event
+- `approval.shift_v1` - Shift approval event
+- `approval.work_v1` - Work approval event
+
+### Task Events
+- `task.update_tenant_v1` - Task information change - tenant dimension event
+- `task.updated_v1` - Task information change event
+- `task.comment.updated_v1` - Task comment information change event
 
 ### Calendar and Meeting Events
 - `calendar.event.updated_v4` - Calendar event
