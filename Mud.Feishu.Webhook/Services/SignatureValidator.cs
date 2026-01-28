@@ -311,7 +311,7 @@ public class SignatureValidator : ISignatureValidator
     /// <param name="left">第一个字节数组</param>
     /// <param name="right">第二个字节数组</param>
     /// <returns>如果两个数组相等返回 true，否则返回 false</returns>
-    private static bool FixedTimeEquals(byte[] left, byte[] right)
+    public static bool FixedTimeEquals(byte[] left, byte[] right)
     {
         if (left.Length != right.Length)
         {

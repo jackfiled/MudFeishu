@@ -9,6 +9,7 @@ using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.Services;
 using Mud.Feishu.Webhook.Configuration;
 using Mud.Feishu.Webhook.Models;
+using Mud.Feishu.Webhook.Services;
 
 namespace Mud.Feishu.Webhook;
 
@@ -413,25 +414,14 @@ public class FeishuWebhookService : IFeishuWebhookService
     }
 
     /// <summary>
-    /// 固定时间比较方法，防止计时攻击
+    /// 固定时间比较方法，防止计时攻击（使用 SignatureValidator 的公共方法）
     /// </summary>
     /// <param name="left">第一个字节数组</param>
     /// <param name="right">第二个字节数组</param>
     /// <returns>如果两个数组相等返回 true，否则返回 false</returns>
     private static bool FixedTimeEquals(byte[] left, byte[] right)
     {
-        if (left.Length != right.Length)
-        {
-            return false;
-        }
-
-        var result = 0;
-        for (var i = 0; i < left.Length; i++)
-        {
-            result |= left[i] ^ right[i];
-        }
-
-        return result == 0;
+        return SignatureValidator.FixedTimeEquals(left, right);
     }
 
     /// <inheritdoc />

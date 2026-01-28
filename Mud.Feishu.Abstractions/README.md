@@ -543,6 +543,98 @@ public class DynamicAppManager
 | `EnableLogging` | bool | true | 是否启用日志记录 |
 | `IsDefault` | bool | false | 是否为默认应用 |
 
+### 配置热更新机制
+
+Mud.Feishu 使用 `IOptionsMonitor<T>` 模式支持配置热更新，无需重启应用即可动态更新配置。
+
+**支持热更新的配置**：
+
+| 配置项 | 是否支持热更新 | 说明 |
+|--------|----------------|------|
+| `FeishuWebhookOptions` | ✅ 支持 | Webhook 相关配置 |
+| `FeishuWebSocketOptions` | ✅ 支持 | WebSocket 相关配置 |
+| `FeishuAppConfig` | ⚠️ 部分支持 | 部分配置热更新，部分需要重启 |
+
+**热更新示例**：
+
+```csharp
+public class ConfigurationWatcherService
+{
+    private readonly IOptionsMonitor<FeishuWebhookOptions> _webhookOptions;
+    private readonly IOptionsMonitor<FeishuWebSocketOptions> _webSocketOptions;
+
+    public ConfigurationWatcherService(
+        IOptionsMonitor<FeishuWebhookOptions> webhookOptions,
+        IOptionsMonitor<FeishuWebSocketOptions> webSocketOptions)
+    {
+        _webhookOptions = webhookOptions;
+        _webSocketOptions = webSocketOptions;
+
+        // 监听 Webhook 配置变更
+        _webhookOptions.OnChange(options =>
+        {
+            Console.WriteLine($"Webhook 配置已更新: MaxConcurrentEvents={options.MaxConcurrentEvents}");
+        });
+
+        // 监听 WebSocket 配置变更
+        _webSocketOptions.OnChange(options =>
+        {
+            Console.WriteLine($"WebSocket 配置已更新: HeartbeatInterval={options.HeartbeatInterval}");
+        });
+    }
+}
+```
+
+**配置更新方式**：
+
+1. **通过配置文件更新**（支持热重载）：
+   ```json
+   {
+     "FeishuWebhook": {
+       "MaxConcurrentEvents": 100,
+       "EventHandlingTimeoutMs": 30000
+     }
+   }
+   ```
+
+2. **通过环境变量更新**（需要重启）：
+   ```bash
+   export FeishuWebhook__MaxConcurrentEvents=100
+   ```
+
+3. **通过命令行参数更新**（需要重启）：
+   ```bash
+   dotnet run --FeishuWebhook:MaxConcurrentEvents=100
+   ```
+
+**注意事项**：
+
+- ⚠️ `FeishuAppConfig` 的 `AppId`、`AppSecret`、`EncryptKey` 等敏感配置修改后需要重启应用才能生效
+- ✅ `FeishuWebhookOptions` 和 `FeishuWebSocketOptions` 的非敏感配置支持热更新
+- 🔄 热更新后，已创建的实例会使用旧配置，新实例会使用新配置
+- 📊 使用 `IOptionsSnapshot<T>` 可以获取当前请求周期的配置快照
+
+**配置快照示例**：
+
+```csharp
+public class MyService
+{
+    private readonly IOptionsSnapshot<FeishuWebhookOptions> _webhookOptions;
+
+    public MyService(IOptionsSnapshot<FeishuWebhookOptions> webhookOptions)
+    {
+        // 每次请求都会获取最新的配置
+        _webhookOptions = webhookOptions;
+    }
+
+    public void DoSomething()
+    {
+        var options = _webhookOptions.Value;
+        Console.WriteLine($"当前 MaxConcurrentEvents: {options.MaxConcurrentEvents}");
+    }
+}
+```
+
 ## 🎯 支持的事件类型
 
 ### 组织管理事件
@@ -1120,6 +1212,55 @@ public class SafeUrlDownloader
 // 可以自定义添加信任域名
 urlValidator.AddTrustedDomain("https://api.yourcompany.com");
 ```
+
+### 性能指标 (FeishuMetrics)
+
+使用 System.Diagnostics.Metrics 收集和暴露性能指标。
+
+```csharp
+using Mud.Feishu.Abstractions.Metrics;
+
+public class MetricsAwareEventHandler : IFeishuEventHandler
+{
+    public string SupportedEventType => FeishuEventTypes.UserCreated;
+
+    public async Task HandleAsync(EventData eventData, CancellationToken cancellationToken = default)
+    {
+        // 记录事件处理指标
+        using var _ = FeishuMetricsHelper.RecordEventHandling(eventData.EventType, nameof(MetricsAwareEventHandler));
+
+        try
+        {
+            // 处理业务逻辑
+            await ProcessEventAsync(eventData, cancellationToken);
+
+            // 记录成功
+            FeishuMetricsHelper.RecordEventHandlingSuccess(eventData.EventType);
+        }
+        catch (Exception ex)
+        {
+            // 记录失败
+            FeishuMetricsHelper.RecordEventHandlingFailure(eventData.EventType, ex.GetType().Name);
+            throw;
+        }
+    }
+}
+```
+
+**支持的指标类型**：
+
+- `feishu_token_fetch_total` - 令牌获取总次数
+- `feishu_token_cache_hit_total` - 令牌缓存命中次数
+- `feishu_token_cache_miss_total` - 令牌缓存未命中次数
+- `feishu_token_refresh_total` - 令牌刷新次数
+- `feishu_event_handling_total` - 事件处理总次数
+- `feishu_event_handling_success_total` - 事件处理成功次数
+- `feishu_event_handling_failure_total` - 事件处理失败次数
+- `feishu_event_handling_duration_ms` - 事件处理持续时间（毫秒）
+- `feishu_http_request_total` - HTTP 请求总次数
+- `feishu_http_request_duration_ms` - HTTP 请求持续时间（毫秒）
+- `feishu_websocket_connections` - WebSocket 连接数
+- `feishu_cached_tokens` - 当前缓存的令牌数
 
 ### 消息脱敏 (MessageSanitizer)
 

@@ -7,8 +7,10 @@
 
 using Microsoft.Extensions.Options;
 using Mud.Feishu.Abstractions;
+using Mud.Feishu.Abstractions.Metrics;
 using Mud.Feishu.Exceptions;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Mud.Feishu.TokenManager;
 
@@ -114,6 +116,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// </remarks>
     public virtual async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
     {
+        using var _ = FeishuMetricsHelper.RecordTokenFetch(_tokenType.ToString(), fromCache: false);
         return await GetTokenInternalAsync(cancellationToken);
     }
 
@@ -136,9 +139,14 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
         if (!string.IsNullOrEmpty(cachedToken))
         {
             _logger.LogDebug("Using cached token for {TokenType}, AppId: {AppId}", _tokenType, _options.AppId);
+            // 记录缓存命中
+            FeishuMetrics.TokenCacheHitCount.Add(1, new KeyValuePair<string, object?>("token_type", _tokenType.ToString()));
             // 确保返回的token格式统一：Bearer {token}
             return FormatBearerToken(cachedToken);
         }
+
+        // 记录缓存未命中
+        FeishuMetrics.TokenCacheMissCount.Add(1, new KeyValuePair<string, object?>("token_type", _tokenType.ToString()));
 
         try
         {
@@ -181,6 +189,9 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     private async Task<CredentialToken> AcquireTokenAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Acquiring new token for {TokenType}, AppId: {AppId}", _tokenType, _options.AppId);
+
+        // 记录令牌刷新
+        FeishuMetricsHelper.RecordTokenRefresh(_tokenType.ToString());
 
         // 实现重试机制（使用配置参数）
         var retryCount = 0;

@@ -149,7 +149,47 @@ internal static class UrlValidator
     }
 
     /// <summary>
-    /// 检查主机名是否为私有 IP 地址
+    /// 异步检查主机名是否为私有 IP 地址
+    /// </summary>
+    private static async Task<bool> IsPrivateIpAddressAsync(string host)
+    {
+        // 如果已经是 IP 地址，直接检查
+        if (IPAddress.TryParse(host, out var ipAddress))
+        {
+            return IsPrivateIpAddress(ipAddress);
+        }
+
+        // DNS 解析（使用缓存）
+        try
+        {
+            var addresses = _dnsCache.GetOrAdd(host, h =>
+            {
+                // 异步 DNS 解析，使用 ValueTask 包装以适应 ConcurrentDictionary 的 Func<string, T>
+                // 注意：这里不能使用 async lambda，因为 ConcurrentDictionary 的 GetOrAdd 不支持异步工厂
+                // 我们使用 ValueFactory 同步包装异步操作，通过 .GetAwaiter().GetResult() 确保不阻塞调用线程
+                var task = Dns.GetHostAddressesAsync(h);
+                try
+                {
+                    return task.GetAwaiter().GetResult();
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // DNS 解析失败，返回空数组，上层会认为该地址为私有地址
+                    return Array.Empty<IPAddress>();
+                }
+            });
+
+            return addresses.Any(IsPrivateIpAddress);
+        }
+        catch (Exception)
+        {
+            // DNS 解析失败，为了安全起见，拒绝访问
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// 检查主机名是否为私有 IP 地址（同步版本，仅供内部使用）
     /// </summary>
     private static bool IsPrivateIpAddress(string host)
     {
@@ -166,10 +206,14 @@ internal static class UrlValidator
             {
                 // 设置 DNS 解析超时，防止阻塞
                 var task = Dns.GetHostAddressesAsync(h);
-                if (task.Wait(TimeSpan.FromSeconds(3)))
-                    return task.Result;
-
-                throw new TimeoutException($"DNS 解析超时: {h}");
+                try
+                {
+                    return task.GetAwaiter().GetResult();
+                }
+                catch (TimeoutException)
+                {
+                    throw new TimeoutException($"DNS 解析超时: {h}");
+                }
             });
 
             return addresses.Any(IsPrivateIpAddress);

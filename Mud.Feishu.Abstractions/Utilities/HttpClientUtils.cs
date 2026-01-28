@@ -7,6 +7,7 @@
 
 using System.Text;
 using System.Text.Json;
+using Mud.Feishu.Abstractions.Metrics;
 
 namespace Mud.Feishu.Abstractions.Utilities;
 
@@ -83,6 +84,12 @@ internal static class HttpClientExtensions
         string? requestUri = httpRequestMessage.RequestUri?.ToString();
 
         ValidateUrl(requestUri, client);
+
+        // 记录 HTTP 请求指标
+        using var metrics = FeishuMetricsHelper.RecordHttpRequest(
+            httpRequestMessage.Method.Method,
+            requestUri ?? "unknown");
+
         try
         {
             using var response = await client.SendAsync(httpRequestMessage,
@@ -90,6 +97,11 @@ internal static class HttpClientExtensions
                 cancellationToken);
 
             await EnsureSuccessStatusCodeAsync(response, logger, cancellationToken);
+
+            // 记录请求成功
+            FeishuMetricsHelper.RecordHttpRequestSuccess(
+                httpRequestMessage.Method.Method,
+                (int)response.StatusCode);
 
             // 直接检查Content-Length头，避免不必要的流操作
             var contentLength = response.Content.Headers.ContentLength;
@@ -111,8 +123,26 @@ internal static class HttpClientExtensions
 
             return await JsonSerializer.DeserializeAsync<TResult>(stream, options, cancellationToken);
         }
+        catch (HttpRequestException ex)
+        {
+            // 记录请求失败
+            var statusCode = ex.StatusCode.HasValue ? (int)ex.StatusCode.Value : 0;
+            FeishuMetricsHelper.RecordHttpRequestFailure(
+                httpRequestMessage.Method.Method,
+                statusCode,
+                ex.GetType().Name);
+
+            logger?.LogError(ex, "HTTP请求处理异常: {Url}", requestUri);
+            throw;
+        }
         catch (Exception ex) when (ex is not HttpRequestException)
         {
+            // 记录请求失败
+            FeishuMetricsHelper.RecordHttpRequestFailure(
+                httpRequestMessage.Method.Method,
+                0,
+                ex.GetType().Name);
+
             logger?.LogError(ex, "HTTP请求处理异常: {Url}", requestUri);
             throw new HttpRequestException($"HTTP请求处理失败: {ex.Message}", ex);
         }
@@ -139,6 +169,12 @@ internal static class HttpClientExtensions
 
         string? requestUri = httpRequestMessage.RequestUri?.ToString();
         ValidateUrl(requestUri, client);
+
+        // 记录 HTTP 请求指标
+        using var metrics = FeishuMetricsHelper.RecordHttpRequest(
+            httpRequestMessage.Method.Method,
+            requestUri ?? "unknown");
+
         try
         {
             using var response = await client.SendAsync(httpRequestMessage,
@@ -146,6 +182,11 @@ internal static class HttpClientExtensions
                 cancellationToken);
 
             await EnsureSuccessStatusCodeAsync(response, logger, cancellationToken);
+
+            // 记录请求成功
+            FeishuMetricsHelper.RecordHttpRequestSuccess(
+                httpRequestMessage.Method.Method,
+                (int)response.StatusCode);
 
             // 检查Content-Length头，如果太大可以考虑使用流式处理
             var contentLength = response.Content.Headers.ContentLength;
@@ -160,8 +201,26 @@ internal static class HttpClientExtensions
             return await response.Content.ReadAsByteArrayAsync(cancellationToken);
 #endif
         }
+        catch (HttpRequestException ex)
+        {
+            // 记录请求失败
+            var statusCode = ex.StatusCode.HasValue ? (int)ex.StatusCode.Value : 0;
+            FeishuMetricsHelper.RecordHttpRequestFailure(
+                httpRequestMessage.Method.Method,
+                statusCode,
+                ex.GetType().Name);
+
+            logger?.LogError(ex, "文件下载异常: {Url}", requestUri);
+            throw;
+        }
         catch (Exception ex) when (ex is not HttpRequestException)
         {
+            // 记录请求失败
+            FeishuMetricsHelper.RecordHttpRequestFailure(
+                httpRequestMessage.Method.Method,
+                0,
+                ex.GetType().Name);
+
             logger?.LogError(ex, "文件下载异常: {Url}", requestUri);
             throw new HttpRequestException($"文件下载失败: {ex.Message}", ex);
         }
@@ -203,6 +262,12 @@ internal static class HttpClientExtensions
         string? requestUri = httpRequestMessage.RequestUri?.ToString();
         string directoryPath = Path.GetDirectoryName(filePath)!;
         ValidateUrl(requestUri, client);
+
+        // 记录 HTTP 请求指标
+        using var metrics = FeishuMetricsHelper.RecordHttpRequest(
+            httpRequestMessage.Method.Method,
+            requestUri ?? "unknown");
+
         try
         {
             // 确保目录存在
@@ -227,6 +292,11 @@ internal static class HttpClientExtensions
                 cancellationToken);
 
             await EnsureSuccessStatusCodeAsync(response, logger, cancellationToken);
+
+            // 记录请求成功
+            FeishuMetricsHelper.RecordHttpRequestSuccess(
+                httpRequestMessage.Method.Method,
+                (int)response.StatusCode);
 
             // 获取文件大小信息
             var contentLength = response.Content.Headers.ContentLength;
@@ -267,8 +337,37 @@ internal static class HttpClientExtensions
 
             return fileInfo;
         }
+        catch (HttpRequestException ex)
+        {
+            // 记录请求失败
+            var statusCode = ex.StatusCode.HasValue ? (int)ex.StatusCode.Value : 0;
+            FeishuMetricsHelper.RecordHttpRequestFailure(
+                httpRequestMessage.Method.Method,
+                statusCode,
+                ex.GetType().Name);
+
+            // 清理部分下载的文件
+            try
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+            }
+            catch (Exception cleanupEx)
+            {
+                logger?.LogWarning(cleanupEx, "清理部分下载的文件失败: {FilePath}", filePath);
+            }
+
+            logger?.LogError(ex, "大文件下载异常: {Url}, 文件路径: {FilePath}", requestUri, filePath);
+            throw;
+        }
         catch (Exception ex) when (ex is not HttpRequestException and not ArgumentException)
         {
+            // 记录请求失败
+            FeishuMetricsHelper.RecordHttpRequestFailure(
+                httpRequestMessage.Method.Method,
+                0,
+                ex.GetType().Name);
+
             // 清理部分下载的文件
             try
             {
