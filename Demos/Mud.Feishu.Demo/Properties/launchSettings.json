@@ -1,13 +1,12 @@
 {
   "profiles": {
-    "Mud.Feishu.Test": {
+    "Mud.Feishu.Demo": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "https://localhost:60360;http://localhost:60361"
+      "applicationUrl": "https://localhost:56846;http://localhost:56847"
     }
   }
 }

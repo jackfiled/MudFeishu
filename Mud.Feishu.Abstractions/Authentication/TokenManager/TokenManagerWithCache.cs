@@ -220,15 +220,19 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
                     retryCount++;
                     // 使用配置的 RetryDelayMs 进行指数退避
                     var delayMs = _options.RetryDelayMs * Math.Pow(2, retryCount - 1);
-                    _logger.LogWarning(ex, "Failed to acquire token for {TokenType}, retry {RetryCount}/{MaxRetries} in {DelayMs}ms",
-                        _tokenType, retryCount, maxRetries, delayMs);
+                    _logger.LogWarning(ex, "Failed to acquire token for {TokenType}, retry {RetryCount}/{MaxRetries} in {DelayMs}ms. Error: {ErrorMessage}",
+                        _tokenType, retryCount, maxRetries, delayMs, ex.Message);
 
                     await Task.Delay(TimeSpan.FromMilliseconds(delayMs), cancellationToken);
                 }
                 else
                 {
-                    var errorMessage = $"Failed to acquire {_tokenType} after {maxRetries} retries: {ex.Message}";
-                    throw new FeishuException(500, errorMessage);
+                    // 记录完整的异常信息,包括堆栈跟踪
+                    _logger.LogError(ex, "Failed to acquire {TokenType} after {MaxRetries} retries. Exception type: {ExceptionType}, Message: {ErrorMessage}, StackTrace: {StackTrace}",
+                        _tokenType, maxRetries, ex.GetType().Name, ex.Message, ex.StackTrace);
+
+                    var errorMessage = $"Failed to acquire {_tokenType} after {maxRetries} retries: {ex.Message} ({ex.GetType().Name})";
+                    throw new FeishuException(500, errorMessage, ex);
                 }
             }
         }
@@ -407,7 +411,8 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// </remarks>
     private void LogAndThrowException(int code, string message)
     {
-        _logger.LogError("Feishu token request failed. Code: {Code}, Message: {Message}", code, message);
+        _logger.LogError("Feishu token request failed. TokenType: {TokenType}, AppId: {AppId}, Code: {Code}, Message: {Message}",
+            _tokenType, _options.AppId, code, message);
         throw new FeishuException(code, message);
     }
 

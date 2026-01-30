@@ -136,18 +136,40 @@ internal static class HttpClientExtensions
                 statusCode,
                 ex.GetType().Name);
 
-            logger?.LogError(ex, "HTTP请求处理异常: {Url}", requestUri);
+            logger?.LogError(ex, "HTTP请求处理异常: {Url}, StatusCode: {StatusCode}, InnerException: {InnerException}",
+                requestUri, statusCode, ex.InnerException?.Message);
             throw;
         }
-        catch (Exception ex) when (ex is not HttpRequestException)
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            // 记录请求失败
+            // 请求超时
+            logger?.LogError(ex, "HTTP请求超时: {Url}, Timeout: {Timeout}秒",
+                requestUri, client.Timeout.TotalSeconds);
+            throw new HttpRequestException($"请求超时: {requestUri}", ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            // 请求被取消
+            logger?.LogWarning(ex, "HTTP请求被取消: {Url}", requestUri);
+            throw;
+        }
+        catch (System.Threading.ThreadAbortException ex)
+        {
+            // 线程被中止 - 通常是连接中断或服务器关闭
+            logger?.LogError(ex, "HTTP请求连接中断: {Url}, 可能原因: 网络中断、服务器关闭连接或SSL握手失败",
+                requestUri);
+            throw new HttpRequestException($"请求连接中断: {requestUri}", ex);
+        }
+        catch (Exception ex) when (ex is not HttpRequestException && ex is not TaskCanceledException && ex is not System.Threading.ThreadAbortException)
+        {
+            // 其他异常
             FeishuMetricsHelper.RecordHttpRequestFailure(
                 httpRequestMessage.Method.Method,
                 0,
                 ex.GetType().Name);
 
-            logger?.LogError(ex, "HTTP请求处理异常: {Url}", requestUri);
+            logger?.LogError(ex, "HTTP请求处理异常: {Url}, ExceptionType: {ExceptionType}, Message: {Message}",
+                requestUri, ex.GetType().Name, ex.Message);
             throw new HttpRequestException($"HTTP请求处理失败: {ex.Message}", ex);
         }
     }

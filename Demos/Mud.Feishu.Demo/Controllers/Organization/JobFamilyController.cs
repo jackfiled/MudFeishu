@@ -19,10 +19,12 @@ namespace Mud.Feishu.Test.Controllers.Messages;
 public class JobFamilyController : ControllerBase
 {
     private readonly IFeishuTenantV3JobFamilies _jobFamiliesApi;
+    private readonly ILogger<JobFamilyController> _logger;
 
-    public JobFamilyController(IFeishuTenantV3JobFamilies jobFamiliesApi)
+    public JobFamilyController(IFeishuTenantV3JobFamilies jobFamiliesApi, ILogger<JobFamilyController> logger)
     {
         _jobFamiliesApi = jobFamiliesApi;
+        _logger = logger;
     }
 
     /// <summary>
@@ -96,21 +98,34 @@ public class JobFamilyController : ControllerBase
     /// <returns></returns>
     [HttpGet("list")]
     public async Task<IActionResult> GetJobFamiliesList(
-        [FromQuery] string name = null,
+        [FromQuery] string? name = "",
         [FromQuery] int pageSize = 10,
         [FromQuery] string? pageToken = null)
     {
         try
         {
+            _logger.LogInformation("开始获取职位序列列表, Name: {Name}, PageSize: {PageSize}, PageToken: {PageToken}", name, pageSize, pageToken);
+
             var result = await _jobFamiliesApi.GetJobFamilesListAsync(
                 name,
                 pageSize,
                 pageToken);
-            return Ok(result.Data);
+
+            var count = result?.Data?.Items?.Count() ?? 0;
+            _logger.LogInformation("成功获取职位序列列表, 总数: {Count}", count);
+            return Ok(result?.Data);
         }
         catch (Exception ex)
         {
-            return BadRequest(new { error = ex.Message });
+            _logger.LogError(ex, "获取职位序列列表失败. 异常类型: {ExceptionType}, 消息: {Message}", ex.GetType().Name, ex.Message);
+            return BadRequest(new
+            {
+                error = ex.Message,
+                errorType = ex.GetType().Name,
+                stackTrace = ex.StackTrace,
+                innerException = ex.InnerException?.Message,
+                innerStackTrace = ex.InnerException?.StackTrace
+            });
         }
     }
 

@@ -9,7 +9,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Mud.Feishu.Abstractions.Utilities;
-using Polly;
 using System.Net;
 using System.Text.Json;
 
@@ -106,16 +105,23 @@ public static class FeishuServiceCollectionExtensions
 
             int timeOut = config?.TimeOut ?? 60;
 
-                client.BaseAddress = new Uri(baseUrl);
-                client.DefaultRequestHeaders.Add("User-Agent", "MudFeishuClient/1.0");
-                client.Timeout = TimeSpan.FromSeconds(timeOut);
+            client.BaseAddress = new Uri(baseUrl);
+            client.DefaultRequestHeaders.Add("User-Agent", "MudFeishuClient/1.0");
+            client.Timeout = TimeSpan.FromSeconds(timeOut);
 
-                // 额外的配置
-                additionalConfig?.Invoke(client, serviceProvider);
-            })
+            // 额外的配置
+            additionalConfig?.Invoke(client, serviceProvider);
+        })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                // 启用更安全的SSL/TLS协议
+                SslProtocols = System.Security.Authentication.SslProtocols.Tls12,
+                // 自动重定向
+                AllowAutoRedirect = true,
+                MaxAutomaticRedirections = 5,
+                // 支持连接池复用
+                MaxConnectionsPerServer = 100,
             })
             .AddPolicyHandler(request =>
             {
