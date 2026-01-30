@@ -92,7 +92,7 @@ public class JobLevelController : ControllerBase
     /// <returns></returns>
     [HttpGet]
     public async Task<IActionResult> GetJobLevels(
-        [FromQuery] string name,
+        [FromQuery] string? name,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? pageToken = null)
     {
