@@ -5,9 +5,9 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.Feishu.Abstractions.Metrics;
 using System.Text;
 using System.Text.Json;
-using Mud.Feishu.Abstractions.Metrics;
 
 namespace Mud.Feishu.Abstractions.Utilities;
 
@@ -120,8 +120,63 @@ internal static class HttpClientExtensions
 
             // 使用默认的序列化选项如果未提供
             var options = jsonSerializerOptions ?? GetDefaultJsonSerializerOptions();
+            // 添加调试：记录原始响应内容
+            string? rawResponse = null;
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                // 复制流以便可以重新读取
+                var memoryStream = new MemoryStream();
+#if NETSTANDARD2_0
+                await stream.CopyToAsync(memoryStream);
+#else
+                await stream.CopyToAsync(memoryStream, cancellationToken);
+#endif
+                memoryStream.Position = 0;
+#if NETSTANDARD2_0
+                using var reader = new StreamReader(memoryStream, Encoding.UTF8);
+#else
+                using var reader = new StreamReader(memoryStream, Encoding.UTF8, leaveOpen: true);
+#endif
+                rawResponse = await reader.ReadToEndAsync();
+                logger?.LogDebug("原始响应内容: {Url}\n{Response}", requestUri, rawResponse);
 
-            return await JsonSerializer.DeserializeAsync<TResult>(stream, options, cancellationToken);
+                // 重置流位置供反序列化使用
+                memoryStream.Position = 0;
+
+                try
+                {
+                    var result = await JsonSerializer.DeserializeAsync<TResult>(memoryStream, options, cancellationToken);
+                    logger?.LogDebug("反序列化成功: {Url}, 类型: {Type}", requestUri, typeof(TResult).Name);
+                    return result;
+                }
+                catch (JsonException jsonEx)
+                {
+                    logger?.LogError(jsonEx,
+                        "JSON反序列化失败: {Url}\n" +
+                        "期望类型: {ExpectedType}\n" +
+                        "原始响应: {RawResponse}\n" +
+                        "错误位置: {Path}",
+                        requestUri, typeof(TResult).Name, rawResponse, jsonEx.Path);
+                    throw new JsonException($"反序列化到类型 {typeof(TResult).Name} 失败: {jsonEx.Message}", jsonEx);
+                }
+            }
+            else
+            {
+                try
+                {
+                    return await JsonSerializer.DeserializeAsync<TResult>(stream, options, cancellationToken);
+                }
+                catch (JsonException jsonEx)
+                {
+                    logger?.LogError(jsonEx,
+                        "JSON反序列化失败: {Url}\n" +
+                        "期望类型: {ExpectedType}\n" +
+                        "原始响应: {RawResponse}\n" +
+                        "错误位置: {Path}",
+                        requestUri, typeof(TResult).Name, rawResponse, jsonEx.Path);
+                    throw new JsonException($"反序列化到类型 {typeof(TResult).Name} 失败: {jsonEx.Message}", jsonEx);
+                }
+            }
         }
         catch (HttpRequestException ex)
         {
@@ -447,9 +502,9 @@ internal static class HttpClientExtensions
         }
 
         string errorMessage = $"HTTP请求失败: {statusCode} {response.StatusCode} - {errorContent}";
-        
+
         // 对错误响应内容进行脱敏处理，防止敏感信息泄露
-        var sanitizedContent = logger != null 
+        var sanitizedContent = logger != null
             ? MessageSanitizer.Sanitize(errorContent, maxLength: 200)
             : "[日志未启用]";
         logger?.LogError("HTTP请求失败: {StatusCode}, 响应（已脱敏）: {Response}", statusCode, sanitizedContent);

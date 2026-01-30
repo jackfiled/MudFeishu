@@ -13,6 +13,17 @@ namespace Mud.Feishu.DataModels.JobLevel;
 public class JobLevelResult
 {
     /// <summary>
+    /// 职级信息。
+    /// </summary>
+    [JsonPropertyName("job_level")]
+    public JobLevelInfo? JobLevel { get; set; }
+}
+/// <summary>
+/// 职级信息。
+/// </summary>
+public class JobLevelInfo
+{
+    /// <summary>
     /// 职级ID。
     /// </summary>
     [JsonPropertyName("job_level_id")]
