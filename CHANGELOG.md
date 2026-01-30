@@ -1,6 +1,45 @@
 # Mud.Feishu 更新日志
+## [2.0.2] - 2026-01-30
 
-## [2.0.0] - 2026-01-28
+### ✨ Added
+- **性能指标监控**: 添加完整的性能指标收集功能
+  - 新增 MeterExtensions、FeishuMetrics 和 FeishuMetricsHelper 类
+  - 在 TokenManager、HttpClientUtils 等关键组件中添加指标记录
+- **WebSocket 和 Webhook 指标**: 为 WebSocket 和 Webhook 添加专项指标监控
+  - WebSocket 连接数统计和认证/事件处理指标
+  - Webhook 签名验证、事件解密和处理指标
+  - 事件去重命中指标
+  - 支持 WebSocketConnectionCountProvider 获取实时连接数
+- **调试日志增强**: 增加响应内容调试日志和错误处理
+  - 添加调试日志记录原始响应内容
+  - 在 JSON 反序列化失败时提供更详细的错误信息
+- **测试控制器**: 新增日志测试控制器和网络测试控制器
+
+### 🔧 Changed
+- **依赖更新**: 更新 Mud.HttpUtils 依赖至 1.5.2 版本
+- **HTTP 客户端优化**: 
+  - 增强异常处理和日志记录
+  - 改进安全配置和连接池设置
+- **认证优化**: 优化令牌获取逻辑并移除冗余指标记录
+  - 改为直接从缓存获取令牌时记录指标
+- **配置简化**: 移除断路器功能及相关代码
+  - 移除断路器配置项和文档说明
+  - 简化代码结构和 Webhook 服务
+- **时间戳验证**: 优化时间戳验证逻辑，优先使用应用特定配置
+- **Demo 项目**: 调整 Demo 项目的配置和依赖
+
+### 🐛 Fixed
+- **JobLevel 接口**: 将 JobLevel 接口的 name 参数改为可空类型
+- **JobFamilies 接口**: 允许 GetJobFamilesListAsync 的 name 参数为 null
+
+### 📚 Documentation
+- 更新 README 文档说明指标使用方式
+- 添加日志测试相关文档
+
+### 📦 Build & Config
+- 更新项目版本至 2.0.2
+
+## [2.0.1] - 2026-01-28
 
 ### 🚨 BREAKING CHANGE
 - **移除 FeishuOptions 类** - 完全移除旧的配置类，所有场景统一使用 `FeishuAppConfig`

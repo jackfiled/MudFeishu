@@ -6,12 +6,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <!--<ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Mud.Feishu.Abstractions" Version="2.0.1" />
     <PackageReference Include="Mud.Feishu.Webhook" Version="2.0.1" />
-  </ItemGroup>-->
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Mud.Feishu.Webhook\Mud.Feishu.Webhook.csproj" />
   </ItemGroup>
+
+  <!--<ItemGroup>
+    <ProjectReference Include="..\..\Mud.Feishu.Webhook\Mud.Feishu.Webhook.csproj" />
+  </ItemGroup>-->
 </Project>
