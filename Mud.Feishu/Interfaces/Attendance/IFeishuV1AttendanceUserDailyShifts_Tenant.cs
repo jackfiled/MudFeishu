@@ -18,7 +18,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Attendance")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV1AttendanceUserDailyShifts
+public interface IFeishuTenantV1AttendanceUserDailyShifts : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 创建或修改排班表
