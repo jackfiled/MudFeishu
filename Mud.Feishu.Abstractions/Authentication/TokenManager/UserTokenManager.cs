@@ -33,16 +33,10 @@ internal class UserTokenManager(
    ILogger<TokenManagerWithCache> logger,
    ITokenCache tokenCache) : TokenManagerWithCache(authenticationApi, options, logger, tokenCache, TokenType.UserAccessToken), IUserTokenManager
 {
-    private static readonly AsyncLocal<string?> _currentUserId = new();
-
     public override async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
     {
-        var userId = _currentUserId.Value;
-        if (string.IsNullOrEmpty(userId))
-        {
-            throw new InvalidOperationException("没有设置用户ID，请使用 GetTokenAsync(userId) 方法");
-        }
-        return await GetTokenInternalAsync(userId, cancellationToken);
+        // 用户令牌必须通过指定 userId 获取，不支持无参数调用
+        throw new InvalidOperationException("用户令牌需要指定 userId，请使用 GetTokenAsync(userId) 方法");
     }
 
     /// <summary>
@@ -55,15 +49,7 @@ internal class UserTokenManager(
             throw new ArgumentException("UserId cannot be null or empty for user token operations.", nameof(userId));
         }
 
-        _currentUserId.Value = userId;
-        try
-        {
-            return await GetTokenInternalAsync(userId, cancellationToken);
-        }
-        finally
-        {
-            _currentUserId.Value = null;
-        }
+        return await GetTokenInternalAsync(userId, cancellationToken);
     }
 
     /// <summary>
@@ -104,12 +90,8 @@ internal class UserTokenManager(
 
     protected override async Task UpdateTokenCacheAsync(CredentialToken newToken, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(_currentUserId.Value))
-            throw new InvalidOperationException("Cannot update user token cache without a valid userId.");
-
-        var cacheKey = GenerateCacheKey(_currentUserId.Value);
-        var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
-        await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
+        // 用户令牌不使用此方法，直接在 GetUserTokenWithCodeAsync 和 RefreshUserTokenAsync 中更新缓存
+        throw new InvalidOperationException("User token cache should be updated directly in GetUserTokenWithCodeAsync or RefreshUserTokenAsync.");
     }
 
 
@@ -152,11 +134,12 @@ internal class UserTokenManager(
             throw new ArgumentException("UserId cannot be null or empty for user token operations.", nameof(userId));
         }
 
-        _currentUserId.Value = userId;
         // 使用带用户ID的缓存键
         var cacheKey = GenerateCacheKey(userId);
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
-        await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
+        // 移除可能的 Bearer 前缀，只存储原始 token
+        var rawToken = RemoveBearerPrefix(newToken.AccessToken);
+        await _tokenCache.SetAsync(cacheKey, rawToken ?? string.Empty, expiresIn, cancellationToken);
 
         _logger.LogInformation("User token acquired for user {UserId}, AppId: {AppId}, expires at {ExpireTime}",
             userId, _options.AppId, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));
@@ -201,7 +184,9 @@ internal class UserTokenManager(
         // 使用带用户ID的缓存键
         var cacheKey = GenerateCacheKey(userId);
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
-        await _tokenCache.SetAsync(cacheKey, newToken.AccessToken ?? string.Empty, expiresIn, cancellationToken);
+        // 移除可能的 Bearer 前缀，只存储原始 token
+        var rawToken = RemoveBearerPrefix(newToken.AccessToken);
+        await _tokenCache.SetAsync(cacheKey, rawToken ?? string.Empty, expiresIn, cancellationToken);
 
         _logger.LogInformation("User token refreshed for user {UserId}, AppId: {AppId}, expires at {ExpireTime}",
             userId, _options.AppId, DateTimeOffset.FromUnixTimeMilliseconds(newToken.Expire));

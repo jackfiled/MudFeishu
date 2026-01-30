@@ -70,17 +70,37 @@ public class MemoryTokenCache : ITokenCache
     /// </summary>
     public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(key))
-            return null;
-
-        if (_cache.TryGetValue(key, out var entry) && !IsExpired(entry))
+        if (TryGetValidEntry(key, out var value))
         {
             _logger.LogDebug("Token cache hit for key: {Key}", key);
-            return entry.Value;
+            return value;
         }
 
         _logger.LogDebug("Token cache miss for key: {Key}", key);
         return null;
+    }
+
+    /// <summary>
+    /// 尝试从缓存中获取有效的缓存项
+    /// </summary>
+    /// <param name="key">缓存键</param>
+    /// <param name="value">输出值，如果找到有效缓存项</param>
+    /// <returns>如果找到有效的缓存项返回true，否则返回false</returns>
+    /// <remarks>
+    /// 内部公共方法，用于避免在 GetAsync 和 ExistsAsync 中重复缓存读取逻辑。
+    /// </remarks>
+    private bool TryGetValidEntry(string key, out string? value)
+    {
+        value = null;
+        if (string.IsNullOrWhiteSpace(key))
+            return false;
+
+        if (_cache.TryGetValue(key, out var entry) && !IsExpired(entry))
+        {
+            value = entry.Value;
+            return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -126,15 +146,7 @@ public class MemoryTokenCache : ITokenCache
     /// </summary>
     public async Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(key))
-            return false;
-
-        if (_cache.TryGetValue(key, out var entry) && !IsExpired(entry))
-        {
-            return true;
-        }
-
-        return false;
+        return TryGetValidEntry(key, out _);
     }
 
     /// <summary>
@@ -175,13 +187,15 @@ public class MemoryTokenCache : ITokenCache
     /// <returns>如果已过期或即将过期返回true</returns>
     /// <remarks>
     /// 考虑令牌刷新阈值，提前在过期前一段时间就认为令牌无效。
+    /// 逻辑：实际过期时间 - 刷新阈值 < 当前时间，则认为令牌已过期。
     /// </remarks>
     private bool IsExpired(CacheEntry entry)
     {
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var refreshThresholdMs = TimeSpan.FromSeconds(_refreshThresholdSeconds).TotalMilliseconds;
-        // 令牌过期时间 < (当前时间 + 刷新阈值) 表示即将过期
-        return entry.ExpirationTime < (currentTime + (long)refreshThresholdMs);
+        // 实际过期时间减去刷新阈值，如果小于当前时间则认为已过期
+        var effectiveExpirationTime = entry.ExpirationTime - (long)refreshThresholdMs;
+        return effectiveExpirationTime < currentTime;
     }
 
 }

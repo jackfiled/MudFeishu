@@ -11,9 +11,9 @@ using Serilog.Events;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, services, configuration) => configuration
-    .MinimumLevel.Debug()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Debug)
-    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Debug)
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Information)
     .Enrich.FromLogContext()
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)

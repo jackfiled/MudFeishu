@@ -14,12 +14,15 @@ using Mud.Feishu.Webhook.Demo.Services;
 using Serilog;
 using Serilog.Events;
 
-// 配置 Serilog
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Debug)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Debug)
     .Enrich.FromLogContext()
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
     .WriteTo.Console()
     .WriteTo.File(
         path: "logs/log-.txt",
@@ -28,11 +31,7 @@ Log.Logger = new LoggerConfiguration()
         fileSizeLimitBytes: 10 * 1024 * 1024, // 10 MB
         retainedFileCountLimit: 7, // 保留 7 天的日志
         encoding: System.Text.Encoding.UTF8
-    )
-    .CreateLogger();
-
-var builder = WebApplication.CreateBuilder(args);
-builder.Host.UseSerilog();
+    ));
 
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)

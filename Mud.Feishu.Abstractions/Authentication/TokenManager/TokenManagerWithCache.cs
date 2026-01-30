@@ -116,11 +116,6 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// </remarks>
     public virtual async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
     {
-        var cacheKey = GenerateCacheKey();
-        var cachedToken = await _tokenCache.GetAsync(cacheKey, cancellationToken);
-        var fromCache = !string.IsNullOrEmpty(cachedToken);
-
-        using var _ = FeishuMetricsHelper.RecordTokenFetch(_tokenType.ToString(), fromCache);
         return await GetTokenInternalAsync(cancellationToken);
     }
 
@@ -143,12 +138,17 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
         if (!string.IsNullOrEmpty(cachedToken))
         {
             _logger.LogDebug("Using cached token for {TokenType}, AppId: {AppId}", _tokenType, _options.AppId);
+            // 记录缓存命中指标
+            using var _ = FeishuMetricsHelper.RecordTokenFetch(_tokenType.ToString(), fromCache: true);
             // 确保返回的token格式统一：Bearer {token}
             return FormatBearerToken(cachedToken);
         }
 
         try
         {
+            // 记录缓存未命中指标
+            using var _ = FeishuMetricsHelper.RecordTokenFetch(_tokenType.ToString(), fromCache: false);
+
             // 使用 Lazy 防止缓存击穿，确保同一时刻只有一个请求在获取令牌
             var lazyTask = _tokenLoadingTasks.GetOrAdd(cacheKey, _ => new Lazy<Task<CredentialToken>>(
                 () => AcquireTokenAsync(cancellationToken),
@@ -183,7 +183,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// <returns>获取并验证后的凭证令牌</returns>
     /// <remarks>
     /// 包含重试机制、错误处理、缓存更新等完整逻辑的令牌获取方法。
-    /// 最多重试2次，使用指数退避策略。
+    /// 最多重试2次，使用指数退避策略。仅对可重试异常进行重试。
     /// </remarks>
     private async Task<CredentialToken> AcquireTokenAsync(CancellationToken cancellationToken)
     {
@@ -203,7 +203,8 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
                 var result = await AcquireNewTokenAsync(cancellationToken);
 
                 ValidateTokenResult(result);
-                var newToken = CreateAppCredentialToken(result);
+                // result 已经由 ValidateTokenResult 验证非空，使用 null-forgiving operator
+                var newToken = CreateAppCredentialToken(result!);
 
                 // 原子性地更新缓存
                 await UpdateTokenCacheAsync(newToken, cancellationToken);
@@ -213,8 +214,17 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
 
                 return newToken;
             }
-            catch (Exception ex) when (!(ex is FeishuException) && !(ex is NotSupportedException) && !(ex is NotImplementedException))
+            catch (Exception ex)
             {
+                // 判断是否为可重试异常
+                if (!IsRetryableException(ex))
+                {
+                    // 不可重试异常，直接抛出
+                    _logger.LogError(ex, "Failed to acquire {TokenType} due to non-retryable exception. Exception type: {ExceptionType}, Message: {ErrorMessage}",
+                        _tokenType, ex.GetType().Name, ex.Message);
+                    throw;
+                }
+
                 if (retryCount < maxRetries)
                 {
                     retryCount++;
@@ -236,6 +246,34 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// 判断异常是否可重试
+    /// </summary>
+    /// <param name="ex">异常对象</param>
+    /// <returns>如果异常可重试返回true，否则返回false</returns>
+    /// <remarks>
+    /// 可重试异常包括网络异常、超时异常等临时性错误。
+    /// 不可重试异常包括认证失败、参数错误、不支持的操作等。
+    /// </remarks>
+    private static bool IsRetryableException(Exception ex)
+    {
+        // 不可重试的异常类型
+        if (ex is FeishuException ||
+            ex is NotSupportedException ||
+            ex is NotImplementedException ||
+            ex is ArgumentException ||
+            ex is ArgumentNullException ||
+            ex is InvalidOperationException)
+        {
+            return false;
+        }
+
+        // 可重试的异常类型：网络异常、超时异常等
+        return ex is HttpRequestException ||
+               ex is TimeoutException ||
+               ex is TaskCanceledException;
     }
 
     /// <summary>
@@ -305,12 +343,15 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
             LogAndThrowException(443, "获取飞书访问令牌失败: 返回结果为null");
         }
 
-        if (result?.Code != 0)
+        // result 已经由前面的 null 检查保证非空，使用断言消除编译器警告
+        var validatedResult = result!;
+
+        if (validatedResult.Code != 0)
         {
-            LogAndThrowException(result.Code, $"获取飞书访问令牌失败，错误码: {result.Code}, 消息: {result.Msg}");
+            LogAndThrowException(validatedResult.Code, $"获取飞书访问令牌失败，错误码: {validatedResult.Code}, 消息: {validatedResult.Msg}");
         }
 
-        if (string.IsNullOrEmpty(result.AccessToken))
+        if (string.IsNullOrEmpty(validatedResult.AccessToken))
         {
             LogAndThrowException(443, "获取飞书访问令牌失败: AccessToken为空");
         }
@@ -354,8 +395,9 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
         var expiresIn = CalculateExpirationFromTimestamp(newToken.Expire);
 
         // 移除可能的 Bearer 前缀，只存储原始 token
-        var rawToken = RemoveBearerPrefix(newToken.AccessToken);
-        await _tokenCache.SetAsync(cacheKey, rawToken ?? string.Empty, expiresIn, cancellationToken);
+        // 使用 null-forgiving operator 消除编译器警告，因为 newToken.AccessToken 在此上下文中不会为 null
+        var rawToken = RemoveBearerPrefix(newToken.AccessToken!) ?? string.Empty;
+        await _tokenCache.SetAsync(cacheKey, rawToken, expiresIn, cancellationToken);
     }
 
     /// <summary>
