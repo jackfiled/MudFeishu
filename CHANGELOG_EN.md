@@ -1,5 +1,45 @@
 # Mud.Feishu Change Log
 
+## [2.0.2] - 2026-01-30
+
+### ✨ Added
+- **Performance Metrics Monitoring**: Added complete performance metrics collection functionality
+  - Added MeterExtensions, FeishuMetrics, and FeishuMetricsHelper classes
+  - Added metrics recording to key components like TokenManager and HttpClientUtils
+- **WebSocket and Webhook Metrics**: Added specialized metrics monitoring for WebSocket and Webhook
+  - WebSocket connection count statistics and authentication/event processing metrics
+  - Webhook signature verification, event decryption, and processing metrics
+  - Event deduplication hit metrics
+  - Support for WebSocketConnectionCountProvider to get real-time connection counts
+- **Debug Logging Enhancement**: Added response content debug logs and error handling
+  - Added debug logging to record raw response content
+  - Provided more detailed error messages when JSON deserialization fails
+- **Test Controllers**: Added log test controller and network test controller
+
+### 🔧 Changed
+- **Dependency Update**: Updated Mud.HttpUtils dependency to version 1.5.2
+- **HTTP Client Optimization**:
+  - Enhanced exception handling and logging
+  - Improved security configuration and connection pool settings
+- **Authentication Optimization**: Optimized token acquisition logic and removed redundant metrics recording
+  - Changed to record metrics when retrieving token directly from cache
+- **Configuration Simplification**: Removed circuit breaker functionality and related code
+  - Removed circuit breaker configuration items and documentation
+  - Simplified code structure and Webhook service
+- **Timestamp Verification**: Optimized timestamp verification logic to prioritize app-specific configuration
+- **Demo Project**: Adjusted Demo project configuration and dependencies
+
+### 🐛 Fixed
+- **JobLevel Interface**: Changed name parameter of JobLevel interface to nullable type
+- **JobFamilies Interface**: Allowed name parameter of GetJobFamilesListAsync to be null
+
+### 📚 Documentation
+- Updated README documentation to explain metrics usage
+- Added log test related documentation
+
+### 📦 Build & Config
+- Updated project version to 2.0.2
+
 ## [2.0.0] - 2026-01-28
 
 ### 🚨 BREAKING CHANGE
