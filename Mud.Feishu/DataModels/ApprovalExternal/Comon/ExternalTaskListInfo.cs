@@ -10,7 +10,7 @@ namespace Mud.Feishu.DataModels.ApprovalExternal;
 /// <summary>
 /// <para>返回数据</para>
 /// </summary>
-public record ExternalTaskList
+public class ExternalTaskList
 {
     /// <summary>
     /// <para>审批实例 ID</para>

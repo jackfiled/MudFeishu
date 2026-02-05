@@ -98,7 +98,7 @@ public class CreateApprovalRequest
     /// <para>必填：是</para>
     /// </summary>
     [JsonPropertyName("i18n_resources")]
-    public I18nResource[] I18nResources { get; set; } = [];
+    public I18nDictResource[] I18nResources { get; set; } = [];
 
     /// <summary>
     /// <para>审批流程管理员的用户 ID 列表。</para>

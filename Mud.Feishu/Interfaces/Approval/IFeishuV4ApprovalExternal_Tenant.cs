@@ -67,7 +67,7 @@ public interface IFeishuTenantV4ApprovalExternal : IFeishuAppContextSwitcher
     /// <param name="checkExternalInstancesRequest">校验三方审批实例请求体</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     [Post("/open-apis/approval/v4/external_instances/check")]
-    Task<FeishuApiResult<SyncExternalInstancesResult>?> CheckInstancesAsync(
+    Task<FeishuApiResult<CheckExternalInstancesResult>?> CheckInstancesAsync(
         [Body] CheckExternalInstancesRequest checkExternalInstancesRequest,
         CancellationToken cancellationToken = default);
 

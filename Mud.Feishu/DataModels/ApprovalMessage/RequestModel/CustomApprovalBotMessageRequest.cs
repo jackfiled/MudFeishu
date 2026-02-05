@@ -70,5 +70,5 @@ public class CustomApprovalBotMessageRequest
     /// 国际化文案。
     /// </summary>
     [JsonPropertyName("i18n_resources")]
-    public List<I18nResource> I18nResources { get; set; } = [];
+    public List<I18nDictResource> I18nResources { get; set; } = [];
 }
