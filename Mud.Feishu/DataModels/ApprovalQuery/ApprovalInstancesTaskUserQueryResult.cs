@@ -17,7 +17,7 @@ public class ApprovalInstancesTaskUserQueryResult : ApiPageListResult
     /// <para>示例值：10</para>
     /// </summary>
     [JsonPropertyName("count")]
-    public int? Count { get; set; }
+    public CountTotal? Count { get; set; }
 
     /// <summary>
     /// <para>审批任务列表</para>

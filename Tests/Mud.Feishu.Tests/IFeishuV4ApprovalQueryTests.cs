@@ -28,7 +28,50 @@ public class IFeishuV4ApprovalQueryTests
     [Fact]
     public void Test_GetTasksPageListByUserIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "tasks": [
+                        {
+                            "topic": "1",
+                            "user_id": "example_user_id",
+                            "title": "任务题目示例",
+                            "urls": {
+                                "helpdesk": "https://blabla",
+                                "mobile": "https://blabla",
+                                "pc": "https://blabla"
+                            },
+                            "process_external_id": "example_instance_id",
+                            "task_external_id": "example_task_id",
+                            "status": "Todo",
+                            "process_status": "Running",
+                            "definition_code": "000000-00000000000000-0example",
+                            "initiators": [
+                                "starter"
+                            ],
+                            "initiator_names": [
+                                "发起人姓名"
+                            ],
+                            "task_id": "1212564555454",
+                            "process_id": "1214564545474",
+                            "process_code": "123e4567-e89b-12d3-a456-426655440000",
+                            "definition_group_id": "1212564555454",
+                            "definition_group_name": "流程定义名称",
+                            "definition_id": "1212564555454",
+                            "definition_name": "流程定义组名称"
+                        }
+                    ],
+                    "page_token": "example_page_token",
+                    "has_more": true,
+                    "count": {
+                        "total": 123,
+                        "has_more": false
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<ApprovalInstancesTaskUserQueryResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
