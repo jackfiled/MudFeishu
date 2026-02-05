@@ -31,7 +31,12 @@ public class IFeishuTenantV1CardTests
     [Fact]
     public void Test_CreateCardAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {  // type 为 card_json 时
+              "type": "card_json",
+              "data": "{\"schema\":\"2.0\",\"header\":{\"title\":{\"content\":\"项目进度更新提醒\",\"tag\":\"plain_text\"}},\"config\":{\"streaming_mode\":true,\"summary\":{\"content\":\"\"},\"streaming_config\":{\"print_frequency_ms\":{\"default\":70,\"android\":70,\"ios\":70,\"pc\":70},\"print_step\":{\"default\":1,\"android\":1,\"ios\":1,\"pc\":1},\"print_strategy\":\"fast\"}},\"body\":{\"elements\":[{\"tag\":\"markdown\",\"content\":\"截至今日，项目完成度已达80%\",\"element_id\":\"markdown_1\"}]}}"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<CreateCardRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -44,7 +49,15 @@ public class IFeishuTenantV1CardTests
     [Fact]
     public void Test_CreateCardAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "card_id": "7355372766134157313"
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CreateCardResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -58,7 +71,13 @@ public class IFeishuTenantV1CardTests
     [Fact]
     public void Test_UpdateCardSettingsByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "settings": "{\"config\":{\"streaming_mode\":true,\"streaming_config\":{\"print_frequency_ms\":{\"default\":70,\"android\":70,\"ios\":70,\"pc\":70},\"print_step\":{\"default\":1,\"android\":1,\"ios\":1,\"pc\":1},\"print_strategy\":\"fast\"}}}",
+              "uuid": "a0d69e20-1dd1-458b-k525-dfeca4015204",
+              "sequence": 1
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateCardSettingsRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -70,7 +89,13 @@ public class IFeishuTenantV1CardTests
     [Fact]
     public void Test_UpdateCardSettingsByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -82,7 +107,13 @@ public class IFeishuTenantV1CardTests
     [Fact]
     public void Test_PartialUpdateCardByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "uuid": "a0d69e20-1dd1-458b-k525-dfeca4015204",
+              "sequence": 1,
+              "actions": "[{\"action\":\"partial_update_setting\",\"params\":{\"settings\":{\"config\":{\"streaming_mode\":true}}}},{\"action\":\"add_elements\",\"params\":{\"type\":\"insert_before\",\"target_element_id\":\"markdown_1\",\"elements\":[{\"tag\":\"markdown\",\"element_id\":\"md_1\",\"content\":\"欢迎使用[飞书卡片搭建工具](https://open.feishu.cn/cardkit?from=open_docs)。\"}]}},{\"action\":\"delete_elements\",\"params\":{\"element_ids\":[\"text_1\",\"text_2\"]}},{\"action\":\"partial_update_element\",\"params\":{\"element_id\":\"markdown_2\",\"partial_element\":{\"content\":\"详情参考飞书卡片相关文档。\"}}},{\"action\":\"update_element\",\"params\":{\"element_id\":\"markdown_3\",\"element\":{\"tag\":\"button\",\"text\":{\"tag\":\"plain_text\",\"content\":\"有帮助\"},\"size\":\"medium\",\"icon\":{\"tag\":\"standard_icon\",\"token\":\"emoji_outlined\"}}}}]"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<PartialUpdateCardRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -106,7 +137,13 @@ public class IFeishuTenantV1CardTests
     [Fact]
     public void Test_UpdateCardByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateCardRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -119,7 +156,16 @@ public class IFeishuTenantV1CardTests
     [Fact]
     public void Test_UpdateCardByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+              "card": {
+                "type": "card_json",
+                "data": "{\"schema\":\"2.0\",\"header\":{\"title\":{\"content\":\"项目进度更新提醒\",\"tag\":\"plain_text\"}},\"body\":{\"elements\":[{\"tag\":\"markdown\",\"content\":\"截至今日，项目完成度已达80%\"}]}}"
+              },
+              "uuid": "a0d69e20-1dd1-458b-k525-dfeca4015204",
+              "sequence": 1
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);

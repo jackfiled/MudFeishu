@@ -31,7 +31,15 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_CreateCardElementAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "type": "insert_after",
+              "target_element_id": "markdown_1",
+              "uuid": "a0d69e20-1dd1-458b-k525-dfeca4015204",
+              "sequence": 1,
+              "elements": "[{\"tag\":\"button\",\"element_id\":\"button_1\",\"text\":{\"tag\":\"plain_text\",\"content\":\"查看更多\"},\"type\":\"default\",\"width\":\"default\",\"size\":\"medium\",\"behaviors\":[{\"type\":\"open_url\",\"default_url\":\"https://open.feishu.cn/?lang=zh-CN\",\"pc_url\":\"\",\"ios_url\":\"\",\"android_url\":\"\"}]}]"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<CreateCardElementRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -44,7 +52,13 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_CreateCardElementAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -56,7 +70,13 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_UpdateCardElementByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "uuid": "a0d69e20-1dd1-458b-k525-dfeca4015204",
+              "element": "{\"tag\":\"markdown\",\"element_id\":\"md_1\",\"content\":\"这是一段更新后的文本\"}",
+              "sequence": 1
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateCardElementRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -69,7 +89,13 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_UpdateCardElementByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -81,7 +107,13 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_UpdateCardElementAttributeByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "partial_element": "{\"content\":\"更新后的组件文本\"}",
+              "uuid": "a0d69e20-1dd1-458b-k525-dfeca4015204",
+              "sequence": 1
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateCardElementAttributeRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -93,7 +125,13 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_UpdateCardElementAttributeByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -105,7 +143,13 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_StreamUpdateCardTextByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "uuid": "a0d69e20-1dd1-458b-k525-dfeca4015204",
+              "content": "这是更新后的文本内容。将以打字机式的效果输出",
+              "sequence": 1
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<StreamUpdateTextRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -117,7 +161,13 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_StreamUpdateCardTextByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -129,7 +179,12 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_DeleteCardElementByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "uuid": "a0d69e20-1dd1-458b-k525-dfeca4015204",
+              "sequence": 1
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<DeleteCardElementRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -141,7 +196,13 @@ public class IFeishuTenantV1CardElementsTests
     [Fact]
     public void Test_DeleteCardElementByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
