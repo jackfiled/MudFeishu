@@ -28,7 +28,22 @@ public class IFeishuTenantV4ApprovalCommentsTests
     [Fact]
     public void Test_CreateCommentAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+{
+  "content": "{\"text\":\"@username艾特展示\",\"files\":[{\"url\":\"xxx\",\"fileSize\":155149,\"title\":\"9a9fedc5cfb01a4a20c715098.png\",\"type\":\"image\",\"extra\":\"\"}]}",
+  "at_info_list": [
+    {
+      "user_id": "579fd9c4",
+      "name": "张敏",
+      "offset": "0"
+    }
+  ],
+  "parent_comment_id": "7081516627711524883",
+  "comment_id": "7081516627711524883",
+  "disable_bot": false,
+  "extra": "{\"a\":\"a\"}"
+}
+""";
         var requestBody = JsonSerializer.Deserialize<CreateCommentRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -41,7 +56,15 @@ public class IFeishuTenantV4ApprovalCommentsTests
     [Fact]
     public void Test_CreateCommentAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "comment_id": "7081516627711606803"
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CommentOperationResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -55,7 +78,15 @@ public class IFeishuTenantV4ApprovalCommentsTests
     [Fact]
     public void Test_DeleteCommentByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = @"
+{
+    ""code"": 0,
+    ""msg"": ""success"",
+    ""data"": {
+        ""comment_id"": ""7081516627711606803""
+    }
+}
+";
         var result = JsonSerializer.Deserialize<FeishuApiResult<CommentOperationResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -69,7 +100,16 @@ public class IFeishuTenantV4ApprovalCommentsTests
     [Fact]
     public void Test_RemoveCommentsAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "instance_id": "6A123516-FB88-470D-A428-9AF58B71B3C0",
+                    "external_id": "6A123516-FB88-470D-A428-9AF58B71B3C0"
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CommentsRemoveResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -82,7 +122,50 @@ public class IFeishuTenantV4ApprovalCommentsTests
     [Fact]
     public void Test_GetCommentsPageListByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "comments": [
+                        {
+                            "id": "7081516627711524883",
+                            "content": "{\"text\":\"x@某某来自小程序的评论，这是一条回复\"}",
+                            "create_time": "1648801211000",
+                            "update_time": "1648801211000",
+                            "is_delete": 1,
+                            "replies": [
+                                {
+                                    "id": "7081516611634741268",
+                                    "content": "{\"text\":\"x@某某来自小程序的评论，这是一条回复\"}",
+                                    "create_time": "1648803677000",
+                                    "update_time": "1648803677000",
+                                    "is_delete": 0,
+                                    "at_info_list": [
+                                        {
+                                            "user_id": "579fd9c4",
+                                            "name": "张某",
+                                            "offset": "1"
+                                        }
+                                    ],
+                                    "commentator": "893g4c45",
+                                    "extra": "{\"a\":\"a\"}"
+                                }
+                            ],
+                            "at_info_list": [
+                                {
+                                    "user_id": "579fd9c4",
+                                    "name": "张某",
+                                    "offset": "1"
+                                }
+                            ],
+                            "commentator": "893g4c45",
+                            "extra": "{\"a\":\"a\"}"
+                        }
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CommentsPageListResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
