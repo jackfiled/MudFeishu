@@ -187,7 +187,7 @@ public class MemoryTokenCache : ITokenCache
     /// <returns>如果已过期或即将过期返回true</returns>
     /// <remarks>
     /// 考虑令牌刷新阈值，提前在过期前一段时间就认为令牌无效。
-    /// 逻辑：实际过期时间 - 刷新阈值 < 当前时间，则认为令牌已过期。
+    /// 逻辑：实际过期时间 - 刷新阈值 &lt; 当前时间，则认为令牌已过期。
     /// </remarks>
     private bool IsExpired(CacheEntry entry)
     {

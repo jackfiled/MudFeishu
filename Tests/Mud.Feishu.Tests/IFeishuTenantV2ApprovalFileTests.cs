@@ -13,6 +13,9 @@ using Xunit;
 
 namespace Mud.Feishu.Tests;
 
+/// <summary>
+/// 用于测试<see cref="IFeishuTenantV2ApprovalFile"/>接口的相关函数。
+/// </summary>
 public class IFeishuTenantV2ApprovalFileTests
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions;
