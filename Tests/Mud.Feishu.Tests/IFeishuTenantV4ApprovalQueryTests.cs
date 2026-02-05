@@ -28,7 +28,20 @@ public class IFeishuTenantV4ApprovalQueryTests
     [Fact]
     public void Test_GetInstancesPageListAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "user_id": "lwiu098wj",
+              "approval_code": "EB828003-9FFE-4B3F-AA50-2E199E2ED942",
+              "instance_code": "EB828003-9FFE-4B3F-AA50-2E199E2ED943",
+              "instance_external_id": "EB828003-9FFE-4B3F-AA50-2E199E2ED976",
+              "group_external_id": "1234567",
+              "instance_title": "test",
+              "instance_status": "PENDING",
+              "instance_start_time_from": "1547654251506",
+              "instance_start_time_to": "1547654251506",
+              "locale": "zh-CN"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<ApprovalInstancesQueryRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -40,7 +53,50 @@ public class IFeishuTenantV4ApprovalQueryTests
     [Fact]
     public void Test_GetInstancesPageListAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "count": 10,
+                    "instance_list": [
+                        {
+                            "approval": {
+                                "code": "EB828003-9FFE-4B3F-AA50-2E199E2ED943",
+                                "name": "approval",
+                                "is_external": true,
+                                "external": {
+                                    "batch_cc_read": false
+                                },
+                                "approval_id": "7090754740375519252",
+                                "icon": "https://lf3-ea.bytetos.com/obj/goofy/ee/approval/approval-admin/image/iconLib/v3/person.png"
+                            },
+                            "group": {
+                                "external_id": "0004",
+                                "name": "groupA"
+                            },
+                            "instance": {
+                                "code": "EB828003-9FFE-4B3F-AA50-2E199E2ED943",
+                                "external_id": "0004_3ED52DC1-AA6C",
+                                "user_id": "lwiu098wj",
+                                "start_time": "1547654251506",
+                                "end_time": "1547654251506",
+                                "status": "pending",
+                                "title": "test",
+                                "extra": "{}",
+                                "serial_id": "201902020001",
+                                "link": {
+                                    "pc_link": "https://www.example.com/",
+                                    "mobile_link": "https://www.example.com/"
+                                }
+                            }
+                        }
+                    ],
+                    "page_token": "nF1ZXJ5VGhlbkZldGNoCgAAAAAA6PZwFmUzSldvTC1yU",
+                    "has_more": false
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<ApprovalInstancesQueryResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -55,10 +111,26 @@ public class IFeishuTenantV4ApprovalQueryTests
     [Fact]
     public void Test_GetCarbonCopyPageListAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "user_id": "lwiu098wj",
+              "approval_code": "EB828003-9FFE-4B3F-AA50-2E199E2ED942",
+              "instance_code": "EB828003-9FFE-4B3F-AA50-2E199E2ED943",
+              "instance_external_id": "EB828003-9FFE-4B3F-AA50-2E199E2ED976",
+              "group_external_id": "1234567",
+              "cc_title": "test",
+              "read_status": "read",
+              "cc_create_time_from": "1547654251506",
+              "cc_create_time_to": "1547654251506",
+              "locale": "zh-CN"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<ApprovalInstancesCcQueryRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.InstanceCode!);
+        Assert.NotEmpty(requestBody.ApprovalCode!);
+        Assert.NotEmpty(requestBody.UserId!);
     }
 
     /// <summary>
@@ -67,7 +139,61 @@ public class IFeishuTenantV4ApprovalQueryTests
     [Fact]
     public void Test_GetCarbonCopyPageListAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "count": 10,
+                    "cc_list": [
+                        {
+                            "approval": {
+                                "code": "EB828003-9FFE-4B3F-AA50-2E199E2ED943",
+                                "name": "approval",
+                                "is_external": true,
+                                "external": {
+                                    "batch_cc_read": false
+                                },
+                                "approval_id": "7090754740375519252",
+                                "icon": "https://lf3-ea.bytetos.com/obj/goofy/ee/approval/approval-admin/image/iconLib/v3/person.png"
+                            },
+                            "group": {
+                                "external_id": "0004",
+                                "name": "groupA"
+                            },
+                            "instance": {
+                                "code": "EB828003-9FFE-4B3F-AA50-2E199E2ED943",
+                                "external_id": "0004_3ED52DC1-AA6C",
+                                "user_id": "lwiu098wj",
+                                "start_time": "1547654251506",
+                                "end_time": "1547654251506",
+                                "status": "pending",
+                                "title": "test",
+                                "extra": "{}",
+                                "serial_id": "201902020001",
+                                "link": {
+                                    "pc_link": "https://www.baidu.com/",
+                                    "mobile_link": "https://www.baidu.com/"
+                                }
+                            },
+                            "cc": {
+                                "user_id": "lwiu098wj",
+                                "create_time": "1547654251506",
+                                "read_status": "read",
+                                "title": "test",
+                                "extra": "{}",
+                                "link": {
+                                    "pc_link": "https://www.baidu.com/",
+                                    "mobile_link": "https://www.baidu.com/"
+                                }
+                            }
+                        }
+                    ],
+                    "page_token": "nF1ZXJ5VGhlbkZldGNoCgAAAAAA6PZwFmUzSldvTC1yU",
+                    "has_more": false
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<ApprovalInstancesCcQueryResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -81,10 +207,30 @@ public class IFeishuTenantV4ApprovalQueryTests
     [Fact]
     public void Test_GetTasksPageListAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "user_id": "lwiu098wj",
+              "approval_code": "EB828003-9FFE-4B3F-AA50-2E199E2ED942",
+              "instance_code": "EB828003-9FFE-4B3F-AA50-2E199E2ED943",
+              "instance_external_id": "EB828003-9FFE-4B3F-AA50-2E199E2ED976",
+              "group_external_id": "1234567",
+              "task_title": "test",
+              "task_status": "PENDING",
+              "task_start_time_from": "1547654251506",
+              "task_start_time_to": "1547654251506",
+              "locale": "zh-CN",
+              "task_status_list": [
+                "PENDING"
+              ],
+              "order": 2
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<ApprovalInstancesTaskQueryRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.InstanceCode!);
+        Assert.NotEmpty(requestBody.ApprovalCode!);
+        Assert.NotEmpty(requestBody.UserId!);
     }
 
     /// <summary>
@@ -93,7 +239,62 @@ public class IFeishuTenantV4ApprovalQueryTests
     [Fact]
     public void Test_GetTasksPageListAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "count": 10,
+                    "task_list": [
+                        {
+                            "approval": {
+                                "code": "EB828003-9FFE-4B3F-AA50-2E199E2ED943",
+                                "name": "approval",
+                                "is_external": true,
+                                "external": {
+                                    "batch_cc_read": false
+                                }
+                            },
+                            "group": {
+                                "external_id": "0004",
+                                "name": "groupA"
+                            },
+                            "instance": {
+                                "code": "EB828003-9FFE-4B3F-AA50-2E199E2ED943",
+                                "external_id": "0004_3ED52DC1-AA6C",
+                                "user_id": "lwiu098wj",
+                                "start_time": "1547654251506",
+                                "end_time": "1547654251506",
+                                "status": "pending",
+                                "title": "test",
+                                "extra": "{}",
+                                "serial_id": "201902020001",
+                                "link": {
+                                    "pc_link": "https://www.baidu.com/",
+                                    "mobile_link": "https://www.baidu.com/"
+                                }
+                            },
+                            "task": {
+                                "user_id": "lwiu098wj",
+                                "start_time": "1547654251506",
+                                "end_time": "1547654251506",
+                                "status": "pending",
+                                "title": "test",
+                                "extra": "{}",
+                                "link": {
+                                    "pc_link": "https://www.baidu.com/",
+                                    "mobile_link": "https://www.baidu.com/"
+                                },
+                                "task_id": "7110153401253494803",
+                                "update_time": "1547654251506"
+                            }
+                        }
+                    ],
+                    "page_token": "nF1ZXJ5VGhlbkZldGNoCgAAAAAA6PZwFmUzSldvTC1yU",
+                    "has_more": false
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<ApprovalInstancesTaskQueryResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
