@@ -22,8 +22,11 @@ public class IFeishuTenantV1ApprovalMessageTests
         _jsonSerializerOptions = HttpClientExtensions.GetDefaultJsonSerializerOptions();
     }
 
+    /// <summary>
+    /// 用于测试<see cref="IFeishuTenantV1ApprovalMessage.SendBotMessageAsync(ApprovalBotMessageRequest, CancellationToken)"/>函数的请求体反序列化。
+    /// </summary>
     [Fact]
-    public void TestSendBotMessageAsyncRequestBody()
+    public void Test_SendBotMessageAsync_RequestBody()
     {
         string bodyStr = """
 {
@@ -105,8 +108,11 @@ public class IFeishuTenantV1ApprovalMessageTests
         Assert.NotNull(requestBody.Note);
     }
 
+    /// <summary>
+    /// 用户测试<see cref="IFeishuTenantV1ApprovalMessage.SendBotMessageAsync(ApprovalBotMessageRequest, CancellationToken)"/>函数的返回结果反序列化。
+    /// </summary>
     [Fact]
-    public void TestSendBotMessageAsyncResult()
+    public void Test_SendBotMessageAsync_Result()
     {
         string resultStr = """
 {
@@ -124,6 +130,138 @@ public class IFeishuTenantV1ApprovalMessageTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
-        Assert.NotEmpty(result.Data.MessageId);
+        Assert.NotEmpty(result.Data.MessageId!);
+    }
+
+    /// <summary>
+    /// 用于测试<see cref="IFeishuTenantV1ApprovalMessage.SendBotMessageAsync(CustomApprovalBotMessageRequest, CancellationToken)"/>函数的请求体反序列化。
+    /// </summary>
+    [Fact]
+    public void Test_SendBotMessageAsyncCustomTemplate_RequestBody()
+    {
+        string bodyStr = @"
+{
+    ""template_id"":""1021"",
+    ""user_id"":""employeeId1"",
+    ""uuid"":""uuid"",
+    ""custom_title"":""@i18n@1"",
+    ""custom_content"":""@i18n@2"",
+    ""note"":""@i18n@3"",
+    ""actions"":[
+        {
+            ""action_name"":""@i18n@4"",
+            ""url"":"" https://bytedance.com"",
+            ""android_url"":""https://bytedance.com"",
+            ""ios_url"":""https://bytedance.com"",
+            ""pc_url"":""https://bytedance.com""
+        }
+    ],
+    ""i18n_resources"":[
+        {
+            ""locale"":""en-US"",
+            ""is_default"":true,
+            ""texts"":{
+                ""@i18n@1"":""Custom template"",
+                ""@i18n@2"":""Please help process my approval as soon as possible."",
+                ""@i18n@3"":""From OA,please access through the internal network."",
+                ""@i18n@4"":""DETAIL""
+            }
+        }
+    ]
+}
+";
+        var requestBody = JsonSerializer.Deserialize<CustomApprovalBotMessageRequest>(bodyStr, _jsonSerializerOptions);
+
+        // 验证顶层对象非空
+        Assert.NotNull(requestBody);
+
+        // 验证必需字段非空
+        Assert.NotNull(requestBody.TemplateId);
+        Assert.NotNull(requestBody.CustomTitle);
+        Assert.NotNull(requestBody.CustomContent);
+    }
+
+    /// <summary>
+    /// 用于测试<see cref="IFeishuTenantV1ApprovalMessage.SendBotMessageAsync(CustomApprovalBotMessageRequest, CancellationToken)"/>函数的返回结果反序列化。
+    /// </summary>
+    [Fact]
+    public void Test_SendBotMessageAsyncCustomTemplateAsync_Result()
+    {
+        string resultStr = @"
+{
+    ""code"":0,
+    ""msg"":""success"",
+    ""data"":{
+        ""message_id"": ""6968359519504171036""
+    }
+}
+";
+        var result = JsonSerializer.Deserialize<FeishuApiResult<ApprovalBotMessageResult>>(resultStr, _jsonSerializerOptions);
+
+        // 验证顶层对象非空
+        Assert.NotNull(result);
+
+        // 验证必需字段非空
+        Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.MessageId!);
+    }
+
+    /// <summary>
+    /// 用于测试<see cref="IFeishuTenantV1ApprovalMessage.UpdateBotMessageAsync(ApprovalBotMessageUpdateRequest, CancellationToken)"/>函数的请求体反序列化。
+    /// </summary>
+    [Fact]
+    public void Test_UpdateBotMessageAsync_RequestBody()
+    {
+        string bodyStr = @"
+{
+    ""message_id"":""xxxx"",
+    ""status"":""CUSTOM"",
+    ""status_name"":""@i18n@1"",
+    ""detail_action_name"":""@i18n@2"",
+    ""i18n_resources"":[
+        {
+          ""locale"": ""zh-CN"",
+          ""texts"" : {
+              ""@i18n@1"": ""已废弃"",
+              ""@i18n@2"": ""已废弃按钮"" 
+            },
+          ""is_default"": true
+        }
+    ]
+}
+";
+        var requestBody = JsonSerializer.Deserialize<ApprovalBotMessageUpdateRequest>(bodyStr, _jsonSerializerOptions);
+
+        // 验证顶层对象非空
+        Assert.NotNull(requestBody);
+
+        // 验证必需字段非空
+        Assert.NotNull(requestBody.MessageId);
+        Assert.NotNull(requestBody.Status);
+    }
+
+    /// <summary>
+    /// 用于测试<see cref="IFeishuTenantV1ApprovalMessage.UpdateBotMessageAsync(ApprovalBotMessageUpdateRequest, CancellationToken)"/>函数的返回结果反序列化。
+    /// </summary>
+    [Fact]
+    public void Test_UpdateBotMessageAsync_Result()
+    {
+        string resultStr = @"
+{
+    ""code"":0,
+    ""msg"":""success"",
+    ""data"":{
+        ""message_id"": ""xxxx""
+    }
+}
+";
+        var result = JsonSerializer.Deserialize<FeishuApiResult<ApprovalBotMessageResult>>(resultStr, _jsonSerializerOptions);
+
+        // 验证顶层对象非空
+        Assert.NotNull(result);
+
+        // 验证必需字段非空
+        Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.MessageId!);
     }
 }
