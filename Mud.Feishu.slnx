@@ -25,5 +25,6 @@
     <Project Path="Tests/Mud.Feishu.Redis.Tests/Mud.Feishu.Redis.Tests.csproj" />
     <Project Path="Tests/Mud.Feishu.Webhook.Tests/Mud.Feishu.Webhook.Tests.csproj" />
     <Project Path="Tests/Mud.Feishu.WebSocket.Tests/Mud.Feishu.WebSocket.Tests.csproj" />
+    <Project Path="Tests/Mud.Feishu.Tests/Mud.Feishu.Tests.csproj" />
   </Folder>
 </Solution>
