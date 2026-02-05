@@ -28,7 +28,16 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_AgreeApprovalAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+{
+  "approval_code": "7C468A54-8745-2245-9675-08B7C63E7A85",
+  "instance_code": "81D31358-93AF-92D6-7425-01A5D67C4E71",
+  "user_id": "f7cb567e",
+  "comment": "OK",
+  "task_id": "12345",
+  "form": "[{\"id\":\"111\", \"type\": \"input\", \"value\":\"test\"}]"
+}
+""";
         var requestBody = JsonSerializer.Deserialize<AgreeApprovalTasksRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -42,7 +51,14 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_AgreeApprovalAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -54,7 +70,16 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_RejectApprovalAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "approval_code": "7C468A54-8745-2245-9675-08B7C63E7A85",
+              "instance_code": "81D31358-93AF-92D6-7425-01A5D67C4E71",
+              "user_id": "f7cb567e",
+              "comment": "OK",
+              "task_id": "12345",
+              "form": "[{\"id\":\"user_name\", \"type\": \"input\", \"value\":\"test\"}]"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<RejectApprovalTaskRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -68,7 +93,14 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_RejectApprovalAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -80,7 +112,16 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_TransferApprovalAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "approval_code": "7C468A54-8745-2245-9675-08B7C63E7A85",
+              "instance_code": "81D31358-93AF-92D6-7425-01A5D67C4E71",
+              "user_id": "f7cb567e",
+              "comment": "OK",
+              "transfer_user_id": "f4ip317q",
+              "task_id": "12345"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<TransferApprovalTasksRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -94,7 +135,13 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_TransferApprovalAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -106,7 +153,19 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_RollbackApprovalAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "user_id": "893g4c45",
+              "task_id": "7026591166355210260",
+              "reason": "申请事项填写不具体，请重新填写",
+              "extra": "demo",
+              "task_def_key_list": [
+                "START",
+                "APPROVAL_27997_285502",
+                "APPROVAL_462205_2734554"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<RollbackApprovalInstancesRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -119,7 +178,13 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_RollbackApprovalAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -131,7 +196,18 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_InstancesAddSignAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                       {
+                "approval_code": "3B68E280-CF10-4198-B4CD-2E3BB97981D8",
+                "instance_code": "289330DE-FBF1-4A47-91F9-9EFCCF11BCAE",
+                "user_id": "b16g66e3",
+                "task_id": "6955096766400167956",
+                "comment": "addSignComment",
+                "add_sign_user_ids": ["d19b913b","3313g62b"],
+                "add_sign_type": 1,
+                "approval_method": 1
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<InstancesAddSignRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -144,7 +220,12 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_InstancesAddSignAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success"
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -156,7 +237,16 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_ResubmitApprovalAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+                "approval_code": "7C468A54-8745-2245-9675-08B7C63E7A85",
+                "instance_code": "81D31358-93AF-92D6-7425-01A5D67C4E71",
+                "user_id": "f7cb567e",
+                "comment": "{\"text\":\"评论\",\"file_codes\":[\"ABCD1232s\",\"ABC12334d22\"]}",
+                "task_id": "12345",
+                "form": "[{\"id\":\"user_name\", \"type\": \"input\", \"value\":\"test\"}]"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<ResubmitApprovalRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -169,7 +259,13 @@ public class IFeishuTenantV4ApprovalTaskTests
     [Fact]
     public void Test_ResubmitApprovalAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
