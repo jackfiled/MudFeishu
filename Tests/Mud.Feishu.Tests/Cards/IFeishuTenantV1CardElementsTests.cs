@@ -80,7 +80,7 @@ public class IFeishuTenantV1CardElementsTests
         var requestBody = JsonSerializer.Deserialize<UpdateCardElementRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
-        Assert.NotNull(requestBody.PartialElement);
+        Assert.NotNull(requestBody.Element);
     }
 
     /// <summary>

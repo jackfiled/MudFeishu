@@ -13,16 +13,16 @@ namespace Mud.Feishu.DataModels.CardElements;
 public class UpdateCardElementRequest
 {
     /// <summary>
-    /// <para>组件的新的配置项字段。传入 `element_id` 参数后，原组件的 ID 将更新。</para>
+    /// <para>新的组件的完整的 JSON 数据。</para>
     /// <para>必填：是</para>
-    /// <para>示例值：{\"content\":\"更新后的组件文本\"}</para>
+    /// <para>示例值："{"tag":"markdown","element_id":"md_1","content":"这是一段更新后的文本"}"</para>
     /// </summary>
-    [JsonPropertyName("partial_element")]
+    [JsonPropertyName("element")]
     public
 #if NET7_0_OR_GREATER
         required
 #endif
-        string PartialElement
+        string Element
     { get; set; } = string.Empty;
 
     /// <summary>

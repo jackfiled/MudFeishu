@@ -31,7 +31,54 @@ public class IFeishuTenantV1ChatGroupMenuTests
     [Fact]
     public void Test_AddMenuByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "menu_tree": {
+                "chat_menu_top_levels": [
+                  {
+                    "chat_menu_item": {
+                      "action_type": "NONE",
+                      "redirect_link": {
+                        "common_url": "https://open.feishu.cn/",
+                        "ios_url": "https://open.feishu.cn/",
+                        "android_url": "https://open.feishu.cn/",
+                        "pc_url": "https://open.feishu.cn/",
+                        "web_url": "https://open.feishu.cn/"
+                      },
+                      "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                      "name": "群聊",
+                      "i18n_names": {
+                        "zh_cn": "评审报名",
+                        "en_us": "Sign up",
+                        "ja_jp": "サインアップ"
+                      }
+                    },
+                    "children": [
+                      {
+                        "chat_menu_item": {
+                          "action_type": "NONE",
+                          "redirect_link": {
+                            "common_url": "https://open.feishu.cn/",
+                            "ios_url": "https://open.feishu.cn/",
+                            "android_url": "https://open.feishu.cn/",
+                            "pc_url": "https://open.feishu.cn/",
+                            "web_url": "https://open.feishu.cn/"
+                          },
+                          "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                          "name": "群聊",
+                          "i18n_names": {
+                            "zh_cn": "评审报名",
+                            "en_us": "Sign up",
+                            "ja_jp": "サインアップ"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<AddChatGroupMenuRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -43,7 +90,59 @@ public class IFeishuTenantV1ChatGroupMenuTests
     [Fact]
     public void Test_AddMenuByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "menu_tree": {
+                        "chat_menu_top_levels": [
+                            {
+                                "chat_menu_top_level_id": "7117116451961487361",
+                                "chat_menu_item": {
+                                    "action_type": "NONE",
+                                    "redirect_link": {
+                                        "common_url": "https://open.feishu.cn/",
+                                        "ios_url": "https://open.feishu.cn/",
+                                        "android_url": "https://open.feishu.cn/",
+                                        "pc_url": "https://open.feishu.cn/",
+                                        "web_url": "https://open.feishu.cn/"
+                                    },
+                                    "name": "菜单",
+                                    "i18n_names": {
+                                        "zh_cn": "菜单",
+                                        "en_us": "Menu",
+                                        "ja_jp": "メニュー"
+                                    }
+                                },
+                                "children": [
+                                    {
+                                        "chat_menu_second_level_id": "7039638308221468675",
+                                        "chat_menu_item": {
+                                            "action_type": "REDIRECT_LINK",
+                                            "redirect_link": {
+                                                "common_url": "https://open.feishu.cn/",
+                                                "ios_url": "https://open.feishu.cn/",
+                                                "android_url": "https://open.feishu.cn/",
+                                                "pc_url": "https://open.feishu.cn/",
+                                                "web_url": "https://open.feishu.cn/"
+                                            },
+                                            "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                                            "name": "报名",
+                                            "i18n_names": {
+                                                "zh_cn": "报名",
+                                                "en_us": "Sign up",
+                                                "ja_jp": "サインアップ"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<ChatGroupMenuResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -56,7 +155,30 @@ public class IFeishuTenantV1ChatGroupMenuTests
     [Fact]
     public void Test_UpdateMenuByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "update_fields": [
+                "ICON"
+              ],
+              "chat_menu_item": {
+                "action_type": "NONE",
+                "redirect_link": {
+                  "common_url": "https://open.feishu.cn/",
+                  "ios_url": "https://open.feishu.cn/",
+                  "android_url": "https://open.feishu.cn/",
+                  "pc_url": "https://open.feishu.cn/",
+                  "web_url": "https://open.feishu.cn/"
+                },
+                "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                "name": "群聊",
+                "i18n_names": {
+                  "zh_cn": "评审报名",
+                  "en_us": "Sign up",
+                  "ja_jp": "サインアップ"
+                }
+              }
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateChatMenuItemRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
@@ -68,7 +190,31 @@ public class IFeishuTenantV1ChatGroupMenuTests
     [Fact]
     public void Test_UpdateMenuByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "chat_menu_item": {
+                        "action_type": "NONE",
+                        "redirect_link": {
+                            "common_url": "https://open.feishu.cn/",
+                            "ios_url": "https://open.feishu.cn/",
+                            "android_url": "https://open.feishu.cn/",
+                            "pc_url": "https://open.feishu.cn/",
+                            "web_url": "https://open.feishu.cn/"
+                        },
+                        "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                        "name": "报名",
+                        "i18n_names": {
+                            "zh_cn": "报名",
+                            "en_us": "Sign up",
+                            "ja_jp": "サインアップ"
+                        }
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<UpdateChatMenuItemResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -81,10 +227,17 @@ public class IFeishuTenantV1ChatGroupMenuTests
     [Fact]
     public void Test_DeleteMenuByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "chat_menu_top_level_ids": [
+                "6936075528890826780"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<ChartMenuIdsRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.ChatMenuTopLevelIds);
     }
 
     /// <summary>
@@ -93,11 +246,65 @@ public class IFeishuTenantV1ChatGroupMenuTests
     [Fact]
     public void Test_DeleteMenuByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "menu_tree": {
+                        "chat_menu_top_levels": [
+                            {
+                                "chat_menu_top_level_id": "7117116451961487361",
+                                "chat_menu_item": {
+                                    "action_type": "NONE",
+                                    "redirect_link": {
+                                        "common_url": "https://open.feishu.cn/",
+                                        "ios_url": "https://open.feishu.cn/",
+                                        "android_url": "https://open.feishu.cn/",
+                                        "pc_url": "https://open.feishu.cn/",
+                                        "web_url": "https://open.feishu.cn/"
+                                    },
+                                    "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                                    "name": "菜单",
+                                    "i18n_names": {
+                                        "zh_cn": "菜单",
+                                        "en_us": "Menu",
+                                        "ja_jp": "メニュー"
+                                    }
+                                },
+                                "children": [
+                                    {
+                                        "chat_menu_second_level_id": "7039638308221468675",
+                                        "chat_menu_item": {
+                                            "action_type": "REDIRECT_LINK",
+                                            "redirect_link": {
+                                                "common_url": "https://open.feishu.cn/",
+                                                "ios_url": "https://open.feishu.cn/",
+                                                "android_url": "https://open.feishu.cn/",
+                                                "pc_url": "https://open.feishu.cn/",
+                                                "web_url": "https://open.feishu.cn/"
+                                            },
+                                            "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                                            "name": "报名",
+                                            "i18n_names": {
+                                                "zh_cn": "报名",
+                                                "en_us": "Sign up",
+                                                "ja_jp": "サインアップ"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<ChatGroupMenuResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.MenuTree);
     }
 
     /// <summary>
@@ -106,10 +313,17 @@ public class IFeishuTenantV1ChatGroupMenuTests
     [Fact]
     public void Test_SortMenuByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "chat_menu_top_level_ids": [
+                "6936075528890826780"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<ChartMenuIdsRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
+        Assert.NotNull(requestBody.ChatMenuTopLevelIds);
     }
 
     /// <summary>
@@ -118,11 +332,65 @@ public class IFeishuTenantV1ChatGroupMenuTests
     [Fact]
     public void Test_SortMenuByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "menu_tree": {
+                        "chat_menu_top_levels": [
+                            {
+                                "chat_menu_top_level_id": "7117116451961487361",
+                                "chat_menu_item": {
+                                    "action_type": "NONE",
+                                    "redirect_link": {
+                                        "common_url": "https://open.feishu.cn/",
+                                        "ios_url": "https://open.feishu.cn/",
+                                        "android_url": "https://open.feishu.cn/",
+                                        "pc_url": "https://open.feishu.cn/",
+                                        "web_url": "https://open.feishu.cn/"
+                                    },
+                                    "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                                    "name": "菜单",
+                                    "i18n_names": {
+                                        "zh_cn": "菜单",
+                                        "en_us": "Menu",
+                                        "ja_jp": "メニュー"
+                                    }
+                                },
+                                "children": [
+                                    {
+                                        "chat_menu_second_level_id": "7039638308221468675",
+                                        "chat_menu_item": {
+                                            "action_type": "REDIRECT_LINK",
+                                            "redirect_link": {
+                                                "common_url": "https://open.feishu.cn/",
+                                                "ios_url": "https://open.feishu.cn/",
+                                                "android_url": "https://open.feishu.cn/",
+                                                "pc_url": "https://open.feishu.cn/",
+                                                "web_url": "https://open.feishu.cn/"
+                                            },
+                                            "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                                            "name": "报名",
+                                            "i18n_names": {
+                                                "zh_cn": "报名",
+                                                "en_us": "Sign up",
+                                                "ja_jp": "サインアップ"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<ChatGroupMenuResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.MenuTree);
     }
 
     /// <summary>
@@ -131,10 +399,64 @@ public class IFeishuTenantV1ChatGroupMenuTests
     [Fact]
     public void Test_GetMenuByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "menu_tree": {
+                        "chat_menu_top_levels": [
+                            {
+                                "chat_menu_top_level_id": "7117116451961487361",
+                                "chat_menu_item": {
+                                    "action_type": "NONE",
+                                    "redirect_link": {
+                                        "common_url": "https://open.feishu.cn/",
+                                        "ios_url": "https://open.feishu.cn/",
+                                        "android_url": "https://open.feishu.cn/",
+                                        "pc_url": "https://open.feishu.cn/",
+                                        "web_url": "https://open.feishu.cn/"
+                                    },
+                                    "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                                    "name": "菜单",
+                                    "i18n_names": {
+                                        "zh_cn": "菜单",
+                                        "en_us": "Menu",
+                                        "ja_jp": "メニュー"
+                                    }
+                                },
+                                "children": [
+                                    {
+                                        "chat_menu_second_level_id": "7039638308221468675",
+                                        "chat_menu_item": {
+                                            "action_type": "REDIRECT_LINK",
+                                            "redirect_link": {
+                                                "common_url": "https://open.feishu.cn/",
+                                                "ios_url": "https://open.feishu.cn/",
+                                                "android_url": "https://open.feishu.cn/",
+                                                "pc_url": "https://open.feishu.cn/",
+                                                "web_url": "https://open.feishu.cn/"
+                                            },
+                                            "image_key": "img_v2_b0fbe905-7988-4282-b882-82edd010336j",
+                                            "name": "报名",
+                                            "i18n_names": {
+                                                "zh_cn": "报名",
+                                                "en_us": "Sign up",
+                                                "ja_jp": "サインアップ"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<ChatGroupMenuResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.MenuTree);
     }
 }
