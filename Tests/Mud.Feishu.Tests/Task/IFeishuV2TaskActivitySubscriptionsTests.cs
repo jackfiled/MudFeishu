@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.TaskActivitySubscriptions;
 using System.Text.Json;
 using Xunit;
@@ -31,11 +30,27 @@ public class IFeishuV2TaskActivitySubscriptionsTests
     [Fact]
     public void Test_CreateActivitySubscriptionsAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "name": "我的订阅",
+              "subscribers": [
+                {
+                  "id": "oc_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                  "type": "chat"
+                }
+              ],
+              "include_keys": [
+                100
+              ],
+              "disabled": false
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<CreateActivitySubscriptionsRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotNull(requestBody.Subscribers);
+        Assert.NotNull(requestBody.IncludeKeys);
     }
 
     /// <summary>
@@ -44,7 +59,29 @@ public class IFeishuV2TaskActivitySubscriptionsTests
     [Fact]
     public void Test_CreateActivitySubscriptionsAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "activity_subscription": {
+                        "guid": "d19e3a2a-edc0-4e4e-b7cc-950e162b53ae",
+                        "name": "Roadmap订阅",
+                        "subscribers": [
+                            {
+                                "id": "oc_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                                "type": "user",
+                                "role": "editor"
+                            }
+                        ],
+                        "include_keys": [
+                            101
+                        ],
+                        "disabled": false
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<TasklistActivitySubscriptionResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -60,7 +97,29 @@ public class IFeishuV2TaskActivitySubscriptionsTests
     [Fact]
     public void Test_GetActivitySubscriptionsByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "activity_subscription": {
+                        "guid": "d19e3a2a-edc0-4e4e-b7cc-950e162b53ae",
+                        "name": "Roadmap订阅",
+                        "subscribers": [
+                            {
+                                "id": "oc_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                                "type": "chat",
+                                "role": "editor"
+                            }
+                        ],
+                        "include_keys": [
+                            101
+                        ],
+                        "disabled": false
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<TasklistActivitySubscriptionResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -68,6 +127,7 @@ public class IFeishuV2TaskActivitySubscriptionsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.ActivitySubscription);
     }
 
     /// <summary>
@@ -76,7 +136,31 @@ public class IFeishuV2TaskActivitySubscriptionsTests
     [Fact]
     public void Test_GetActivitySubscriptionsListByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "guid": "d19e3a2a-edc0-4e4e-b7cc-950e162b53ae",
+                            "name": "Roadmap订阅",
+                            "subscribers": [
+                                {
+                                    "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                                    "type": "user",
+                                    "role": "editor"
+                                }
+                            ],
+                            "include_keys": [
+                                101
+                            ],
+                            "disabled": false
+                        }
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiListResult<TasklistActivitySubscriptionInfo>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -84,6 +168,7 @@ public class IFeishuV2TaskActivitySubscriptionsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Items);
     }
 
     /// <summary>
@@ -92,11 +177,32 @@ public class IFeishuV2TaskActivitySubscriptionsTests
     [Fact]
     public void Test_UpdateActivitySubscriptionsByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "activity_subscription": {
+                "name": "Roadmap订阅",
+                "subscribers": [
+                  {
+                    "id": "oc_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                    "type": "chat"
+                  }
+                ],
+                "include_keys": [
+                  101
+                ],
+                "disabled": false
+              },
+              "update_fields": [
+                "name"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateActivitySubscriptionsRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotNull(requestBody.UpdateFields);
+        Assert.NotNull(requestBody.ActivitySubscription);
     }
 
     /// <summary>
@@ -105,14 +211,37 @@ public class IFeishuV2TaskActivitySubscriptionsTests
     [Fact]
     public void Test_UpdateActivitySubscriptionsByIdAsync_Result()
     {
-        string resultStr = "";
-        var result = JsonSerializer.Deserialize<FeishuApiListResult<TasklistActivitySubscriptionResult>>(resultStr, _jsonSerializerOptions);
+        string resultStr = """
+            {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "activity_subscription": {
+                        "guid": "d19e3a2a-edc0-4e4e-b7cc-950e162b53ae",
+                        "name": "Roadmap订阅",
+                        "subscribers": [
+                            {
+                                "id": "oc_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                                "type": "chat",
+                                "role": "editor"
+                            }
+                        ],
+                        "include_keys": [
+                            101
+                        ],
+                        "disabled": false
+                    }
+                }
+            }
+            """;
+        var result = JsonSerializer.Deserialize<FeishuApiResult<TasklistActivitySubscriptionResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.ActivitySubscription);
     }
 
     /// <summary>
@@ -121,10 +250,17 @@ public class IFeishuV2TaskActivitySubscriptionsTests
     [Fact]
     public void Test_DeleteActivitySubscriptionsByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
+        Assert.NotNull(result.Data);
     }
 }

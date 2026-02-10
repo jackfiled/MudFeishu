@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -73,7 +73,7 @@ public interface IFeishuV2TaskActivitySubscriptions : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Patch("/open-apis/task/v2/tasklists/{tasklist_guid}/activity_subscriptions/{activity_subscription_guid}")]
-    Task<FeishuApiListResult<TasklistActivitySubscriptionResult>?> UpdateActivitySubscriptionsByIdAsync(
+    Task<FeishuApiResult<TasklistActivitySubscriptionResult>?> UpdateActivitySubscriptionsByIdAsync(
           [Path] string tasklist_guid,
           [Path] string activity_subscription_guid,
           [Body] UpdateActivitySubscriptionsRequest updateActivitySubscriptionsRequest,
