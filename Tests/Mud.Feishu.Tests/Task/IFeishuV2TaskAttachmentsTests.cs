@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.TaskAttachments;
 using System.Text.Json;
 using Xunit;
@@ -25,18 +24,6 @@ public class IFeishuV2TaskAttachmentsTests
         _jsonSerializerOptions = HttpClientExtensions.GetDefaultJsonSerializerOptions();
     }
 
-    /// <summary>
-    /// 用于测试<see cref="IFeishuV2TaskAttachments.UploadAttachmentAsync(UploadTaskAttachmentsRequest, string, CancellationToken)"/>函数的请求体反序列化。
-    /// </summary>
-    [Fact]
-    public void Test_UploadAttachmentAsync_RequestBody()
-    {
-        string bodyStr = "";
-        var requestBody = JsonSerializer.Deserialize<UploadTaskAttachmentsRequest>(bodyStr, _jsonSerializerOptions);
-
-        // 验证顶层对象非空
-        Assert.NotNull(requestBody);
-    }
 
     /// <summary>
     /// 用于测试<see cref="IFeishuV2TaskAttachments.UploadAttachmentAsync(UploadTaskAttachmentsRequest, string, CancellationToken)"/>函数的返回结果反序列化。
@@ -44,7 +31,33 @@ public class IFeishuV2TaskAttachmentsTests
     [Fact]
     public void Test_UploadAttachmentAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "guid": "f860de3e-6881-4ddd-9321-070f36d1af0b",
+                            "file_token": "boxcnTDqPaRA6JbYnzQsZ2doB2b",
+                            "name": "foo.jpg",
+                            "size": 62232,
+                            "resource": {
+                                "type": "task",
+                                "id": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2"
+                            },
+                            "uploader": {
+                                "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                                "type": "user",
+                                "role": "creator"
+                            },
+                            "is_cover": false,
+                            "uploaded_at": "1675742789470"
+                        }
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<TaskAttachmentsUploadResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -52,6 +65,7 @@ public class IFeishuV2TaskAttachmentsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Items);
     }
 
     /// <summary>
@@ -60,7 +74,36 @@ public class IFeishuV2TaskAttachmentsTests
     [Fact]
     public void Test_GetAttachmentPageListAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "guid": "f860de3e-6881-4ddd-9321-070f36d1af0b",
+                            "file_token": "boxcnTDqPaRA6JbYnzQsZ2doB2b",
+                            "name": "foo.jpg",
+                            "size": 62232,
+                            "resource": {
+                                "type": "task",
+                                "id": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2"
+                            },
+                            "uploader": {
+                                "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                                "type": "user",
+                                "role": "editor"
+                            },
+                            "is_cover": false,
+                            "uploaded_at": "1675742789470",
+                            "url": "https://example.com/download/authcode/?code=OWMzNDlmMjJmZThkYzZkZGJlMjYwZTI0OTUxZTE2MDJfMDZmZmMwOWVj"
+                        }
+                    ],
+                    "page_token": "aWQ9NzEwMjMzMjMxMDE=",
+                    "has_more": true
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiPageListResult<AttachmentResultInfo>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -68,6 +111,8 @@ public class IFeishuV2TaskAttachmentsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Items);
+        Assert.NotEmpty(result.Data.PageToken!);
     }
 
     /// <summary>
@@ -76,7 +121,32 @@ public class IFeishuV2TaskAttachmentsTests
     [Fact]
     public void Test_GetAttachmentByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "attachment": {
+                        "guid": "f860de3e-6881-4ddd-9321-070f36d1af0b",
+                        "file_token": "boxcnTDqPaRA6JbYnzQsZ2doB2b",
+                        "name": "foo.jpg",
+                        "size": 62232,
+                        "resource": {
+                            "type": "task",
+                            "id": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2"
+                        },
+                        "uploader": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "editor"
+                        },
+                        "is_cover": false,
+                        "uploaded_at": "1675742789470",
+                        "url": "https://example.com/download/authcode/?code=OWMzNDlmMjJmZThkYzZkZGJlMjYwZTI0OTUxZTE2MDJfMDZmZmMwOWVj"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<GetAttachmentsInfoResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -84,6 +154,9 @@ public class IFeishuV2TaskAttachmentsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Attachment);
+        Assert.NotEmpty(result.Data.Attachment.Name!);
+        Assert.NotNull(result.Data.Attachment.Uploader);
     }
 
     /// <summary>
@@ -92,10 +165,17 @@ public class IFeishuV2TaskAttachmentsTests
     [Fact]
     public void Test_DeleteAttachmentByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
+        Assert.NotNull(result.Data);
     }
 }
