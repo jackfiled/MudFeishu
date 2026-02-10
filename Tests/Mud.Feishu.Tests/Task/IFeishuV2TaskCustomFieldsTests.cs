@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.TaskCustomFields;
 using System.Text.Json;
 using Xunit;
@@ -31,11 +30,54 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_CreateCustomFieldsAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "resource_type": "tasklist",
+              "resource_id": "ec5ed63d-a4a9-44de-a935-7ba243471c0a",
+              "name": "优先级",
+              "type": "number",
+              "number_setting": {
+                "format": "normal",
+                "custom_symbol": "自定义符号",
+                "custom_symbol_position": "left",
+                "separator": "thousand",
+                "decimal_count": 2
+              },
+              "member_setting": {
+                "multi": true
+              },
+              "datetime_setting": {
+                "format": "yyyy/mm/dd"
+              },
+              "single_select_setting": {
+                "options": [
+                  {
+                    "name": "高优",
+                    "color_index": 1,
+                    "is_hidden": false
+                  }
+                ]
+              },
+              "multi_select_setting": {
+                "options": [
+                  {
+                    "name": "高优",
+                    "color_index": 1,
+                    "is_hidden": false
+                  }
+                ]
+              },
+              "text_setting": {}
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<CreateCustomFieldsRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotNull(requestBody.MultiSelectSetting);
+        Assert.NotNull(requestBody.NumberSetting);
+        Assert.NotEmpty(requestBody.ResourceId);
+        Assert.NotEmpty(requestBody.ResourceType);
     }
 
     /// <summary>
@@ -44,7 +86,60 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_CreateCustomFieldsAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "custom_field": {
+                        "guid": "34d4b29f-3d58-4bc5-b752-6be80fb687c8",
+                        "name": "优先级",
+                        "type": "number",
+                        "number_setting": {
+                            "format": "normal",
+                            "custom_symbol": "自定义符号",
+                            "custom_symbol_position": "left",
+                            "separator": "thousand",
+                            "decimal_count": 2
+                        },
+                        "member_setting": {
+                            "multi": true
+                        },
+                        "datetime_setting": {
+                            "format": "yyyy/mm/dd"
+                        },
+                        "single_select_setting": {
+                            "options": [
+                                {
+                                    "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                                    "name": "高优",
+                                    "color_index": 1,
+                                    "is_hidden": false
+                                }
+                            ]
+                        },
+                        "multi_select_setting": {
+                            "options": [
+                                {
+                                    "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                                    "name": "高优",
+                                    "color_index": 1,
+                                    "is_hidden": false
+                                }
+                            ]
+                        },
+                        "creator": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "creator"
+                        },
+                        "created_at": "1688196600000",
+                        "updated_at": "1688196600000",
+                        "text_setting": {}
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CustomFieldsResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -52,6 +147,9 @@ public class IFeishuV2TaskCustomFieldsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.CustomField);
+        Assert.NotEmpty(result.Data.CustomField.Name!);
+        Assert.NotEmpty(result.Data.CustomField.Guid!);
     }
 
     /// <summary>
@@ -60,11 +158,57 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_UpdateCustomFieldsAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "custom_field": {
+                "name": "优先级",
+                "number_setting": {
+                  "format": "normal",
+                  "custom_symbol": "€",
+                  "custom_symbol_position": "left",
+                  "separator": "thousand",
+                  "decimal_count": 2
+                },
+                "member_setting": {
+                  "multi": true
+                },
+                "datetime_setting": {
+                  "format": "yyyy/mm/dd"
+                },
+                "single_select_setting": {
+                  "options": [
+                    {
+                      "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                      "name": "高优",
+                      "color_index": 1
+                    }
+                  ]
+                },
+                "multi_select_setting": {
+                  "options": [
+                    {
+                      "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                      "name": "高优",
+                      "color_index": 1
+                    }
+                  ]
+                },
+                "text_setting": {}
+              },
+              "update_fields": [
+                "name"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateCustomFieldsRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotNull(requestBody.CustomField);
+        Assert.NotEmpty(requestBody.CustomField.Name!);
+        Assert.NotNull(requestBody.CustomField.NumberSetting!);
+        Assert.NotEmpty(requestBody.CustomField.NumberSetting.Format!);
+        Assert.NotNull(requestBody.CustomField);
     }
 
     /// <summary>
@@ -73,7 +217,60 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_UpdateCustomFieldsAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "custom_field": {
+                        "guid": "34d4b29f-3d58-4bc5-b752-6be80fb687c8",
+                        "name": "优先级",
+                        "type": "number",
+                        "number_setting": {
+                            "format": "normal",
+                            "custom_symbol": "自定义符号",
+                            "custom_symbol_position": "left",
+                            "separator": "thousand",
+                            "decimal_count": 2
+                        },
+                        "member_setting": {
+                            "multi": true
+                        },
+                        "datetime_setting": {
+                            "format": "yyyy/mm/dd"
+                        },
+                        "single_select_setting": {
+                            "options": [
+                                {
+                                    "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                                    "name": "高优",
+                                    "color_index": 1,
+                                    "is_hidden": false
+                                }
+                            ]
+                        },
+                        "multi_select_setting": {
+                            "options": [
+                                {
+                                    "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                                    "name": "高优",
+                                    "color_index": 1,
+                                    "is_hidden": false
+                                }
+                            ]
+                        },
+                        "creator": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "editor"
+                        },
+                        "created_at": "1688196600000",
+                        "updated_at": "1688196600000",
+                        "text_setting": {}
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CustomFieldsResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -81,6 +278,9 @@ public class IFeishuV2TaskCustomFieldsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.CustomField);
+        Assert.NotEmpty(result.Data.CustomField.Name!);
+        Assert.NotNull(result.Data.CustomField.DatetimeSetting);
     }
 
     /// <summary>
@@ -89,7 +289,60 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_GetCustomFieldsByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "custom_field": {
+                        "guid": "34d4b29f-3d58-4bc5-b752-6be80fb687c8",
+                        "name": "优先级",
+                        "type": "number",
+                        "number_setting": {
+                            "format": "normal",
+                            "custom_symbol": "自定义符号",
+                            "custom_symbol_position": "left",
+                            "separator": "thousand",
+                            "decimal_count": 2
+                        },
+                        "member_setting": {
+                            "multi": true
+                        },
+                        "datetime_setting": {
+                            "format": "yyyy/mm/dd"
+                        },
+                        "single_select_setting": {
+                            "options": [
+                                {
+                                    "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                                    "name": "高优",
+                                    "color_index": 1,
+                                    "is_hidden": false
+                                }
+                            ]
+                        },
+                        "multi_select_setting": {
+                            "options": [
+                                {
+                                    "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                                    "name": "高优",
+                                    "color_index": 1,
+                                    "is_hidden": false
+                                }
+                            ]
+                        },
+                        "creator": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "creator"
+                        },
+                        "created_at": "1688196600000",
+                        "updated_at": "1688196600000",
+                        "text_setting": {}
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CustomFieldsResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -97,6 +350,9 @@ public class IFeishuV2TaskCustomFieldsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.CustomField);
+        Assert.NotEmpty(result.Data.CustomField.Name!);
+        Assert.NotNull(result.Data.CustomField.DatetimeSetting);
     }
 
     /// <summary>
@@ -105,14 +361,76 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_GetCustomFieldsPageListAsync_Result()
     {
-        string resultStr = "";
-        var result = JsonSerializer.Deserialize<FeishuApiPageListResult<CustomFieldsResult>>(resultStr, _jsonSerializerOptions);
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "guid": "34d4b29f-3d58-4bc5-b752-6be80fb687c8",
+                            "name": "优先级",
+                            "type": "number",
+                            "number_setting": {
+                                "format": "normal",
+                                "custom_symbol": "自定义符号",
+                                "custom_symbol_position": "left",
+                                "separator": "thousand",
+                                "decimal_count": 2
+                            },
+                            "member_setting": {
+                                "multi": true
+                            },
+                            "datetime_setting": {
+                                "format": "yyyy/mm/dd"
+                            },
+                            "single_select_setting": {
+                                "options": [
+                                    {
+                                        "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                                        "name": "高优",
+                                        "color_index": 1,
+                                        "is_hidden": false
+                                    }
+                                ]
+                            },
+                            "multi_select_setting": {
+                                "options": [
+                                    {
+                                        "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                                        "name": "高优",
+                                        "color_index": 1,
+                                        "is_hidden": false
+                                    }
+                                ]
+                            },
+                            "creator": {
+                                "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                                "type": "user",
+                                "role": "editor"
+                            },
+                            "created_at": "1688196600000",
+                            "updated_at": "1688196600000",
+                            "text_setting": {}
+                        }
+                    ],
+                    "page_token": "aWQ9NzEwMjMzMjMxMDE=",
+                    "has_more": false
+                }
+            }
+            """;
+        var result = JsonSerializer.Deserialize<FeishuApiPageListResult<CustomFieldInfo>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Items);
+        Assert.NotEmpty(result.Data.PageToken!);
+        Assert.NotNull(result.Data.Items[0].Guid);
+        Assert.NotEmpty(result.Data.Items[0].Name!);
+        Assert.NotNull(result.Data.Items[0].DatetimeSetting);
     }
 
     /// <summary>
@@ -121,11 +439,18 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_AddCustomFieldsByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "resource_type": "tasklist",
+              "resource_id": "0110a4bd-f24b-4a93-8c1a-1732b94f9593"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<CustomFieldsToResourceRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.ResourceType);
+        Assert.NotEmpty(requestBody.ResourceId);
     }
 
     /// <summary>
@@ -134,11 +459,18 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_AddCustomFieldsByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
+        Assert.NotNull(result.Data);
     }
 
     /// <summary>
@@ -147,11 +479,18 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_RemoveCustomFieldsByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "resource_type": "tasklist",
+              "resource_id": "0110a4bd-f24b-4a93-8c1a-1732b94f9593"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<CustomFieldsToResourceRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.ResourceType);
+        Assert.NotEmpty(requestBody.ResourceId);
     }
 
     /// <summary>
@@ -160,7 +499,13 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_RemoveCustomFieldsByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+            {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -173,11 +518,21 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_CreateCustomFieldsOptionsAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """                        
+            {
+              "name": "高优",
+              "color_index": 10,
+              "insert_before": "2bd905f8-ef38-408b-aa1f-2b2ad33b2913",
+              "insert_after": "b13adf3c-cad6-4e02-8929-550c112b5633",
+              "is_hidden": false
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<CreateCustomFieldsOptionsRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Name!);
+        Assert.NotEmpty(requestBody.InsertBefore!);
     }
 
     /// <summary>
@@ -186,7 +541,20 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_CreateCustomFieldsOptionsAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                   {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "option": {
+                        "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                        "name": "高优",
+                        "color_index": 1,
+                        "is_hidden": false
+                    }
+                }
+            }     
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CustomFieldsOptionsResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -194,6 +562,8 @@ public class IFeishuV2TaskCustomFieldsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Option);
+        Assert.NotEmpty(result.Data.Option.Name);
     }
 
     /// <summary>
@@ -202,11 +572,26 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_UpdateCustomFieldsOptionsAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "option": {
+                "name": "高优",
+                "color_index": 10,
+                "insert_before": "2bd905f8-ef38-408b-aa1f-2b2ad33b2913",
+                "insert_after": "b13adf3c-cad6-4e02-8929-550c112b5633",
+                "is_hidden": false
+              },
+              "update_fields": [
+                "name"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateCustomFieldsOptionsRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Option!.Name!);
+        Assert.NotEmpty(requestBody.Option.InsertBefore!);
     }
 
     /// <summary>
@@ -215,7 +600,20 @@ public class IFeishuV2TaskCustomFieldsTests
     [Fact]
     public void Test_UpdateCustomFieldsOptionsAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "option": {
+                        "guid": "4216f79b-3fda-4dc6-a0c4-a16022e47152",
+                        "name": "高优",
+                        "color_index": 1,
+                        "is_hidden": false
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CustomFieldsOptionsResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -223,5 +621,6 @@ public class IFeishuV2TaskCustomFieldsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.Option!.Guid!);
     }
 }
