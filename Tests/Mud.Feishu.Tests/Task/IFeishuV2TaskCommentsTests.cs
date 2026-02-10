@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.TaskComments;
 using System.Text.Json;
 using Xunit;
@@ -31,11 +30,20 @@ public class IFeishuV2TaskCommentsTests
     [Fact]
     public void Test_CreateCommentAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "content": "这是一条评论。",
+              "reply_to_comment_id": "6937231762296684564",
+              "resource_type": "task",
+              "resource_id": "ccb55625-95d2-2e80-655f-0e40bf67953f"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<CreateCommentRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Content);
+        Assert.NotEmpty(requestBody.ReplyToCommentId!);
     }
 
     /// <summary>
@@ -44,7 +52,28 @@ public class IFeishuV2TaskCommentsTests
     [Fact]
     public void Test_CreateCommentAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "comment": {
+                        "id": "7197020628442939411",
+                        "content": "这是一条评论",
+                        "creator": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "creator"
+                        },
+                        "reply_to_comment_id": "7166825117308174356",
+                        "created_at": "1675742789470",
+                        "updated_at": "1675742789470",
+                        "resource_type": "task",
+                        "resource_id": "ccb55625-95d2-2e80-655f-0e40bf67953f"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CommentOpreationResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -52,6 +81,9 @@ public class IFeishuV2TaskCommentsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Comment);
+        Assert.NotEmpty(result.Data.Comment.ReplyToCommentId!);
+        Assert.NotEmpty(result.Data.Comment.ResourceId!);
     }
 
     /// <summary>
@@ -60,7 +92,28 @@ public class IFeishuV2TaskCommentsTests
     [Fact]
     public void Test_GetCommentByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "comment": {
+                        "id": "7197020628442939411",
+                        "content": "这是一条评论",
+                        "creator": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "creator"
+                        },
+                        "reply_to_comment_id": "7166825117308174356",
+                        "created_at": "1675742789470",
+                        "updated_at": "1675742789470",
+                        "resource_type": "task",
+                        "resource_id": "ccb55625-95d2-2e80-655f-0e40bf67953f"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CommentOpreationResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -68,6 +121,9 @@ public class IFeishuV2TaskCommentsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Comment);
+        Assert.NotEmpty(result.Data.Comment.Content!);
+        Assert.NotEmpty(result.Data.Comment.ResourceType!);
     }
 
     /// <summary>
@@ -76,11 +132,23 @@ public class IFeishuV2TaskCommentsTests
     [Fact]
     public void Test_UpdateCommentByIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "comment": {
+                "content": "举杯邀明月，对影成三人"
+              },
+              "update_fields": [
+                "content"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateCommentRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotNull(requestBody.Comment);
+        Assert.NotNull(requestBody.UpdateFields);
+        Assert.NotEmpty(requestBody.Comment.Content!);
     }
 
     /// <summary>
@@ -89,7 +157,28 @@ public class IFeishuV2TaskCommentsTests
     [Fact]
     public void Test_UpdateCommentByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "comment": {
+                        "id": "7197020628442939411",
+                        "content": "这是一条评论",
+                        "creator": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "creator"
+                        },
+                        "reply_to_comment_id": "7166825117308174356",
+                        "created_at": "1675742789470",
+                        "updated_at": "1675742789470",
+                        "resource_type": "task",
+                        "resource_id": "ccb55625-95d2-2e80-655f-0e40bf67953f"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<CommentOpreationResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -97,6 +186,9 @@ public class IFeishuV2TaskCommentsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Comment);
+        Assert.NotEmpty(result.Data.Comment.Id!);
+        Assert.NotEmpty(result.Data.Comment.ReplyToCommentId!);
     }
 
     /// <summary>
@@ -105,11 +197,18 @@ public class IFeishuV2TaskCommentsTests
     [Fact]
     public void Test_DeleteCommentByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
+        Assert.NotNull(result.Data);
     }
 
     /// <summary>
@@ -118,7 +217,32 @@ public class IFeishuV2TaskCommentsTests
     [Fact]
     public void Test_GetCommentPageListAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "7197020628442939411",
+                            "content": "这是一条评论",
+                            "creator": {
+                                "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                                "type": "user",
+                                "role": "creator"
+                            },
+                            "reply_to_comment_id": "7166825117308174356",
+                            "created_at": "1675742789470",
+                            "updated_at": "1675742789470",
+                            "resource_type": "task",
+                            "resource_id": "ccb55625-95d2-2e80-655f-0e40bf67953f"
+                        }
+                    ],
+                    "page_token": "aWQ9NzEwMjMzMjMxMDE=",
+                    "has_more": true
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiPageListResult<TaskCommentInfo>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -126,5 +250,7 @@ public class IFeishuV2TaskCommentsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Items);
+        Assert.NotEmpty(result.Data.PageToken!);
     }
 }
