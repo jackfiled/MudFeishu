@@ -66,6 +66,8 @@ public class IFeishuV2TaskAttachmentsTests
         // 验证必需字段非空
         Assert.NotNull(result.Data);
         Assert.NotNull(result.Data.Items);
+        Assert.NotEmpty(result.Data.Items[0].Guid!);
+        Assert.NotEmpty(result.Data.Items[0].Name!);
     }
 
     /// <summary>

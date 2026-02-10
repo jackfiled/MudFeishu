@@ -251,6 +251,8 @@ public class IFeishuV2TaskCommentsTests
         // 验证必需字段非空
         Assert.NotNull(result.Data);
         Assert.NotNull(result.Data.Items);
+        Assert.NotEmpty(result.Data.Items[0].Content!);
+        Assert.NotEmpty(result.Data.Items[0].ResourceType!);
         Assert.NotEmpty(result.Data.PageToken!);
     }
 }
