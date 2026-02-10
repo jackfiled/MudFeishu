@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.TaskSections;
 using System.Text.Json;
 using Xunit;
@@ -31,11 +30,21 @@ public class IFeishuV2TaskSectionsTests
     [Fact]
     public void Test_CreateTaskSectionsAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "name": "已经审核过的任务",
+              "resource_type": "tasklist",
+              "resource_id": "cc371766-6584-cf50-a222-c22cd9055004",
+              "insert_before": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2",
+              "insert_after": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<CreateTaskSectionsRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Name);
+        Assert.NotEmpty(requestBody.InsertBefore!);
     }
 
     /// <summary>
@@ -44,7 +53,31 @@ public class IFeishuV2TaskSectionsTests
     [Fact]
     public void Test_CreateTaskSectionsAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "section": {
+                        "guid": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2",
+                        "name": "已经评审过的任务",
+                        "resource_type": "tasklist",
+                        "is_default": true,
+                        "creator": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "creator"
+                        },
+                        "tasklist": {
+                            "guid": "cc371766-6584-cf50-a222-c22cd9055004",
+                            "name": "活动分工任务列表"
+                        },
+                        "created_at": "1675742789470",
+                        "updated_at": "1675742789470"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<TaskSectionsOperationResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -52,6 +85,9 @@ public class IFeishuV2TaskSectionsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Section);
+        Assert.NotEmpty(result.Data.Section.Name!);
+        Assert.NotNull(result.Data.Section.Tasklist);
     }
 
     /// <summary>
@@ -60,11 +96,25 @@ public class IFeishuV2TaskSectionsTests
     [Fact]
     public void Test_UpdateSectionsAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "section": {
+                "name": "已经审核过的任务",
+                "insert_before": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2",
+                "insert_after": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2"
+              },
+              "update_fields": [
+                "name"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UpdateTaskSectionsRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotNull(requestBody.Section);
+        Assert.NotEmpty(requestBody.Section.Name!);
+        Assert.NotNull(requestBody.UpdateFields);
     }
 
     /// <summary>
@@ -73,7 +123,32 @@ public class IFeishuV2TaskSectionsTests
     [Fact]
     public void Test_UpdateSectionsAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "section": {
+                        "guid": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2",
+                        "name": "已经评审过的任务",
+                        "resource_type": "tasklist",
+                        "is_default": true,
+                        "creator": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "editor",
+                            "name": "张明德（明德）"
+                        },
+                        "tasklist": {
+                            "guid": "cc371766-6584-cf50-a222-c22cd9055004",
+                            "name": "活动分工任务列表"
+                        },
+                        "created_at": "1675742789470",
+                        "updated_at": "1675742789470"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<UpdateTaskSectionsResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -81,6 +156,9 @@ public class IFeishuV2TaskSectionsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Section);
+        Assert.NotEmpty(result.Data.Section.Name!);
+        Assert.NotNull(result.Data.Section.Tasklist);
     }
 
     /// <summary>
@@ -89,7 +167,31 @@ public class IFeishuV2TaskSectionsTests
     [Fact]
     public void Test_GetTaskSectionsByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "section": {
+                        "guid": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2",
+                        "name": "已经评审过的任务",
+                        "resource_type": "tasklist",
+                        "is_default": true,
+                        "creator": {
+                            "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                            "type": "user",
+                            "role": "creator"
+                        },
+                        "tasklist": {
+                            "guid": "cc371766-6584-cf50-a222-c22cd9055004",
+                            "name": "活动分工任务列表"
+                        },
+                        "created_at": "1675742789470",
+                        "updated_at": "1675742789470"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<TaskSectionsOperationResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -97,6 +199,9 @@ public class IFeishuV2TaskSectionsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Section);
+        Assert.NotEmpty(result.Data.Section.Name!);
+        Assert.NotNull(result.Data.Section.Tasklist);
     }
 
     /// <summary>
@@ -105,7 +210,13 @@ public class IFeishuV2TaskSectionsTests
     [Fact]
     public void Test_DeleteTaskSectionsByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -118,7 +229,23 @@ public class IFeishuV2TaskSectionsTests
     [Fact]
     public void Test_GetTaskSectionsPageListAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "guid": "e6e37dcc-f75a-5936-f589-12fb4b5c80c2",
+                            "name": "审核过的任务",
+                            "is_default": true
+                        }
+                    ],
+                    "page_token": "aWQ9NzEwMjMzMjMxMDE=",
+                    "has_more": true
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiPageListResult<SectionSummaryInfo>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -126,6 +253,10 @@ public class IFeishuV2TaskSectionsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Items);
+        Assert.NotEmpty(result.Data.Items[0].Guid!);
+        Assert.NotEmpty(result.Data.Items[0].Name!);
+        Assert.NotEmpty(result.Data.PageToken!);
     }
 
     /// <summary>
@@ -134,7 +265,39 @@ public class IFeishuV2TaskSectionsTests
     [Fact]
     public void Test_GetTaskSectionsPageListByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "guid": "e297ddff-06ca-4166-b917-4ce57cd3a7a0",
+                            "summary": "年终总结",
+                            "completed_at": "1675742789470",
+                            "start": {
+                                "timestamp": "1675454764000",
+                                "is_all_day": true
+                            },
+                            "due": {
+                                "timestamp": "1675454764000",
+                                "is_all_day": true
+                            },
+                            "members": [
+                                {
+                                    "id": "ou_2cefb2f014f8d0c6c2d2eb7bafb0e54f",
+                                    "type": "user",
+                                    "role": "editor"
+                                }
+                            ],
+                            "subtask_count": 1
+                        }
+                    ],
+                    "page_token": "aWQ9NzEwMjMzMjMxMDE=",
+                    "has_more": true
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiPageListResult<TaskSummary>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -142,5 +305,9 @@ public class IFeishuV2TaskSectionsTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Items);
+        Assert.NotEmpty(result.Data.Items[0].Guid!);
+        Assert.NotEmpty(result.Data.Items[0].Summary!);
+        Assert.NotEmpty(result.Data.PageToken!);
     }
 }
