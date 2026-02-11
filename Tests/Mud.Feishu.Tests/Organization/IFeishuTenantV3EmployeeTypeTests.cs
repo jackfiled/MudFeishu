@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.EmployeeType;
 using System.Text.Json;
 using Xunit;
@@ -31,11 +30,26 @@ public class IFeishuTenantV3EmployeeTypeTests
     [Fact]
     public void Test_CreateEmployeeTypeAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "content": "专家",
+              "enum_type": 2,
+              "enum_status": 1,
+              "i18n_content": [
+                {
+                  "locale": "zh_cn",
+                  "value": "专家（中文）"
+                }
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<EmployeeTypeEnumRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Content!);
+        Assert.Equal(requestBody.EnumType, 2);
+        Assert.NotNull(requestBody.I18nContent);
     }
 
     /// <summary>
@@ -44,7 +58,27 @@ public class IFeishuTenantV3EmployeeTypeTests
     [Fact]
     public void Test_CreateEmployeeTypeAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "employee_type_enum": {
+                        "enum_id": "exGeIjow7zIqWMy+ONkFxA==",
+                        "enum_value": "2",
+                        "content": "专家",
+                        "enum_type": 2,
+                        "enum_status": 1,
+                        "i18n_content": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "专家（中文）"
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<EmployeeTypeEnumResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -52,6 +86,9 @@ public class IFeishuTenantV3EmployeeTypeTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.EmployeeTypeEnum);
+        Assert.NotEmpty(result.Data.EmployeeTypeEnum.Content!);
+        Assert.NotNull(result.Data.EmployeeTypeEnum.I18nContent);
     }
 
     /// <summary>
@@ -60,11 +97,26 @@ public class IFeishuTenantV3EmployeeTypeTests
     [Fact]
     public void Test_UpdateEmployeeTypeAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "content": "专家",
+              "enum_type": 2,
+              "enum_status": 1,
+              "i18n_content": [
+                {
+                  "locale": "zh_cn",
+                  "value": "专家（中文）"
+                }
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<EmployeeTypeEnumRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Content!);
+        Assert.Equal(requestBody.EnumType, 2);
+        Assert.NotNull(requestBody.I18nContent);
     }
 
     /// <summary>
@@ -73,7 +125,27 @@ public class IFeishuTenantV3EmployeeTypeTests
     [Fact]
     public void Test_UpdateEmployeeTypeAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "employee_type_enum": {
+                        "enum_id": "exGeIjow7zIqWMy+ONkFxA==",
+                        "enum_value": "2",
+                        "content": "专家",
+                        "enum_type": 2,
+                        "enum_status": 1,
+                        "i18n_content": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "专家（中文）"
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<EmployeeTypeEnumResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -81,6 +153,9 @@ public class IFeishuTenantV3EmployeeTypeTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.EmployeeTypeEnum);
+        Assert.NotEmpty(result.Data.EmployeeTypeEnum.Content!);
+        Assert.NotNull(result.Data.EmployeeTypeEnum.I18nContent);
     }
 
     /// <summary>
@@ -89,11 +164,40 @@ public class IFeishuTenantV3EmployeeTypeTests
     [Fact]
     public void Test_GetEmployeeTypesAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "enum_id": "exGeIjow7zIqWMy+ONkFxA==",
+                            "enum_value": "2",
+                            "content": "专家",
+                            "enum_type": 2,
+                            "enum_status": 1,
+                            "i18n_content": [
+                                {
+                                    "locale": "zh_cn",
+                                    "value": "专家（中文）"
+                                }
+                            ]
+                        }
+                    ],
+                    "has_more": true,
+                    "page_token": "3"
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiPageListResult<EmployeeTypeEnum>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
+        Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.PageToken);
+        Assert.NotNull(result.Data.Items);
+        Assert.NotNull(result.Data.Items[0].I18nContent);
+        Assert.NotEmpty(result.Data.Items[0].Content!);
     }
 
     /// <summary>
@@ -102,7 +206,13 @@ public class IFeishuTenantV3EmployeeTypeTests
     [Fact]
     public void Test_DeleteEmployeeTypeByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
