@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.Roles;
 using System.Text.Json;
 using Xunit;
@@ -31,11 +30,16 @@ public class IFeishuTenantV3RoleTests
     [Fact]
     public void Test_CreateRoleAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "role_name": "考勤管理员"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<RoleRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.RoleName!);
     }
 
     /// <summary>
@@ -44,7 +48,15 @@ public class IFeishuTenantV3RoleTests
     [Fact]
     public void Test_CreateRoleAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "role_id": "7vrj3vk70xk7v5r"
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<RoleCreateResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -61,11 +73,16 @@ public class IFeishuTenantV3RoleTests
     [Fact]
     public void Test_UpdateRoleAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "role_name": "考勤管理员"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<RoleRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.RoleName!);
     }
 
     /// <summary>
@@ -74,7 +91,13 @@ public class IFeishuTenantV3RoleTests
     [Fact]
     public void Test_UpdateRoleAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -87,7 +110,13 @@ public class IFeishuTenantV3RoleTests
     [Fact]
     public void Test_DeleteRoleByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空

@@ -82,7 +82,7 @@ public interface IFeishuTenantV3RoleMember : IFeishuAppContextSwitcher
     /// <param name="department_id_type">此次调用中的部门 ID 类型，默认值：open_department_id。</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     [Get("/open-apis/contact/v3/functional_roles/{role_id}/members")]
-    Task<FeishuApiResult<RoleMemberScopeResult>?> GetMembersAsync(
+    Task<FeishuApiResult<RoleMemberScopeInfo>?> GetMembersAsync(
               [Path] string role_id,
               [Query("page_size")] int? page_size = Consts.PageSize,
               [Query("page_token")] string? page_token = null,

@@ -95,7 +95,7 @@ public interface IFeishuTenantV3Unit : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Get("/open-apis/contact/v3/unit/{unit_id}")]
-    Task<FeishuApiResult<UnitInfo>?> GetUnitInfoAsync(
+    Task<FeishuApiResult<UnitInfoResult>?> GetUnitInfoAsync(
         [Path] string unit_id,
         CancellationToken cancellationToken = default);
 

@@ -30,11 +30,18 @@ public class IFeishuTenantV3RoleMemberTests
     [Fact]
     public void Test_BatchAddMemberAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "members": [
+                "ou-12832197382"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<RoleMembersRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Members);
     }
 
     /// <summary>
@@ -43,7 +50,20 @@ public class IFeishuTenantV3RoleMemberTests
     [Fact]
     public void Test_BatchAddMemberAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "results": [
+                        {
+                            "user_id": "od-4e6ac4d14bcd5071a37a39de902c7141",
+                            "reason": 1
+                        }
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<RoleAssignmentResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -51,6 +71,8 @@ public class IFeishuTenantV3RoleMemberTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.Results);
+        Assert.NotEmpty(result.Data.Results[0].UserId);
     }
 
     /// <summary>
@@ -59,11 +81,22 @@ public class IFeishuTenantV3RoleMemberTests
     [Fact]
     public void Test_BatchAddMembersSopesAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "members": [
+                "ou-12832197382"
+              ],
+              "departments": [
+                "ou-12343455"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<RoleMembersScopeRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Departments);
+        Assert.NotEmpty(requestBody.Members);
     }
 
     /// <summary>
@@ -72,7 +105,20 @@ public class IFeishuTenantV3RoleMemberTests
     [Fact]
     public void Test_BatchAddMembersSopesAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "results": [
+                        {
+                            "user_id": "od-4e6ac4d14bcd5071a37a39de902c7141",
+                            "reason": 1
+                        }
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<RoleAssignmentResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -80,6 +126,8 @@ public class IFeishuTenantV3RoleMemberTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.Results);
+        Assert.NotEmpty(result.Data.Results[0].UserId);
     }
 
     /// <summary>
@@ -88,7 +136,21 @@ public class IFeishuTenantV3RoleMemberTests
     [Fact]
     public void Test_GetMembersSopesAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "member": {
+                        "user_id": "od-4e6ac4d14bcd5071a37a39de902c7141",
+                        "scope_type": "All",
+                        "department_ids": [
+                            "od-4e6ac4d14bcd5071a37a39de902c7141"
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<RoleMemberScopeResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -96,6 +158,8 @@ public class IFeishuTenantV3RoleMemberTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Member);
+        Assert.NotEmpty(result.Data.Member.UserId);
     }
 
     /// <summary>
@@ -104,14 +168,35 @@ public class IFeishuTenantV3RoleMemberTests
     [Fact]
     public void Test_GetMembersAsync_Result()
     {
-        string resultStr = "";
-        var result = JsonSerializer.Deserialize<FeishuApiResult<RoleMemberScopeResult>>(resultStr, _jsonSerializerOptions);
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "members": [
+                        {
+                            "user_id": "od-4e6ac4d14bcd5071a37a39de902c7141",
+                            "scope_type": "All",
+                            "department_ids": [
+                                "od-4e6ac4d14bcd5071a37a39de902c7141"
+                            ]
+                        }
+                    ],
+                    "page_token": "2132323",
+                    "has_more": false
+                }
+            }
+            """;
+        var result = JsonSerializer.Deserialize<FeishuApiResult<RoleMemberScopeListResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Members);
+        Assert.NotEmpty(result.Data.Members[0].UserId);
+        Assert.NotEmpty(result.Data.PageToken!);
     }
 
     /// <summary>
@@ -120,11 +205,19 @@ public class IFeishuTenantV3RoleMemberTests
     [Fact]
     public void Test_DeleteMembersByRoleIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "members": [
+                "ou-12832197382"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<RoleMembersRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Members);
+        Assert.NotEmpty(requestBody.Members[0]);
     }
 
     /// <summary>
@@ -133,7 +226,20 @@ public class IFeishuTenantV3RoleMemberTests
     [Fact]
     public void Test_DeleteMembersByRoleIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "result": [
+                        {
+                            "user_id": "od-4e6ac4d14bcd5071a37a39de902c7141",
+                            "reason": 1
+                        }
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<RoleAssignmentResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空

@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.UserGroupMember;
 using System.Text.Json;
 using Xunit;
