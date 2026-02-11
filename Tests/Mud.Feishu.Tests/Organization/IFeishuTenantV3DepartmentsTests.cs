@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.Departments;
 using System.Text.Json;
 using Xunit;
@@ -31,14 +30,46 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_CreateDepartmentAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "name": "DemoName",
+              "i18n_name": {
+                "zh_cn": "Demo名称",
+                "ja_jp": "デモ名",
+                "en_us": "Demo Name"
+              },
+              "parent_department_id": "D067",
+              "department_id": "D096",
+              "leader_user_id": "ou_7dab8a3d3cdcc9da365777c7ad535d62",
+              "order": "100",
+              "unit_ids": [
+                "custom_unit_id"
+              ],
+              "create_group_chat": false,
+              "leaders": [
+                {
+                  "leaderType": 1,
+                  "leaderID": "ou_7dab8a3d3cdcc9da365777c7ad535d62"
+                }
+              ],
+              "group_chat_employee_types": [
+                1
+              ],
+              "department_hrbps": [
+                "ou_7dab8a3d3cdcc9da365777c7ad535d62"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<DepartmentCreateRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
 
         // 验证必需字段非空
-        Assert.NotNull(requestBody.Name);
+        Assert.NotEmpty(requestBody.Name);
+        Assert.NotNull(requestBody.DepartmentHrbps);
+        Assert.NotNull(requestBody.Leaders);
+        Assert.NotNull(requestBody.I18nName);
     }
 
     /// <summary>
@@ -47,7 +78,45 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_CreateDepartmentAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code":0,
+                "msg":"success",
+                "data":{
+                    "department":{
+                        "name":"DemoName",
+                        "i18n_name":{
+                            "zh_cn":"Demo名称",
+                            "ja_jp":"デモ名",
+                            "en_us":"Demo Name"
+                        },
+                        "parent_department_id":"D067",
+                        "department_id":"D096",
+                        "open_department_id":"od-4e6ac4d14bcd5071a37a39de902c7141",
+                        "leader_user_id":"ou_7dab8a3d3cdcc9da365777c7ad535d62",
+                        "chat_id":"oc_5ad11d72b830411d72b836c20",
+                        "order":"100",
+                        "unit_ids":[
+                            "custom_unit_id"
+                        ],
+                        "member_count":100,
+                        "status":{
+                            "is_deleted":false
+                        },
+                        "leaders":[
+                            {
+                                "leaderID":"ou_357368f98775f04bea02afc6b1d33478",
+                                "leaderType":1
+                            }
+                        ],
+                        "department_hrbps":[
+                            "ou_7dab8a3d3cdcc9da365777c7ad535d62",
+                            "ou_7dab8a3d3cdcc9da365777c7ad535d63"
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<DepartmentCreateUpdateResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -56,6 +125,9 @@ public class IFeishuTenantV3DepartmentsTests
         // 验证必需字段非空
         Assert.NotNull(result.Data);
         Assert.NotNull(result.Data.Department);
+        Assert.NotEmpty(result.Data.Department.Name);
+        Assert.NotNull(result.Data.Department.I18nName);
+        Assert.NotNull(result.Data.Department.DepartmentHrbps);
     }
 
     /// <summary>
@@ -64,11 +136,39 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_UpdatePartDepartmentAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "name": "DemoName",
+              "i18n_name": {
+                "zh_cn": "Demo名称",
+                "ja_jp": "デモ名",
+                "en_us": "Demo Name"
+              },
+              "parent_department_id": "D067",
+              "leader_user_id": "ou_7dab8a3d3cdcc9da365777c7ad535d62",
+              "order": "100",
+              "create_group_chat": false,
+              "leaders": [
+                {
+                  "leaderType": 1,
+                  "leaderID": "ou_7dab8a3d3cdcc9da365777c7ad535d62"
+                }
+              ],
+              "group_chat_employee_types": [
+                1
+              ],
+              "department_hrbps": [
+                "ou_7dab8a3d3cdcc9da365777c7ad535d62"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<DepartmentPartUpdateRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Name);
+        Assert.NotNull(requestBody.I18nName);
+        Assert.NotNull(requestBody.Leaders);
     }
 
     /// <summary>
@@ -77,7 +177,45 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_UpdatePartDepartmentAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code":0,
+                "msg":"success",
+                "data":{
+                    "department":{
+                        "name":"DemoName",
+                        "i18n_name":{
+                            "zh_cn":"Demo名称",
+                            "ja_jp":"デモ名",
+                            "en_us":"Demo Name"
+                        },
+                        "parent_department_id":"D067",
+                        "department_id":"D096",
+                        "open_department_id":"od-4e6ac4d14bcd5071a37a39de902c7141",
+                        "leader_user_id":"ou_7dab8a3d3cdcc9da365777c7ad535d62",
+                        "chat_id":"oc_5ad11d72b830411d72b836c20",
+                        "order":"100",
+                        "unit_ids":[
+                            "custom_unit_id"
+                        ],
+                        "member_count":100,
+                        "status":{
+                            "is_deleted":false
+                        },
+                        "leaders":[
+                            {
+                                "leaderID":"ou_357368f98775f04bea02afc6b1d33478",
+                                "leaderType":1
+                            }
+                        ],
+                        "department_hrbps":[
+                            "ou_7dab8a3d3cdcc9da365777c7ad535d62",
+                            "ou_7dab8a3d3cdcc9da365777c7ad535d63"
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<DepartmentCreateUpdateResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -86,6 +224,9 @@ public class IFeishuTenantV3DepartmentsTests
         // 验证必需字段非空
         Assert.NotNull(result.Data);
         Assert.NotNull(result.Data.Department);
+        Assert.NotEmpty(result.Data.Department.Name);
+        Assert.NotNull(result.Data.Department.I18nName);
+        Assert.NotNull(result.Data.Department.DepartmentHrbps);
     }
 
     /// <summary>
@@ -94,11 +235,36 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_UpdateDepartmentAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "name": "DemoName",
+              "i18n_name": {
+                "zh_cn": "Demo名称",
+                "ja_jp": "デモ名",
+                "en_us": "Demo Name"
+              },
+              "parent_department_id": "D067",
+              "leader_user_id": "ou_7dab8a3d3cdcc9da365777c7ad535d62",
+              "order": "100",
+              "create_group_chat": false,
+              "leaders": [
+                {
+                  "leaderType": 1,
+                  "leaderID": "ou_7dab8a3d3cdcc9da365777c7ad535d62"
+                }
+              ],
+              "group_chat_employee_types": [
+                1
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<DepartmentUpdateRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Name);
+        Assert.NotNull(requestBody.I18nName);
+        Assert.NotNull(requestBody.Leaders);
     }
 
     /// <summary>
@@ -107,7 +273,41 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_UpdateDepartmentAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "department": {
+                        "name": "DemoName",
+                        "i18n_name": {
+                            "zh_cn": "Demo名称",
+                            "ja_jp": "デモ名",
+                            "en_us": "Demo Name"
+                        },
+                        "parent_department_id": "D067",
+                        "department_id": "D096",
+                        "open_department_id": "od-4e6ac4d14bcd5071a37a39de902c7141",
+                        "leader_user_id": "ou_7dab8a3d3cdcc9da365777c7ad535d62",
+                        "chat_id": "oc_5ad11d72b830411d72b836c20",
+                        "order": "100",
+                        "unit_ids": [
+                            "custom_unit_id"
+                        ],
+                        "member_count": 100,
+                        "status": {
+                            "is_deleted": false
+                        },
+                        "leaders": [
+                            {
+                                "leaderID": "ou_357368f98775f04bea02afc6b1d33478",
+                                "leaderType": 1
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<DepartmentUpdateResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -116,6 +316,9 @@ public class IFeishuTenantV3DepartmentsTests
         // 验证必需字段非空
         Assert.NotNull(result.Data);
         Assert.NotNull(result.Data.Department);
+        Assert.NotEmpty(result.Data.Department.Name);
+        Assert.NotNull(result.Data.Department.I18nName);
+        Assert.NotNull(result.Data.Department.Leaders);
     }
 
     /// <summary>
@@ -124,11 +327,16 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_UpdateDepartmentIdAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "new_department_id": "NewDevDepartID"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<DepartMentUpdateIdRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.NewDepartmentId!);
     }
 
     /// <summary>
@@ -137,7 +345,13 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_UpdateDepartmentIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -150,11 +364,16 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_UnbindDepartmentChatAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "department_id": "D096"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<DepartmentRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.DepartmentId);
     }
 
     /// <summary>
@@ -163,7 +382,13 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_UnbindDepartmentChatAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -176,10 +401,17 @@ public class IFeishuTenantV3DepartmentsTests
     [Fact]
     public void Test_DeleteDepartmentByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
+        Assert.NotNull(result.Data);
     }
 }
