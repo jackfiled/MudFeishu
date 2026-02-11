@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.JobLevel;
 using System.Text.Json;
 using Xunit;
@@ -31,11 +30,33 @@ public class IFeishuTenantV3JobLevelTests
     [Fact]
     public void Test_CreateJobLevelAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "name": "高级专家",
+              "description": "公司内部中高级职称，有一定专业技术能力的人员",
+              "order": 200,
+              "status": true,
+              "i18n_name": [
+                {
+                  "locale": "zh_cn",
+                  "value": "多语言内容"
+                }
+              ],
+              "i18n_description": [
+                {
+                  "locale": "zh_cn",
+                  "value": "多语言内容"
+                }
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<JobLevelCreateUpdateRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Name!);
+        Assert.NotNull(requestBody.I18nName);
+        Assert.NotNull(requestBody.I18nDescription);
     }
 
     /// <summary>
@@ -44,7 +65,33 @@ public class IFeishuTenantV3JobLevelTests
     [Fact]
     public void Test_CreateJobLevelAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "job_level": {
+                        "name": "高级专家",
+                        "description": "公司内部中高级职称，有一定专业技术能力的人员",
+                        "order": 200,
+                        "status": true,
+                        "job_level_id": "mga5oa8ayjlp9rb",
+                        "i18n_name": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ],
+                        "i18n_description": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<JobLevelResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -52,6 +99,10 @@ public class IFeishuTenantV3JobLevelTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.JobLevel);
+        Assert.NotEmpty(result.Data.JobLevel.Name!);
+        Assert.NotNull(result.Data.JobLevel.I18nName);
+        Assert.NotNull(result.Data.JobLevel.I18nDescription);
     }
 
     /// <summary>
@@ -60,11 +111,33 @@ public class IFeishuTenantV3JobLevelTests
     [Fact]
     public void Test_UpdateJobLevelAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "name": "高级专家",
+              "description": "公司内部中高级职称，有一定专业技术能力的人员",
+              "order": 200,
+              "status": true,
+              "i18n_name": [
+                {
+                  "locale": "zh_cn",
+                  "value": "多语言内容"
+                }
+              ],
+              "i18n_description": [
+                {
+                  "locale": "zh_cn",
+                  "value": "多语言内容"
+                }
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<JobLevelCreateUpdateRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Name!);
+        Assert.NotNull(requestBody.I18nName);
+        Assert.NotNull(requestBody.I18nDescription);
     }
 
     /// <summary>
@@ -73,14 +146,45 @@ public class IFeishuTenantV3JobLevelTests
     [Fact]
     public void Test_UpdateJobLevelAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "job_level": {
+                        "name": "高级专家",
+                        "description": "公司内部中高级职称，有一定专业技术能力的人员",
+                        "order": 200,
+                        "status": true,
+                        "job_level_id": "mga5oa8ayjlp9rb",
+                        "i18n_name": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ],
+                        "i18n_description": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<JobLevelResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
 
         // 验证必需字段非空
+        // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.JobLevel);
+        Assert.NotEmpty(result.Data.JobLevel.Name!);
+        Assert.NotNull(result.Data.JobLevel.I18nName);
+        Assert.NotNull(result.Data.JobLevel.I18nDescription);
     }
 
     /// <summary>
@@ -89,7 +193,33 @@ public class IFeishuTenantV3JobLevelTests
     [Fact]
     public void Test_GetJobLevelByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "job_level": {
+                        "name": "高级专家",
+                        "description": "公司内部中高级职称，有一定专业技术能力的人员",
+                        "order": 200,
+                        "status": true,
+                        "job_level_id": "mga5oa8ayjlp9rb",
+                        "i18n_name": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ],
+                        "i18n_description": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ]
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<JobLevelResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -97,6 +227,10 @@ public class IFeishuTenantV3JobLevelTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.JobLevel);
+        Assert.NotEmpty(result.Data.JobLevel.Name!);
+        Assert.NotNull(result.Data.JobLevel.I18nName);
+        Assert.NotNull(result.Data.JobLevel.I18nDescription);
     }
 
     /// <summary>
@@ -105,11 +239,47 @@ public class IFeishuTenantV3JobLevelTests
     [Fact]
     public void Test_GetJobLevelListAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "name": "高级专家",
+                            "description": "公司内部中高级职称，有一定专业技术能力的人员",
+                            "order": 200,
+                            "status": true,
+                            "job_level_id": "mga5oa8ayjlp9rb",
+                            "i18n_name": [
+                                {
+                                    "locale": "zh_cn",
+                                    "value": "多语言内容"
+                                }
+                            ],
+                            "i18n_description": [
+                                {
+                                    "locale": "zh_cn",
+                                    "value": "多语言内容"
+                                }
+                            ]
+                        }
+                    ],
+                    "page_token": "3",
+                    "has_more": true
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiPageListResult<JobLevelInfo>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(result);
+        Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.Items);
+        Assert.NotEmpty(result.Data.PageToken!);
+        Assert.NotEmpty(result.Data.Items[0].Name!);
+        Assert.NotNull(result.Data.Items[0].I18nName);
+        Assert.NotNull(result.Data.Items[0].I18nDescription);
     }
 
     /// <summary>
@@ -118,7 +288,13 @@ public class IFeishuTenantV3JobLevelTests
     [Fact]
     public void Test_DeleteJobLevelByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空

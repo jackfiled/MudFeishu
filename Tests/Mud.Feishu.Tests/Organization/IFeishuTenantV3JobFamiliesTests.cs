@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.JobFamilies;
 using System.Text.Json;
 using Xunit;
@@ -31,11 +30,33 @@ public class IFeishuTenantV3JobFamiliesTests
     [Fact]
     public void Test_CreateJobFamilyAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "name": "产品",
+              "description": "负责产品策略制定的相关工作",
+              "parent_job_family_id": "mga5oa8ayjlpzjq",
+              "status": true,
+              "i18n_name": [
+                {
+                  "locale": "zh_cn",
+                  "value": "多语言内容"
+                }
+              ],
+              "i18n_description": [
+                {
+                  "locale": "zh_cn",
+                  "value": "多语言内容"
+                }
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<JobFamilyCreateUpdateRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Name!);
+        Assert.NotEmpty(requestBody.I18nName);
+        Assert.Equal(requestBody.Status, true);
     }
 
     /// <summary>
@@ -44,7 +65,33 @@ public class IFeishuTenantV3JobFamiliesTests
     [Fact]
     public void Test_CreateJobFamilyAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "job_family": {
+                        "name": "产品",
+                        "description": "负责产品策略制定的相关工作",
+                        "parent_job_family_id": "mga5oa8ayjlpzjq",
+                        "status": true,
+                        "i18n_name": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ],
+                        "i18n_description": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ],
+                        "job_family_id": "mga5oa8ayjlpkzy"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<JobFamilyResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -52,6 +99,9 @@ public class IFeishuTenantV3JobFamiliesTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.JobFamily!.I18nName);
+        Assert.NotEmpty(result.Data.JobFamily.Name!);
+        Assert.NotEmpty(result.Data.JobFamily.Description!);
     }
 
     /// <summary>
@@ -60,11 +110,33 @@ public class IFeishuTenantV3JobFamiliesTests
     [Fact]
     public void Test_UpdateJobFamilyAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "name": "产品",
+              "description": "负责产品策略制定的相关工作",
+              "parent_job_family_id": "mga5oa8ayjlpzjq",
+              "status": true,
+              "i18n_name": [
+                {
+                  "locale": "zh_cn",
+                  "value": "多语言内容"
+                }
+              ],
+              "i18n_description": [
+                {
+                  "locale": "zh_cn",
+                  "value": "多语言内容"
+                }
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<JobFamilyCreateUpdateRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Name!);
+        Assert.NotEmpty(requestBody.I18nName);
+        Assert.Equal(requestBody.Status, true);
     }
 
     /// <summary>
@@ -73,7 +145,33 @@ public class IFeishuTenantV3JobFamiliesTests
     [Fact]
     public void Test_UpdateJobFamilyAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "job_family": {
+                        "name": "产品",
+                        "description": "负责产品策略制定的相关工作",
+                        "parent_job_family_id": "mga5oa8ayjlpzjq",
+                        "status": true,
+                        "i18n_name": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ],
+                        "i18n_description": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ],
+                        "job_family_id": "mga5oa8ayjlpkzy"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<JobFamilyResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -81,6 +179,9 @@ public class IFeishuTenantV3JobFamiliesTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.JobFamily!.I18nName);
+        Assert.NotEmpty(result.Data.JobFamily.Name!);
+        Assert.NotEmpty(result.Data.JobFamily.Description!);
     }
 
     /// <summary>
@@ -89,7 +190,33 @@ public class IFeishuTenantV3JobFamiliesTests
     [Fact]
     public void Test_GetJobFamilyByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "job_family": {
+                        "name": "产品",
+                        "description": "负责产品策略制定的相关工作",
+                        "parent_job_family_id": "mga5oa8ayjlpzjq",
+                        "status": true,
+                        "i18n_name": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ],
+                        "i18n_description": [
+                            {
+                                "locale": "zh_cn",
+                                "value": "多语言内容"
+                            }
+                        ],
+                        "job_family_id": "mga5oa8ayjlpkzy"
+                    }
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<JobFamilyResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -97,6 +224,9 @@ public class IFeishuTenantV3JobFamiliesTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.JobFamily!.I18nName);
+        Assert.NotEmpty(result.Data.JobFamily.Name!);
+        Assert.NotEmpty(result.Data.JobFamily.Description!);
     }
 
     /// <summary>
@@ -105,11 +235,45 @@ public class IFeishuTenantV3JobFamiliesTests
     [Fact]
     public void Test_GetJobFamilesListAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "name": "产品",
+                            "description": "负责产品策略制定的相关工作",
+                            "parent_job_family_id": "mga5oa8ayjlpzjq",
+                            "status": true,
+                            "i18n_name": [
+                                {
+                                    "locale": "zh_cn",
+                                    "value": "多语言内容"
+                                }
+                            ],
+                            "i18n_description": [
+                                {
+                                    "locale": "zh_cn",
+                                    "value": "多语言内容"
+                                }
+                            ],
+                            "job_family_id": "mga5oa8ayjlpkzy"
+                        }
+                    ],
+                    "page_token": "AQD9/Rn9eij9Pm39ED40/RD/cIFmu77WxpxPB/2oHfQLZ+G8JG6tK7+ZnHiT7COhD2hMSICh/eBl7cpzU6JEC3J7COKNe4jrQ8ExwBCR",
+                    "has_more": true
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiPageListResult<JobFamilyInfo>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
-        Assert.NotNull(result);
+        Assert.NotNull(result!.Data);
+        Assert.NotNull(result.Data.Items);
+        Assert.NotNull(result.Data.Items[0]!.I18nName);
+        Assert.NotEmpty(result.Data.Items[0].Name!);
+        Assert.NotEmpty(result.Data.Items[0].Description!);
     }
 
     /// <summary>
@@ -118,7 +282,13 @@ public class IFeishuTenantV3JobFamiliesTests
     [Fact]
     public void Test_DeleteJobFamilyByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
