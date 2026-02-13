@@ -30,11 +30,19 @@ public class IFeishuTenantV3UserGroupMemberTests
     [Fact]
     public void Test_AddMemberAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "member_type": "user",
+              "member_id_type": "open_id",
+              "member_id": "ou_7dab8a3d3cdcc9da365777c7ad535d62"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UserGroupMemberRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.MemberId!);
+        Assert.NotEmpty(requestBody.MemberType);
     }
 
     /// <summary>
@@ -43,7 +51,13 @@ public class IFeishuTenantV3UserGroupMemberTests
     [Fact]
     public void Test_AddMemberAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "data": {},
+                "msg": "success"
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -56,11 +70,24 @@ public class IFeishuTenantV3UserGroupMemberTests
     [Fact]
     public void Test_BatchAddMemberAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+            {
+              "members": [
+                {
+                  "member_id": "u287xj12",
+                  "member_type": "user",
+                  "member_id_type": "user_id"
+                }
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<BatchMembersRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Members);
+        Assert.NotEmpty(requestBody.Members[0].MemberId!);
+        Assert.NotEmpty(requestBody.Members[0].MemberType);
     }
 
     /// <summary>
@@ -69,7 +96,20 @@ public class IFeishuTenantV3UserGroupMemberTests
     [Fact]
     public void Test_BatchAddMemberAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "results": [
+                        {
+                            "member_id": "u287xj12",
+                            "code": 0
+                        }
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<BatchAddMemberResult>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -77,6 +117,8 @@ public class IFeishuTenantV3UserGroupMemberTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.Results);
+        Assert.NotEmpty(result.Data.Results[0].MemberId);
     }
 
     /// <summary>
@@ -85,7 +127,23 @@ public class IFeishuTenantV3UserGroupMemberTests
     [Fact]
     public void Test_GetMemberListByGroupIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "memberlist": [
+                        {
+                            "member_id": "u287xj12",
+                            "member_type": "user",
+                            "member_id_type": "user_id"
+                        }
+                    ],
+                    "page_token": "TDRRV9/Rn9eij9Pm39ED40/dk53s4Ebp882DYfFaPFbz00L4CMZJrqGdzNyc8BcZtDbwVUvRmQTvyMYicnGWrde9X56TgdBuS+JKiJDGexPw=",
+                    "has_more": true
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<MemberListRequest>>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -93,6 +151,10 @@ public class IFeishuTenantV3UserGroupMemberTests
 
         // 验证必需字段非空
         Assert.NotNull(result.Data);
+        Assert.NotNull(result.Data.PageToken);
+        Assert.NotEmpty(result.Data.MemberList);
+        Assert.NotEmpty(result.Data.MemberList[0].MemberType);
+        Assert.NotEmpty(result.Data.MemberList[0].MemberId);
     }
 
     /// <summary>
@@ -101,11 +163,19 @@ public class IFeishuTenantV3UserGroupMemberTests
     [Fact]
     public void Test_RemoveMemberAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "member_type": "user",
+              "member_id": "xj82871k",
+              "member_id_type": "open_id"
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<UserGroupMemberRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.MemberId!);
+        Assert.NotEmpty(requestBody.MemberType);
     }
 
     /// <summary>
@@ -114,7 +184,13 @@ public class IFeishuTenantV3UserGroupMemberTests
     [Fact]
     public void Test_RemoveMemberAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "data": {},
+                "msg": "success"
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
@@ -127,11 +203,24 @@ public class IFeishuTenantV3UserGroupMemberTests
     [Fact]
     public void Test_BatchRemoveMemberAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "members": [
+                {
+                  "member_id": "u287xj12",
+                  "member_type": "user",
+                  "member_id_type": "user_id"
+                }
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<BatchMembersRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.Members);
+        Assert.NotEmpty(requestBody.Members[0].MemberType);
+        Assert.NotEmpty(requestBody.Members[0].MemberId!);
     }
 
     /// <summary>
@@ -140,7 +229,13 @@ public class IFeishuTenantV3UserGroupMemberTests
     [Fact]
     public void Test_BatchRemoveMemberAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {}
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空

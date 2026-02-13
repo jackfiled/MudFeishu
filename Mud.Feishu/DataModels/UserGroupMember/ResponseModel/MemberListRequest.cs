@@ -5,7 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using System.Reflection;
 
 namespace Mud.Feishu.DataModels.UserGroupMember;
 
@@ -22,5 +21,5 @@ public class MemberListRequest : ApiPageListResult
     /// <para>每个成员包含基本信息如ID、名称、类型等。</para>
     /// </summary>
     [JsonPropertyName("memberlist")]
-    public List<MemberInfo> MemberList { get; set; } = new List<MemberInfo>();
+    public List<UserGroupMemberInfo> MemberList { get; set; } = new List<UserGroupMemberInfo>();
 }

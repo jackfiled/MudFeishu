@@ -10,7 +10,7 @@ namespace Mud.Feishu.DataModels.UserGroupMember;
 /// <summary>
 /// 用户组成员信息
 /// </summary>
-public class UserGroupMemberInffo
+public class UserGroupMemberInfo
 {
     /// <summary>
     /// 用户组成员的类型，目前仅支持选择 user。
