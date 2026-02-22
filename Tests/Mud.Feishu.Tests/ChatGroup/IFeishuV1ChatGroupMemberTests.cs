@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels;
 using Mud.Feishu.DataModels.ChatGroupMember;
 using System.Text.Json;
 using Xunit;
@@ -31,10 +30,18 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_AddManagersAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "manager_ids": [
+                "ou_9204a37300b3700d61effaa439f34295"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<GroupManagerRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.ManagerIds);
+        Assert.NotEmpty(requestBody.ManagerIds[0]);
     }
 
     /// <summary>
@@ -43,11 +50,29 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_AddManagersAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "chat_managers": [
+                        "ou_9204a37300b3700d61effaa439f34295"
+                    ],
+                    "chat_bot_managers": [
+                        "cli_a10fbf7e94b8d01d"
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<GroupManagerResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.ChatBotManagers!);
+        Assert.NotEmpty(result.Data.ChatBotManagers![0]!);
+
+        Assert.NotEmpty(result.Data.ChatBotManagers);
+        Assert.NotEmpty(result.Data.ChatBotManagers[0]);
     }
 
     /// <summary>
@@ -56,10 +81,18 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_DeleteManagersAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "manager_ids": [
+                "ou_9204a37300b3700d61effaa439f34295"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<GroupManagerRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.ManagerIds);
+        Assert.NotEmpty(requestBody.ManagerIds[0]);
     }
 
     /// <summary>
@@ -68,11 +101,29 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_DeleteManagersAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "chat_managers": [
+                        "ou_9204a37300b3700d61effaa439f34295"
+                    ],
+                    "chat_bot_managers": [
+                        "cli_a10fbf7e94b8d01d"
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<GroupManagerResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.ChatBotManagers!);
+        Assert.NotEmpty(result.Data.ChatBotManagers![0]!);
+
+        Assert.NotEmpty(result.Data.ChatBotManagers);
+        Assert.NotEmpty(result.Data.ChatBotManagers[0]);
     }
 
     /// <summary>
@@ -81,10 +132,18 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_AddMemberAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "id_list": [
+                "4d7a3c6g"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<MembersRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.IdList);
+        Assert.NotEmpty(requestBody.IdList[0]);
     }
 
     /// <summary>
@@ -93,11 +152,33 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_AddMemberAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "invalid_id_list": [
+                        "4d7a3c6g"
+                    ],
+                    "not_existed_id_list": [
+                        "4d7a3c6g"
+                    ],
+                    "pending_approval_id_list": [
+                        "4d7a3c6g"
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<AddMemberResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.InvalidIdList!);
+        Assert.NotEmpty(result.Data.InvalidIdList![0]!);
+        Assert.NotEmpty(result.Data.NotExistedIdList!);
+        Assert.NotEmpty(result.Data.NotExistedIdList![0]!);
+        Assert.NotEmpty(result.Data.PendingApprovalIdList!);
+        Assert.NotEmpty(result.Data.PendingApprovalIdList![0]!);
     }
 
     /// <summary>
@@ -106,7 +187,13 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_MeJoinChatGroupAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "data": {},
+                "msg": "ok"
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuNullDataApiResult>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
@@ -118,10 +205,18 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_RemoveMemberAsync_RequestBody()
     {
-        string bodyStr = "";
+        string bodyStr = """
+                        {
+              "id_list": [
+                "4d7a3c6g"
+              ]
+            }
+            """;
         var requestBody = JsonSerializer.Deserialize<MembersRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
+        Assert.NotEmpty(requestBody.IdList);
+        Assert.NotEmpty(requestBody.IdList[0]);
     }
 
     /// <summary>
@@ -130,11 +225,23 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_RemoveMemberAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "invalid_id_list": [
+                        "4d7a3c6g"
+                    ]
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<RemoveMemberResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.InvalidIdList!);
+        Assert.NotEmpty(result.Data.InvalidIdList![0]!);
     }
 
     /// <summary>
@@ -143,11 +250,33 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_GetMemberPageListByIdAsync_Result()
     {
-        string resultStr = "";
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "items": [
+                        {
+                            "member_id_type": "open_id",
+                            "member_id": "ou_9204a37300b3700d61effaa439f34295",
+                            "name": "张三",
+                            "tenant_key": "736588c9260f175d"
+                        }
+                    ],
+                    "page_token": "dmJCRHhpd3JRbGV1VEVNRFFyTitRWDY5ZFkybmYrMEUwMUFYT0VMMWdENEtuYUhsNUxGMDIwemtvdE5ORjBNQQ==",
+                    "has_more": true,
+                    "member_total": 2
+                }
+            }
+            """;
         var result = JsonSerializer.Deserialize<FeishuApiResult<GetMemberPageListResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data.PageToken!);
+        Assert.NotEmpty(result.Data.Items!);
+        Assert.NotEmpty(result.Data.Items![0].MemberId!);
+        Assert.NotEmpty(result.Data.Items[0].MemberIdType!);
     }
 
     /// <summary>
@@ -156,10 +285,19 @@ public class IFeishuV1ChatGroupMemberTests
     [Fact]
     public void Test_GetMemberInChatByIdAsync_Result()
     {
-        string resultStr = "";
-        var result = JsonSerializer.Deserialize<FeishuApiResult<GetMemberPageListResult>>(resultStr, _jsonSerializerOptions);
+        string resultStr = """
+                        {
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "is_in_chat": false
+                }
+            }
+            """;
+        var result = JsonSerializer.Deserialize<FeishuApiResult<GetMemberIsInChatResult>>(resultStr, _jsonSerializerOptions);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Data);
+        Assert.Equal(result.Data.IsInChat, false);
     }
 }
