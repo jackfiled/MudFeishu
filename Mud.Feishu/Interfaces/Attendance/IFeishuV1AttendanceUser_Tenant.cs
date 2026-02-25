@@ -27,8 +27,23 @@ public interface IFeishuTenantV1AttendanceUser : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_settings/modify")]
-    Task<FeishuApiResult<UserSettingsModifyResult>?> ModifyUserAsync(
+    Task<FeishuApiResult<UserSettingsResult>?> ModifyUserSettingsAsync(
              [Body] ModifyUserFacialRecognitionRequest userFacialRecognitionRequest,
              [Query("employee_type")] string employee_type = Consts.User_Id_Type,
              CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 批量查询授权内员工的用户设置信息，包括人脸照片文件 ID、人脸照片更新时间。
+    /// </summary>
+    /// <param name="userSettingsQueryRequest">批量查询用户人脸识别信息请求体。</param>
+    /// <param name="employee_type">响应体或请求体中 user_id 的员工 ID 类型。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Get("/open-apis/attendance/v1/user_settings/query")]
+    Task<FeishuApiResult<UserSettingsResult>?> QueryUserSettingsAsync(
+            [Body] UserSettingsQueryRequest userSettingsQueryRequest,
+            [Query("employee_type")] string employee_type = Consts.User_Id_Type,
+            CancellationToken cancellationToken = default);
+
+
 }

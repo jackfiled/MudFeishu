@@ -8,9 +8,9 @@
 namespace Mud.Feishu.DataModels.AttendanceUser;
 
 /// <summary>
-/// 修改用户人脸识别信息响应体
+/// 用户人脸识别信息响应体
 /// </summary>
-public class UserSettingsModifyResult
+public class UserSettingsResult
 {
     /// <summary>
     /// <para>用户设置</para>
