@@ -16,7 +16,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Attendance")]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV1AttendanceUser : IFeishuAppContextSwitcher
+public interface IFeishuTenantV1AttendanceUserSettings : IFeishuAppContextSwitcher
 {
     /// <summary>
     /// 修改授权内员工的用户设置信息，包括人脸照片文件 ID。
@@ -54,4 +54,13 @@ public interface IFeishuTenantV1AttendanceUser : IFeishuAppContextSwitcher
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/files/upload"), IgnoreImplement]
     Task<FeishuApiResult<UserFileUploadResult>?> UploadUserFaceFileAsync(string file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 通过文件 ID 下载用户的头像照片文件。
+    /// </summary>
+    /// <param name="fileId">需要下载的用户人脸照片文件ID。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Get("/open-apis/attendance/v1/files/{file_id}/download")]
+    Task<byte[]?> DownloadUserFaceFileAsync(string fileId, CancellationToken cancellationToken = default);
 }
