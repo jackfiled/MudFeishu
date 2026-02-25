@@ -58,9 +58,9 @@ public interface IFeishuTenantV1AttendanceUserSettings : IFeishuAppContextSwitch
     /// <summary>
     /// 通过文件 ID 下载用户的头像照片文件。
     /// </summary>
-    /// <param name="fileId">需要下载的用户人脸照片文件ID。</param>
+    /// <param name="file_id">需要下载的用户人脸照片文件ID。</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Get("/open-apis/attendance/v1/files/{file_id}/download")]
-    Task<byte[]?> DownloadUserFaceFileAsync(string fileId, CancellationToken cancellationToken = default);
+    Task<byte[]?> DownloadUserFaceFileAsync([Path] string file_id, CancellationToken cancellationToken = default);
 }

@@ -12,7 +12,7 @@ using System.Web;
 
 namespace Mud.Feishu.Internal;
 
-partial class FeishuTenantV1AttendanceUser
+partial class FeishuTenantV1AttendanceUserSettings
 {
     public async Task<FeishuApiResult<UserFileUploadResult>?> UploadUserFaceFileAsync(string file, CancellationToken cancellationToken = default)
     {
