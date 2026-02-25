@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.DataModels.AttendanceGroups;
+using Mud.Feishu.Internal;
 
 namespace Mud.Feishu;
 
@@ -15,40 +16,11 @@ namespace Mud.Feishu;
 /// <para>通过设置考勤组，可以从部门、员工两个维度，来设定考勤方式、考勤时间、考勤地点等考勤规则。</para>
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/attendance-v1/group/create"/></para>
 /// </summary>
-[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Attendance")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Attendance", InheritedFrom = nameof(FeishuV1AttendanceGroups))]
 [Header(Consts.Authorization)]
 [Token(TokenType.TenantAccessToken)]
-public interface IFeishuTenantV1AttendanceGroups : IFeishuAppContextSwitcher
+public interface IFeishuTenantV1AttendanceGroups : IFeishuV1AttendanceGroups
 {
-    /// <summary>
-    /// 查询考勤组下所有成员
-    /// </summary>
-    /// <param name="group_id">考勤组 ID，示例值：6919358128597097404</param>
-    /// <param name="member_clock_type">查询的考勤组成员的打卡类型
-    /// <para>可选值有：</para>
-    /// <para>&lt;ul&gt;</para>
-    /// <para>&lt;li&gt;0：全部打卡类型&lt;/li&gt;</para>
-    /// <para>&lt;li&gt;1：需要打卡类型&lt;/li&gt;</para>
-    /// <para>&lt;li&gt;2：无需打卡类型&lt;/li&gt;</para>
-    /// <para>&lt;/ul&gt;</para>
-    /// <para>示例值：1</para>
-    /// </param>
-    /// <param name="employee_type">响应体中 user_id 的员工 ID 类型。</param>
-    /// <param name="dept_type">响应体中 department_ids 的部门 ID 的类型</param>
-    /// <param name="page_size">分页大小，示例值：10，默认值：10</param>
-    /// <param name="page_token">分页标记，第一次请求不填，表示从头开始遍历；分页查询结果还有更多项时会同时返回新的 page_token，下次遍历可采用该 page_token 获取查询结果</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
-    /// <returns></returns>
-    [Get("/open-apis/attendance/v1/groups/{group_id}/list_user")]
-    Task<FeishuApiResult<AttendanceGroupsUserPageResult>?> GetGroupUserPageListAsync(
-        [Path] string group_id,
-        [Query("member_clock_type")] int member_clock_type = 0,
-        [Query("employee_type")] string employee_type = Consts.User_Id_Type,
-        [Query("dept_type")] string dept_type = Consts.Department_Id_Type,
-        [Query("page_size")] int page_size = Consts.PageSize,
-        [Query("page_token")] string? page_token = null,
-        CancellationToken cancellationToken = default);
-
 
     /// <summary>
     /// 创建或修改考勤组
