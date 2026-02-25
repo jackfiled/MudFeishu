@@ -1,0 +1,45 @@
+﻿// -----------------------------------------------------------------------
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
+// -----------------------------------------------------------------------
+
+using Mud.Feishu.Abstractions.Utilities;
+using Mud.Feishu.DataModels.AttendanceUser;
+using System.Net.Http.Headers;
+using System.Web;
+
+namespace Mud.Feishu.Internal;
+
+partial class FeishuTenantV1AttendanceUser
+{
+    public async Task<FeishuApiResult<UserFileUploadResult>?> UploadUserFaceFileAsync(string file, CancellationToken cancellationToken = default)
+    {
+        var tokenManager = _appContext.GetTokenManager(GetTokeType());
+        var access_token = await tokenManager.GetTokenAsync();
+        if (string.IsNullOrEmpty(access_token))
+        {
+            throw new InvalidOperationException("无法获取访问令牌");
+        }
+        string fileName = Path.GetFileName(file);
+        string urlFileName = HttpUtility.UrlEncode(fileName);
+        var url = $"/open-apis/im/v1/files?file_name={urlFileName}";
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
+
+        request.Headers.Add("Authorization", access_token);
+
+        ExceptionUtils.ThrowIfNullOrEmpty(file, nameof(file));
+
+        using var formData = new MultipartFormDataContent();
+
+        var fileContent = new ByteArrayContent(File.ReadAllBytes(file));
+        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
+        formData.Add(fileContent, "file", fileName);
+        request.Content = fileContent;
+
+        var httpClient = _appContext.HttpClient;
+        return await httpClient.SendAsync<FeishuApiResult<UserFileUploadResult>>(request, cancellationToken);
+
+    }
+}

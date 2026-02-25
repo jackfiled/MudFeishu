@@ -46,4 +46,12 @@ public interface IFeishuTenantV1AttendanceUser : IFeishuAppContextSwitcher
             CancellationToken cancellationToken = default);
 
 
+    /// <summary>
+    /// 上传用户人脸照片并获取文件 ID，对应小程序端的人脸录入功能。
+    /// </summary>
+    /// <param name="file">需要上传的用户人脸照片文件。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/attendance/v1/files/upload"), IgnoreImplement]
+    Task<FeishuApiResult<UserFileUploadResult>?> UploadUserFaceFileAsync(string file, CancellationToken cancellationToken = default);
 }
