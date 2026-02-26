@@ -7,34 +7,15 @@
 
 namespace Mud.Feishu.DataModels.AttendanceApprovals;
 
-
 /// <summary>
-/// <para>请假信息</para>
+/// 写入审批结果请求体
 /// </summary>
-public class UserAttendanceLeaveInfo : UserAttendanceLeavelData
+public class WriteApprovalsDataRequest
 {
     /// <summary>
-    /// <para>审批实例 ID</para>
+    /// <para>审批信息</para>
     /// <para>必填：否</para>
-    /// <para>示例值：6737202939523236113</para>
     /// </summary>
-    [JsonPropertyName("approval_id")]
-    public string? ApprovalId { get; set; }
-
-    /// <summary>
-    /// <para>审批通过时间，时间格式为 yyyy-MM-dd HH:mm:ss</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：2021-01-04 12:00:00</para>
-    /// </summary>
-    [JsonPropertyName("approve_pass_time")]
-    public string? ApprovePassTime { get; set; }
-
-    /// <summary>
-    /// <para>审批申请时间，时间格式为 yyyy-MM-dd HH:mm:ss</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：2021-01-04 11:00:00</para>
-    /// </summary>
-    [JsonPropertyName("approve_apply_time")]
-    public string? ApproveApplyTime { get; set; }
-
+    [JsonPropertyName("user_approval")]
+    public UserAttendanceApprovalData? UserApproval { get; set; }
 }

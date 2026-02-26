@@ -8,21 +8,13 @@
 namespace Mud.Feishu.DataModels.AttendanceApprovals;
 
 /// <summary>
-/// <para>外出信息</para>
+/// 外出信息
 /// </summary>
-public class UserAttendanceOut
+public class UserAttendanceOutData
 {
     /// <summary>
-    /// <para>审批实例 ID</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：6737202939523236113</para>
-    /// </summary>
-    [JsonPropertyName("approval_id")]
-    public string? ApprovalId { get; set; }
-
-    /// <summary>
-    /// <para>外出类型唯一 ID，代表一种假期类型，长度小于 14</para>
-    /// <para>* 此ID对应外出类型(即: i18n_names)，因此需要保证唯一</para>
+    /// <para>外出类型唯一 ID，代表一种外出类型，长度小于 14</para>
+    /// <para>* 如何获取？可以选择填入三方的外出类型id。如市内外出、市外外出的id</para>
     /// <para>必填：是</para>
     /// <para>示例值：9496E43696967658A512969523E89870</para>
     /// </summary>
@@ -46,14 +38,13 @@ public class UserAttendanceOut
     /// <summary>
     /// <para>关联审批单外出时长，单位为秒，与unit无关</para>
     /// <para>必填：是</para>
-    /// <para>示例值：8</para>
+    /// <para>示例值：3600</para>
     /// </summary>
     [JsonPropertyName("interval")]
     public int Interval { get; set; }
 
     /// <summary>
-    /// <para>开始时间，时间格式为 yyyy-MM-dd HH:mm:ss。</para>
-    /// <para>时间按照审批发起人当前考勤组的时区进行取值，如果发起人已离职，则默认为 0 时区。</para>
+    /// <para>开始时间，时间格式为 yyyy-MM-dd HH:mm:ss</para>
     /// <para>必填：是</para>
     /// <para>示例值：2021-01-04 09:00:00</para>
     /// </summary>
@@ -61,8 +52,7 @@ public class UserAttendanceOut
     public string StartTime { get; set; } = string.Empty;
 
     /// <summary>
-    /// <para>结束时间，时间格式为 yyyy-MM-dd HH:mm:ss。</para>
-    /// <para>时间按照审批发起人当前考勤组的时区进行取值，如果发起人已离职，则默认为 0 时区。</para>
+    /// <para>结束时间，时间格式为 yyyy-MM-dd HH:mm:ss</para>
     /// <para>必填：是</para>
     /// <para>示例值：2021-01-04 19:00:00</para>
     /// </summary>
@@ -75,6 +65,7 @@ public class UserAttendanceOut
     /// </summary>
     [JsonPropertyName("i18n_names")]
     public UserAttendance18nNames I18nNames { get; set; } = new();
+
 
     /// <summary>
     /// <para>默认语言类型，由于飞书客户端支持中、英、日三种语言，当用户切换语言时，如果假期名称没有所对应的语言，会使用默认语言的名称</para>
@@ -93,23 +84,7 @@ public class UserAttendanceOut
     public string Reason { get; set; } = string.Empty;
 
     /// <summary>
-    /// <para>审批通过时间，时间格式为 yyyy-MM-dd HH:mm:ss</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：2021-01-04 12:00:00</para>
-    /// </summary>
-    [JsonPropertyName("approve_pass_time")]
-    public string? ApprovePassTime { get; set; }
-
-    /// <summary>
-    /// <para>审批申请时间，时间格式为 yyyy-MM-dd HH:mm:ss</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：2021-01-04 11:00:00</para>
-    /// </summary>
-    [JsonPropertyName("approve_apply_time")]
-    public string? ApproveApplyTime { get; set; }
-
-    /// <summary>
-    /// <para>唯一幂等键</para>
+    /// <para>外出记录的唯一幂等键，用于避免外出记录重复创建，可以填入三方的外出记录id</para>
     /// <para>必填：否</para>
     /// <para>示例值：1233432312</para>
     /// </summary>
@@ -117,21 +92,21 @@ public class UserAttendanceOut
     public string? IdempotentId { get; set; }
 
     /// <summary>
-    /// <para>更正流程实例 ID</para>
+    /// <para>更正流程实例 ID。该字段由系统自动生成，在写入审批结果时，无需传入该参数。</para>
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("correct_process_id")]
     public string[]? CorrectProcessId { get; set; }
 
     /// <summary>
-    /// <para>撤销流程实例 ID</para>
+    /// <para>撤销流程实例 ID。该字段由系统自动生成，在写入审批结果时，无需传入该参数。</para>
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("cancel_process_id")]
     public string[]? CancelProcessId { get; set; }
 
     /// <summary>
-    /// <para>发起流程实例 ID</para>
+    /// <para>发起流程实例 ID。该字段由系统自动生成，在写入审批结果时，无需传入该参数。</para>
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("process_id")]

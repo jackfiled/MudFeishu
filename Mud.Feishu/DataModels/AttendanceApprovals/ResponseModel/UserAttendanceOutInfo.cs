@@ -7,11 +7,10 @@
 
 namespace Mud.Feishu.DataModels.AttendanceApprovals;
 
-
 /// <summary>
-/// <para>请假信息</para>
+/// <para>外出信息</para>
 /// </summary>
-public class UserAttendanceLeaveInfo : UserAttendanceLeavelData
+public class UserAttendanceOutInfo : UserAttendanceOutData
 {
     /// <summary>
     /// <para>审批实例 ID</para>

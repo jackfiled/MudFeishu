@@ -30,4 +30,18 @@ public interface IFeishuTenantV1AttendanceApprovals : IFeishuAppContextSwitcher
       [Body] QueryAttendanceApprovalsRequest queryAttendanceApprovalsRequest,
       [Query("employee_type")] string employee_type = Consts.User_Id_Type,
       CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 对于只使用飞书考勤系统，而未使用飞书审批系统的企业，可以通过本接口将三方审批结果数据回写到飞书考勤系统中。
+    /// </summary>
+    /// <param name="writeApprovalsDataRequest">写入审批结果请求体</param>
+    /// <param name="employee_type">请求体中的 user_id 和响应体中的 user_id 的员工ID类型。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+
+    [Post("/open-apis/attendance/v1/user_approvals")]
+    Task<FeishuApiResult<WriteApprovalsDataResult>?> WriteApprovalsDataAsync(
+         [Body] WriteApprovalsDataRequest writeApprovalsDataRequest,
+         [Query("employee_type")] string employee_type = Consts.User_Id_Type,
+         CancellationToken cancellationToken = default);
 }

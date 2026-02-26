@@ -7,14 +7,13 @@
 
 namespace Mud.Feishu.DataModels.AttendanceApprovals;
 
-
 /// <summary>
-/// <para>审批结果列表</para>
+/// 审批信息
 /// </summary>
-public class UserAttendanceApprovalInfo
+public class UserAttendanceApprovalData
 {
     /// <summary>
-    /// <para>审批用户 ID，类型与employee_type的取值一致</para>
+    /// <para>审批提交人 ID。传入的ID类型需要与employee_type的取值一致</para>
     /// <para>必填：是</para>
     /// <para>示例值：abd754f7</para>
     /// </summary>
@@ -22,7 +21,7 @@ public class UserAttendanceApprovalInfo
     public string UserId { get; set; } = string.Empty;
 
     /// <summary>
-    /// <para>审批作用日期，格式yyyyMMdd</para>
+    /// <para>审批作用日期，格式为yyyyMMdd</para>
     /// <para>必填：是</para>
     /// <para>示例值：20210104</para>
     /// </summary>
@@ -34,35 +33,34 @@ public class UserAttendanceApprovalInfo
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("outs")]
-    public UserAttendanceOutInfo[]? Outs { get; set; }
-
+    public UserAttendanceOutData[]? Outs { get; set; }
 
     /// <summary>
     /// <para>请假信息</para>
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("leaves")]
-    public UserAttendanceLeaveInfo[]? Leaves { get; set; }
-
+    public UserAttendanceLeavelData[]? Leaves { get; set; }
 
     /// <summary>
     /// <para>加班信息</para>
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("overtime_works")]
-    public UserAttendanceOvertimeWorkInfo[]? OvertimeWorks { get; set; }
+    public UserAttendanceOvertimeWorkData[]? OvertimeWorks { get; set; }
 
     /// <summary>
-    /// <para>出差信息</para>
+    /// <para>出差信息。</para>
+    /// <para>目前仅支持全天出差（未满全天则按全天计入）。</para>
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("trips")]
-    public UserAttendanceTripInfo[]? Trips { get; set; }
+    public UserAttendanceTripData[]? Trips { get; set; }
 
     /// <summary>
-    /// <para>计算时间所用的时区信息，为空是0时区</para>
+    /// <para>此字段不再使用，以用户匹配的考勤组时区为准</para>
     /// <para>必填：否</para>
-    /// <para>示例值：Asia/Shanghai</para>
+    /// <para>示例值：0</para>
     /// </summary>
     [JsonPropertyName("time_zone")]
     public string? TimeZone { get; set; }
