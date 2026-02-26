@@ -11,7 +11,7 @@ namespace Mud.Feishu.DataModels.AttendanceApprovals;
 /// <summary>
 /// <para>审批结果列表</para>
 /// </summary>
-public class UserAttendanceApproval
+public class UserAttendanceApprovalInfo
 {
     /// <summary>
     /// <para>审批用户 ID，类型与employee_type的取值一致</para>
@@ -42,7 +42,7 @@ public class UserAttendanceApproval
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("leaves")]
-    public UserAttendanceLeave[]? Leaves { get; set; }
+    public UserAttendanceLeaveInfo[]? Leaves { get; set; }
 
 
     /// <summary>
@@ -50,14 +50,14 @@ public class UserAttendanceApproval
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("overtime_works")]
-    public UserAttendanceOvertimeWork[]? OvertimeWorks { get; set; }
+    public UserAttendanceOvertimeWorkInfo[]? OvertimeWorks { get; set; }
 
     /// <summary>
     /// <para>出差信息</para>
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("trips")]
-    public UserAttendanceTrip[]? Trips { get; set; }
+    public UserAttendanceTripInfo[]? Trips { get; set; }
 
     /// <summary>
     /// <para>计算时间所用的时区信息，为空是0时区</para>

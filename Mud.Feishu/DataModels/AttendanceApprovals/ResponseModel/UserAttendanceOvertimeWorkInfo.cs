@@ -7,11 +7,10 @@
 
 namespace Mud.Feishu.DataModels.AttendanceApprovals;
 
-
 /// <summary>
-/// <para>请假信息</para>
+/// <para>加班信息</para>
 /// </summary>
-public class UserAttendanceLeave
+public class UserAttendanceOvertimeWorkInfo
 {
     /// <summary>
     /// <para>审批实例 ID</para>
@@ -22,16 +21,15 @@ public class UserAttendanceLeave
     public string? ApprovalId { get; set; }
 
     /// <summary>
-    /// <para>假期类型唯一 ID，代表一种假期类型，长度小于 14</para>
-    /// <para>* 此ID对应假期类型(即: i18n_names)，因此需要保证唯一</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：6852582717813440527</para>
+    /// <para>加班时长</para>
+    /// <para>必填：是</para>
+    /// <para>示例值：1.5</para>
     /// </summary>
-    [JsonPropertyName("uniq_id")]
-    public string? UniqId { get; set; }
+    [JsonPropertyName("duration")]
+    public float Duration { get; set; }
 
     /// <summary>
-    /// <para>假期时长单位</para>
+    /// <para>加班时长单位</para>
     /// <para>必填：是</para>
     /// <para>示例值：1</para>
     /// <para>可选值：<list type="bullet">
@@ -45,18 +43,37 @@ public class UserAttendanceLeave
     public int Unit { get; set; }
 
     /// <summary>
-    /// <para>关联审批单休假时长，单位为秒，与unit无关</para>
+    /// <para>加班日期类型</para>
     /// <para>必填：是</para>
-    /// <para>示例值：8</para>
+    /// <para>示例值：2</para>
+    /// <para>可选值：<list type="bullet">
+    /// <item>1：工作日</item>
+    /// <item>2：休息日</item>
+    /// <item>3：节假日</item>
+    /// </list></para>
     /// </summary>
-    [JsonPropertyName("interval")]
-    public int Interval { get; set; }
+    [JsonPropertyName("category")]
+    public int Category { get; set; }
+
+    /// <summary>
+    /// <para>加班规则类型</para>
+    /// <para>必填：是</para>
+    /// <para>示例值：1</para>
+    /// <para>可选值：<list type="bullet">
+    /// <item>0：不关联加班规则</item>
+    /// <item>1：调休</item>
+    /// <item>2：加班费</item>
+    /// <item>3：关联加班规则，没有调休或加班费</item>
+    /// </list></para>
+    /// </summary>
+    [JsonPropertyName("type")]
+    public int Type { get; set; }
 
     /// <summary>
     /// <para>开始时间，时间格式为 yyyy-MM-dd HH:mm:ss。</para>
     /// <para>时间按照审批发起人当前考勤组的时区进行取值，如果发起人已离职，则默认为 0 时区。</para>
     /// <para>必填：是</para>
-    /// <para>示例值：2021-01-04 09:00:00</para>
+    /// <para>示例值：2021-01-09 09:00:00</para>
     /// </summary>
     [JsonPropertyName("start_time")]
     public string StartTime { get; set; } = string.Empty;
@@ -65,56 +82,18 @@ public class UserAttendanceLeave
     /// <para>结束时间，时间格式为 yyyy-MM-dd HH:mm:ss。</para>
     /// <para>时间按照审批发起人当前考勤组的时区进行取值，如果发起人已离职，则默认为 0 时区。</para>
     /// <para>必填：是</para>
-    /// <para>示例值：2021-01-04 19:00:00</para>
+    /// <para>示例值：2021-01-10 13:00:00</para>
     /// </summary>
     [JsonPropertyName("end_time")]
     public string EndTime { get; set; } = string.Empty;
 
     /// <summary>
-    /// <para>假期多语言展示，格式为 map，key 为 ["ch"、"en"、"ja"]，其中 ch 代表中文、en 代表英语、ja 代表日语</para>
-    /// <para>必填：是</para>
-    /// </summary>
-    [JsonPropertyName("i18n_names")]
-    public UserAttendance18nNames I18nNames { get; set; } = new();
-
-
-
-    /// <summary>
-    /// <para>默认语言类型，由于飞书客户端支持中、英、日三种语言，当用户切换语言时，如果假期名称没有所对应的语言，会使用默认语言的名称</para>
-    /// <para>必填：是</para>
-    /// <para>示例值：ch</para>
-    /// <para>可选值：<list type="bullet">
-    /// <item>ch：中文</item>
-    /// <item>en：英文</item>
-    /// <item>ja：日文</item>
-    /// </list></para>
-    /// </summary>
-    [JsonPropertyName("default_locale")]
-    public string DefaultLocale { get; set; } = string.Empty;
-
-    /// <summary>
-    /// <para>请假理由，必选字段</para>
-    /// <para>必填：是</para>
-    /// <para>示例值：家里有事</para>
+    /// <para>加班事由</para>
+    /// <para>必填：否</para>
+    /// <para>示例值：推进项目进度</para>
     /// </summary>
     [JsonPropertyName("reason")]
-    public string Reason { get; set; } = string.Empty;
-
-    /// <summary>
-    /// <para>审批通过时间，时间格式为 yyyy-MM-dd HH:mm:ss</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：2021-01-04 12:00:00</para>
-    /// </summary>
-    [JsonPropertyName("approve_pass_time")]
-    public string? ApprovePassTime { get; set; }
-
-    /// <summary>
-    /// <para>审批申请时间，时间格式为 yyyy-MM-dd HH:mm:ss</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：2021-01-04 11:00:00</para>
-    /// </summary>
-    [JsonPropertyName("approve_apply_time")]
-    public string? ApproveApplyTime { get; set; }
+    public string? Reason { get; set; }
 
     /// <summary>
     /// <para>唯一幂等键</para>
@@ -123,4 +102,25 @@ public class UserAttendanceLeave
     /// </summary>
     [JsonPropertyName("idempotent_id")]
     public string? IdempotentId { get; set; }
+
+    /// <summary>
+    /// <para>更正流程实例 ID</para>
+    /// <para>必填：否</para>
+    /// </summary>
+    [JsonPropertyName("correct_process_id")]
+    public string[]? CorrectProcessId { get; set; }
+
+    /// <summary>
+    /// <para>撤销流程实例 ID</para>
+    /// <para>必填：否</para>
+    /// </summary>
+    [JsonPropertyName("cancel_process_id")]
+    public string[]? CancelProcessId { get; set; }
+
+    /// <summary>
+    /// <para>发起流程实例 ID</para>
+    /// <para>必填：否</para>
+    /// </summary>
+    [JsonPropertyName("process_id")]
+    public string[]? ProcessId { get; set; }
 }

@@ -11,7 +11,7 @@ namespace Mud.Feishu.DataModels.AttendanceApprovals;
 /// <summary>
 /// <para>出差信息</para>
 /// </summary>
-public class UserAttendanceTrip
+public class UserAttendanceTripInfo
 {
     /// <summary>
     /// <para>审批实例 ID</para>

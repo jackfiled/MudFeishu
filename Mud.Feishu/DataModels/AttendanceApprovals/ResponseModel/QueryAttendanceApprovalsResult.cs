@@ -17,6 +17,6 @@ public class QueryAttendanceApprovalsResult
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("user_approvals")]
-    public UserAttendanceApproval[]? UserApprovals { get; set; }
+    public UserAttendanceApprovalInfo[]? UserApprovals { get; set; }
 
 }
