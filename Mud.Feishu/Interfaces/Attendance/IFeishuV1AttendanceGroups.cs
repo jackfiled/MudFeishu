@@ -7,7 +7,7 @@
 
 using Mud.Feishu.DataModels.AttendanceGroups;
 
-namespace Mud.Feishu;
+namespace Mud.Feishu.Interfaces;
 
 
 /// <summary>
