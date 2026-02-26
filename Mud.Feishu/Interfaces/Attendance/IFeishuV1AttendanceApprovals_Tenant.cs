@@ -10,7 +10,7 @@ using Mud.Feishu.DataModels.AttendanceApprovals;
 namespace Mud.Feishu;
 
 /// <summary>
-/// 用于管理假勤审批的请假、加班、外出和出差四种审批数据。
+/// 用于管理三方系统假勤审批的请假、加班、外出和出差四种审批数据。
 /// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/attendance-v1/user_approval/query"/></para>
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Attendance")]
@@ -19,9 +19,9 @@ namespace Mud.Feishu;
 public interface IFeishuTenantV1AttendanceApprovals : IFeishuAppContextSwitcher
 {
     /// <summary>
-    /// 查询考勤统计支持的日度统计或月度统计的统计表头。报表的表头信息可以在考勤统计-报表中查询到具体的报表信息，此接口专门用于查询表头数据。
+    /// 获取员工在某段时间内的请假、加班、外出和出差四种审批数据。
     /// </summary>
-    /// <param name="queryAttendanceApprovalsRequest">查询统计设置请求体</param>
+    /// <param name="queryAttendanceApprovalsRequest">获取审批数据请求体</param>
     /// <param name="employee_type">请求体中的 user_id 和响应体中的 user_id 的员工ID类型。</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
@@ -38,10 +38,20 @@ public interface IFeishuTenantV1AttendanceApprovals : IFeishuAppContextSwitcher
     /// <param name="employee_type">请求体中的 user_id 和响应体中的 user_id 的员工ID类型。</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
-
     [Post("/open-apis/attendance/v1/user_approvals")]
     Task<FeishuApiResult<WriteApprovalsDataResult>?> WriteApprovalsDataAsync(
          [Body] WriteApprovalsDataRequest writeApprovalsDataRequest,
          [Query("employee_type")] string employee_type = Consts.User_Id_Type,
          CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 通过该接口更新写入飞书考勤系统中的三方系统审批状态，例如请假、加班、外出、出差、补卡等审批，状态包括通过、不通过、撤销等。
+    /// </summary>
+    /// <param name="updateApprovalInfosRequest">通知审批状态更新请求体</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/attendance/v1/approval_infos/process")]
+    Task<FeishuApiResult<UpdateAttendanceApprovalInfoResult>?> UpdateApprovalInfosAsync(
+        [Body] UpdateApprovalInfosRequest updateApprovalInfosRequest,
+        CancellationToken cancellationToken = default);
 }
