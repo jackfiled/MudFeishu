@@ -1,8 +1,79 @@
 # Mud.Feishu Change Log
 
+## [2.0.3] - 2026-02-26
+
+### ✨ Added
+
+- **Attendance Management**: Added complete attendance management functionality
+  - Leave issuance record related data models and interfaces
+  - Clock-in flow record related models and interfaces
+  - Attendance archived report related interfaces and data models
+  - Correction application related data models and interfaces
+  - User face photo upload interface
+  - User settings query interface
+  - Attendance approval related data models and interfaces
+  - Approval status update interface and data models
+  - Approval result writing functionality and data models
+  - Attendance statistics related data models and interfaces
+  - Query statistics data related models and interfaces
+  - Query statistics header interface and request models
+  - User face recognition information management related interfaces and models
+  - Attendance group related interfaces and data models
+- **Approval Functionality**: Refactored approval instance preview functionality
+- **Card Functionality**: Updated card element request field names
+- **Task Functionality**: Updated Feishu task custom field interface return types
+
+### 🔧 Changed
+
+- **Project Structure**: Refactored project structure, adjusted namespaces and file locations
+- **Interface Specifications**: Unified interface method naming conventions
+- **Attendance Interfaces**: Refactored attendance group interface inheritance structure, renamed attendance user management interface and added download functionality
+- **Token Management**: Refactored token management module and updated dependency versions
+- **Internationalization**: Refactored internationalization resource models and updated related references
+- **Test Structure**: Refactored test file directory structure, moved related test files to corresponding functional module directories
+- **Demo Project**: Updated demo project to use package references instead of project references
+- **Response Models**: Refactored response models
+
+### 🐛 Fixed
+
+- **User Group Members**: Fixed class name spelling error and updated related references
+- **Test Cases**: Fixed test cases and improved test data
+- **Activity Subscriptions**: Fixed activity subscription interface return types and improved test cases
+
+### 📚 Documentation
+
+- **Code Comments**: Added XML comments for test classes and cache methods
+- **README**: Updated README documentation structure and content
+
+### 📦 Build & Config
+
+- **Dependency Update**: Updated Mud.HttpUtils dependency to version 1.5.3
+- **Build Configuration**: Ignored test project build output directories
+
+### 🧪 Tests
+
+- **Improved Test Cases**: Added and improved test cases for multiple modules
+  - Chat group and tab tests
+  - Feishu task unit tests
+  - Feishu user and user group interface tests
+  - Feishu position and job level interface tests
+  - Employee type related interface tests
+  - Feishu department interface tests
+  - Task section related tests
+  - Task list interface tests
+  - Feishu task attachment and comment tests
+  - Group announcement related interface tests
+  - Card interface tests
+  - Feishu approval task related tests
+  - Approval query interface tests
+  - Approval comment related tests
+  - Feishu approval related interface tests
+  - Approval message interface tests
+
 ## [2.0.2] - 2026-01-30
 
 ### ✨ Added
+
 - **Performance Metrics Monitoring**: Added complete performance metrics collection functionality
   - Added MeterExtensions, FeishuMetrics, and FeishuMetricsHelper classes
   - Added metrics recording to key components like TokenManager and HttpClientUtils
@@ -17,6 +88,7 @@
 - **Test Controllers**: Added log test controller and network test controller
 
 ### 🔧 Changed
+
 - **Dependency Update**: Updated Mud.HttpUtils dependency to version 1.5.2
 - **HTTP Client Optimization**:
   - Enhanced exception handling and logging
@@ -30,24 +102,29 @@
 - **Demo Project**: Adjusted Demo project configuration and dependencies
 
 ### 🐛 Fixed
+
 - **JobLevel Interface**: Changed name parameter of JobLevel interface to nullable type
 - **JobFamilies Interface**: Allowed name parameter of GetJobFamilesListAsync to be null
 
 ### 📚 Documentation
+
 - Updated README documentation to explain metrics usage
 - Added log test related documentation
 
 ### 📦 Build & Config
+
 - Updated project version to 2.0.2
 
 ## [2.0.0] - 2026-01-28
 
 ### 🚨 BREAKING CHANGE
+
 - **Removed FeishuOptions class** - Completely removed old configuration class, all scenarios now use `FeishuAppConfig`
 - **Multi-application architecture support** - API signatures and configuration methods changed, migration required
 - **Configuration system refactoring** - Retry mechanism and Token management configuration methods changed
 
 ### ✨ Added
+
 - **Multi-app support**: Support for configuring and managing multiple Feishu apps
 - **App context switching**: New `IFeishuAppContextSwitcher` interface supports runtime app switching
 - **Auto-default app inference**: Three auto-inference rules simplify configuration
@@ -56,12 +133,14 @@
 - **Documentation**: Added configuration migration guide and multi-app configuration documentation
 
 ### 🔧 Changed
+
 - **Refactored HttpClient configuration**: Polly retry strategy uses configuration parameters
 - **Refactored Token retry logic**: Uses configured `RetryDelayMs` instead of hardcoded values
 - **WebSocket retry**: Uses configured `RetryDelayMs` instead of hardcoded values
 - **Dependency updates**: Replaced code generator with `Mud.HttpUtils`
 
 ### 🐛 Fixed
+
 - **Fixed `RetryCount` configuration inconsistency**: Unified application to HttpClient and TokenManager
 - **WebSocket retry hardcoding issue**: Uses configuration parameters instead of hardcoded values
 
@@ -255,7 +334,7 @@
   - Coverage: AppId/AppSecret validation, range restrictions, sensitive information masking, auto-inference logic
   - Test cases:
     - Valid configuration validation
-    - AppId format validation (cli_/app_ prefix)
+    - AppId format validation (cli*/app* prefix)
     - AppId/AppSecret null value validation
     - AppId/AppSecret length validation
     - TimeOut/RetryCount range restrictions
@@ -800,6 +879,7 @@ builder.Services.AddFeishuWebhook(options =>
 #### Dependency Updates
 
 New dependencies:
+
 - `Polly`: for circuit breaker pattern
 
 ```bash
@@ -1064,6 +1144,7 @@ $env:FeishuWebhook__EncryptKey="your_32_byte_encryption_key"
 ##### 3. Verify Configuration
 
 Before deployment, confirm:
+
 - [ ] Signature validation enabled
 - [ ] Timestamp tolerance range <= 60 seconds
 - [ ] EncryptKey is 32-byte strong key
@@ -1244,6 +1325,7 @@ Before deployment, confirm:
 - Fixed status tracking errors in batch message sending
 
 ### 📱 Message Service
+
 - **Multiple Message Types**: Rich message types including text, images, files, cards, etc.
 - **Batch Sending**: Supports batch message sending and status tracking
 - **Message Interaction**: Emojis reply, message recall, read receipt
@@ -1258,80 +1340,98 @@ Before deployment, confirm:
 **FEATURES**
 
 ### 🔐 Authentication and Authorization System
+
 - **Multiple Token Management**: Supports application tokens, tenant tokens, user tokens
 - **Automatic Refresh Mechanism**: Intelligent token refresh, triggered 5 minutes in advance
 - **High Concurrency Security**: Uses `ConcurrentDictionary` and `Lazy<Task>` to avoid cache breakdown
 - **OAuth Authorization Process**: Complete support for Feishu OAuth 2.0 authorization
 
 ### 🏢 Organizational Structure Management
+
 #### User Management (V1/V3)
+
 - **User CRUD**: Create, query, update, delete users
 - **Batch Operations**: Batch get user information, batch status updates
 - **Department Association**: Many-to-many relationship management between users and departments
 - **Search Filtering**: Supports various search criteria and pagination
 
 #### Department Management (V1/V3)
+
 - **Tree Structure**: Supports infinite level department tree
 - **Recursive Query**: Recursively get sub-departments and members
 - **Permission Inheritance**: Automatic department permission inheritance mechanism
 
 #### Employee Management (V1)
+
 - **Employee Information**: Employee detailed information management
 - **Onboarding and Departure**: Employee onboarding and departure process support
 
 #### User Group Management (V3)
+
 - **User Group CRUD**: Create, query, update, delete user groups
 - **Member Management**: Adding, removing, querying user group members
 - **Permission Allocation**: Permission control based on user groups
 
 ### 🏢 Enterprise Management System
+
 #### Personnel Type Management (V3)
+
 - **Classification System**: Employee type classification and label management
 - **Flexible Configuration**: Supports custom personnel type attributes
 
 #### Job Level Management (V3)
+
 - **Job Level System**: Complete job level promotion and management
 - **Job Level Association**: Link with salary, permissions
 
 #### Job Title Management (V3)
+
 - **Career Path**: Employee career development path management
 - **Sequence Definition**: Different sequence position definitions
 
 #### Position Management (V3)
+
 - **Position Definition**: Specific position responsibilities and authority definition
 - **Position Assignment**: Employee position allocation and changes
 
 #### Role Management (V3)
+
 - **Permission Roles**: Role-Based Access Control (RBAC)
 - **Role Inheritance**: Role permission inheritance and combination
 - **Member Management**: Adding, removing role members operations
 
 #### Unit Management (V3)
+
 - **Organizational Units**: Enterprise organizational unit management
 - **Unit Hierarchy**: Hierarchy between units
 
 #### Work City Management (V3)
+
 - **Office Locations**: Work city and location management
 - **Location Association**: Association with departments, employees
 
 ### 🔧 Core Technical Features
 
 #### Attribute-Driven Design
+
 - **[HttpClientApi] Attribute**: Automatically generate HTTP client code
 - **Strong Type Support**: Compile-time type checking, reduce runtime errors
 - **Unified Response**: Unified response handling based on `FeishuApiResult<T>`
 
 #### Dependency Injection Friendly
+
 - **Service Registration**: `AddFeishuApiService()` extension method
 - **Flexible Configuration**: Supports configuration files and code configuration
 - **Lifecycle Management**: Automatic service lifecycle management
 
 #### High-Performance Caching
+
 - **Smart Caching**: Automatic token caching and refresh
 - **Concurrency Control**: Solve cache issues under high concurrency
 - **Resource Management**: Implements `IDisposable` interface
 
 #### Exception Handling
+
 - **Unified Exception**: `FeishuException` unified exception handling
 - **Error Classification**: Classification handling of different error types
 - **Log Integration**: Integrated with .NET log system
@@ -1339,15 +1439,18 @@ Before deployment, confirm:
 ### 🌐 API Coverage
 
 #### Authentication and Authorization API
+
 - `IFeishuV3AuthenticationApi` - V3 authentication and authorization interface
 
 #### Message Service API
+
 - `IFeishuV1Message` - V1 message base interface
 - `IFeishuTenantV1Message` - V1 tenant message interface
 - `IFeishuUserV1Message` - V1 user message interface
 - `IFeishuTenantV1BatchMessage` - V1 batch message interface
 
 #### Organizational Structure API (V1)
+
 - `IFeishuV1ChatGroup` - V1 chat group base interface
 - `IFeishuTenantV1ChatGroup` - V1 tenant chat group interface
 - `IFeishuUserV1ChatGroup` - V1 user chat group interface
@@ -1362,6 +1465,7 @@ Before deployment, confirm:
 - `IFeishuUserV1Employees` - V1 user employee management interface
 
 #### Enterprise Management API (V3)
+
 - `IFeishuV3Departments` - V3 department management base interface
 - `IFeishuTenantV3Departments` - V3 tenant department management interface
 - `IFeishuUserV3Departments` - V3 user department management interface
@@ -1385,12 +1489,14 @@ Before deployment, confirm:
 ### 📦 Technology Stack
 
 #### Framework Support
+
 - **.NET Standard 2.0** - Compatible with .NET Framework 4.6.1+
 - **.NET 6.0** - LTS Long-term support version
 - **.NET 8.0** - LTS Long-term support version
 - **.NET 10.0** - LTS Long-term support version
 
 #### Core Dependencies
+
 - **Mud.ServiceCodeGenerator v1.4.5.3** - HTTP client code generator
 - **System.Text.Json v10.0.1** - High-performance JSON serialization (.NET Standard 2.0)
 - **Microsoft.Extensions.Http** - HTTP client factory
@@ -1420,4 +1526,4 @@ Before deployment, confirm:
 
 ---
 
-*Note: This CHANGELOG follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) specification.*
+_Note: This CHANGELOG follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) specification._
