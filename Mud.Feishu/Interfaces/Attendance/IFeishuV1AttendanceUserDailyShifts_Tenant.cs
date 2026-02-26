@@ -28,7 +28,7 @@ public interface IFeishuTenantV1AttendanceUserDailyShifts : IFeishuAppContextSwi
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_daily_shifts/batch_create")]
-    Task<FeishuApiResult<UserDailyShiftResult>?> CreateOrUpdateShiftsAsync(
+    Task<FeishuApiResult<UserDailyShiftResult>?> BatchCreateUserDailyShiftAsync(
          [Body] UserDailyShiftsRequest userDailyShiftRequest,
          [Query("employee_type")] string employee_type = Consts.User_Id_Type,
          CancellationToken cancellationToken = default);
@@ -43,7 +43,7 @@ public interface IFeishuTenantV1AttendanceUserDailyShifts : IFeishuAppContextSwi
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_daily_shifts/query")]
-    Task<FeishuApiResult<UserDailyShiftsQueryResult>?> QueryShiftsAsync(
+    Task<FeishuApiResult<UserDailyShiftsQueryResult>?> QueryUserDailyShiftAsync(
       [Body] QueryUserDailyShiftsRequest userDailyShiftRequest,
       [Query("employee_type")] string employee_type = Consts.User_Id_Type,
       CancellationToken cancellationToken = default);
@@ -59,7 +59,7 @@ public interface IFeishuTenantV1AttendanceUserDailyShifts : IFeishuAppContextSwi
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_daily_shifts/batch_create_temp")]
-    Task<FeishuApiResult<UserTmpDailyShiftResult>?> CreateOrUpdateTempShiftsAsync(
+    Task<FeishuApiResult<UserTmpDailyShiftResult>?> BatchCreateTempUserDailyShiftAsync(
        [Body] UserTmpDailyShiftRequest userTmpDailyShiftRequest,
        [Query("employee_type")] string employee_type = Consts.User_Id_Type,
        CancellationToken cancellationToken = default);

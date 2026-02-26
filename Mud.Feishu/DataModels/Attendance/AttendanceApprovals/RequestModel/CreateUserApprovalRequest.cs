@@ -8,15 +8,14 @@
 namespace Mud.Feishu.DataModels.AttendanceApprovals;
 
 /// <summary>
-/// 写入审批结果响应体
+/// 写入审批结果请求体
 /// </summary>
-public class WriteApprovalsDataResult
+public class CreateUserApprovalRequest
 {
     /// <summary>
     /// <para>审批信息</para>
     /// <para>必填：否</para>
     /// </summary>
     [JsonPropertyName("user_approval")]
-    public UserAttendanceApprovalInfo? UserApproval { get; set; }
-
+    public UserAttendanceApprovalData? UserApproval { get; set; }
 }

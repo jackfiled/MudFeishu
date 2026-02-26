@@ -21,7 +21,7 @@ public interface IFeishuTenantV1AttendanceRemedys : IFeishuAppContextSwitcher
 
     /// <summary>
     /// 将在三方审批系统中发起的补卡审批数据，写入到飞书考勤系统中，状态为审批中。
-    /// <para>写入后可以由<seealso cref="IFeishuTenantV1AttendanceApprovals.UpdateApprovalInfosAsync(DataModels.AttendanceApprovals.UpdateApprovalInfosRequest, CancellationToken)">通知审批状态更新</seealso>进行状态更新。</para> 
+    /// <para>写入后可以由<seealso cref="IFeishuTenantV1AttendanceApprovals.ProcessApprovalInfoAsync(DataModels.AttendanceApprovals.UpdateApprovalInfosRequest, CancellationToken)">通知审批状态更新</seealso>进行状态更新。</para> 
     /// </summary>
     /// <param name="attendanceRemedysRequest">通知补卡审批发起请求体</param>
     /// <param name="employee_type">请求体中的 user_id 和响应体中的 user_id 的员工ID类型。</param>
@@ -29,7 +29,7 @@ public interface IFeishuTenantV1AttendanceRemedys : IFeishuAppContextSwitcher
     /// <returns></returns>
 
     [Post("/open-apis/attendance/v1/user_task_remedys")]
-    Task<FeishuApiResult<AttendanceRemedysResult>?> CreateUserRemedysAsync(
+    Task<FeishuApiResult<AttendanceRemedysResult>?> CreateUserTaskRemedyAsync(
            [Body] AttendanceRemedysRequest attendanceRemedysRequest,
            [Query("employee_type")] string employee_type = Consts.User_Id_Type,
            CancellationToken cancellationToken = default);
@@ -43,7 +43,7 @@ public interface IFeishuTenantV1AttendanceRemedys : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_task_remedys/query_user_allowed_remedys")]
-    Task<FeishuApiResult<QueryUserAllowedRemedysResult>?> QueryUserAllowRemedysDateAsync(
+    Task<FeishuApiResult<QueryUserAllowedRemedysResult>?> QueryUserAllowedRemedysUserTaskRemedyAsync(
        [Body] AllowedRemedysRequest allowedRemedysRequest,
        [Query("employee_type")] string employee_type = Consts.User_Id_Type,
        CancellationToken cancellationToken = default);
@@ -57,7 +57,7 @@ public interface IFeishuTenantV1AttendanceRemedys : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_task_remedys/query")]
-    Task<FeishuApiResult<QueryUserRemedysResult>?> QueryUserRemedysDataAsync(
+    Task<FeishuApiResult<QueryUserRemedysResult>?> QueryUserTaskRemedyAsync(
        [Body] QueryUserRemedysRequest queryUserRemedysRequest,
        [Query("employee_type")] string employee_type = Consts.User_Id_Type,
        CancellationToken cancellationToken = default);

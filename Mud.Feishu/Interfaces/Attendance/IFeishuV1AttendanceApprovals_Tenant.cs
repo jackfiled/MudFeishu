@@ -26,7 +26,7 @@ public interface IFeishuTenantV1AttendanceApprovals : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_approvals/query")]
-    Task<FeishuApiResult<QueryAttendanceApprovalsResult>?> QueryApprovalsDataAsync(
+    Task<FeishuApiResult<QueryAttendanceApprovalsResult>?> QueryUserApprovalAsync(
       [Body] QueryAttendanceApprovalsRequest queryAttendanceApprovalsRequest,
       [Query("employee_type")] string employee_type = Consts.User_Id_Type,
       CancellationToken cancellationToken = default);
@@ -39,8 +39,8 @@ public interface IFeishuTenantV1AttendanceApprovals : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_approvals")]
-    Task<FeishuApiResult<WriteApprovalsDataResult>?> WriteApprovalsDataAsync(
-         [Body] WriteApprovalsDataRequest writeApprovalsDataRequest,
+    Task<FeishuApiResult<CreateUserApprovalResult>?> CreateUserApprovalAsync(
+         [Body] CreateUserApprovalRequest writeApprovalsDataRequest,
          [Query("employee_type")] string employee_type = Consts.User_Id_Type,
          CancellationToken cancellationToken = default);
 
@@ -51,7 +51,7 @@ public interface IFeishuTenantV1AttendanceApprovals : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/approval_infos/process")]
-    Task<FeishuApiResult<UpdateAttendanceApprovalInfoResult>?> UpdateApprovalInfosAsync(
+    Task<FeishuApiResult<UpdateAttendanceApprovalInfoResult>?> ProcessApprovalInfoAsync(
         [Body] UpdateApprovalInfosRequest updateApprovalInfosRequest,
         CancellationToken cancellationToken = default);
 }

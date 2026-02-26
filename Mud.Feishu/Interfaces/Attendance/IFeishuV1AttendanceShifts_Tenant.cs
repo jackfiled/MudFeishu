@@ -26,7 +26,7 @@ public interface IFeishuTenantV1AttendanceShifts : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/shifts")]
-    Task<FeishuApiResult<CreateAttendanceShiftsResult>?> CreateShiftsAsync(
+    Task<FeishuApiResult<CreateAttendanceShiftsResult>?> CreateShiftAsync(
           [Body] CreateAttendanceShiftsRequest createAttendanceShiftsRequest,
           [Query("employee_type")] string employee_type = Consts.User_Id_Type,
           CancellationToken cancellationToken = default);
@@ -38,7 +38,7 @@ public interface IFeishuTenantV1AttendanceShifts : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Delete("/open-apis/attendance/v1/shifts/{shift_id}")]
-    Task<FeishuNullDataApiResult?> DeleteShiftsByIdAsync(
+    Task<FeishuNullDataApiResult?> DeleteShiftByIdAsync(
        [Path] string shift_id,
        CancellationToken cancellationToken = default);
 
@@ -50,7 +50,7 @@ public interface IFeishuTenantV1AttendanceShifts : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Get("/open-apis/attendance/v1/shifts/{shift_id}")]
-    Task<FeishuApiResult<GetAttendanceShiftsResult>?> GetShiftsByIdAsync(
+    Task<FeishuApiResult<GetAttendanceShiftsResult>?> GetShiftByIdAsync(
        [Path] string shift_id,
        CancellationToken cancellationToken = default);
 
@@ -61,7 +61,7 @@ public interface IFeishuTenantV1AttendanceShifts : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/shifts/query")]
-    Task<FeishuApiResult<GetAttendanceShiftsResult>?> GetShiftsByNameAsync(
+    Task<FeishuApiResult<GetAttendanceShiftsResult>?> GetShiftByNameAsync(
        [Query("shift_name")] string shift_name,
        CancellationToken cancellationToken = default);
 

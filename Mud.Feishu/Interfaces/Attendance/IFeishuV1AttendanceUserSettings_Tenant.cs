@@ -27,7 +27,7 @@ public interface IFeishuTenantV1AttendanceUserSettings : IFeishuAppContextSwitch
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_settings/modify")]
-    Task<FeishuApiResult<UserSettingsResult>?> ModifyUserSettingsAsync(
+    Task<FeishuApiResult<UserSettingsResult>?> ModifyUserSettingAsync(
              [Body] ModifyUserFacialRecognitionRequest userFacialRecognitionRequest,
              [Query("employee_type")] string employee_type = Consts.User_Id_Type,
              CancellationToken cancellationToken = default);
@@ -40,7 +40,7 @@ public interface IFeishuTenantV1AttendanceUserSettings : IFeishuAppContextSwitch
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Get("/open-apis/attendance/v1/user_settings/query")]
-    Task<FeishuApiResult<UserSettingsResult>?> QueryUserSettingsAsync(
+    Task<FeishuApiResult<UserSettingsResult>?> QueryUserSettingAsync(
             [Body] UserSettingsQueryRequest userSettingsQueryRequest,
             [Query("employee_type")] string employee_type = Consts.User_Id_Type,
             CancellationToken cancellationToken = default);
@@ -53,7 +53,7 @@ public interface IFeishuTenantV1AttendanceUserSettings : IFeishuAppContextSwitch
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/files/upload"), IgnoreImplement]
-    Task<FeishuApiResult<UserFileUploadResult>?> UploadUserFaceFileAsync(string file, CancellationToken cancellationToken = default);
+    Task<FeishuApiResult<UserFileUploadResult>?> UploadFileAsync(string file, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 通过文件 ID 下载用户的头像照片文件。
@@ -62,5 +62,5 @@ public interface IFeishuTenantV1AttendanceUserSettings : IFeishuAppContextSwitch
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Get("/open-apis/attendance/v1/files/{file_id}/download")]
-    Task<byte[]?> DownloadUserFaceFileAsync([Path] string file_id, CancellationToken cancellationToken = default);
+    Task<byte[]?> DownloadFileAsync([Path] string file_id, CancellationToken cancellationToken = default);
 }

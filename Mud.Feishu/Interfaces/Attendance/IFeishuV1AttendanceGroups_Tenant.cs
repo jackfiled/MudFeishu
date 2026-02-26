@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.DataModels.AttendanceGroups;
-using Mud.Feishu.Internal;
 
 namespace Mud.Feishu;
 

@@ -27,7 +27,7 @@ public interface IFeishuTenantV1AttendanceStats : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Put("/open-apis/attendance/v1/user_stats_views/{user_stats_view_id}")]
-    Task<FeishuApiResult<UserStatsViewsResult>?> UpdateStatsSettingsAsync(
+    Task<FeishuApiResult<UserStatsViewsResult>?> UpdateUserStatsViewAsync(
         [Body] UserStatsViewsRequest userStatsViewsRequest,
         [Path] string user_stats_view_id,
         [Query("employee_type")] string employee_type = Consts.User_Id_Type,
@@ -40,7 +40,7 @@ public interface IFeishuTenantV1AttendanceStats : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_stats_fields/query")]
-    Task<FeishuApiResult<QueryStatsFieldsResult>?> QueryStatsFieldsAsync(
+    Task<FeishuApiResult<QueryStatsFieldsResult>?> QueryUserStatsFieldAsync(
        [Body] QueryStatsFieldsRequest queryStatsFieldsRequest,
        CancellationToken cancellationToken = default);
 
@@ -52,7 +52,7 @@ public interface IFeishuTenantV1AttendanceStats : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_stats_views/query")]
-    Task<FeishuApiResult<UserStatsViewsResult>?> QueryStatsViewsAsync(
+    Task<FeishuApiResult<UserStatsViewsResult>?> QueryUserStatsViewAsync(
       [Body] QueryStatsViewsRequest queryStatsFieldsRequest,
       [Query("employee_type")] string employee_type = Consts.User_Id_Type,
       CancellationToken cancellationToken = default);
@@ -66,7 +66,7 @@ public interface IFeishuTenantV1AttendanceStats : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/user_stats_datas/query")]
-    Task<FeishuApiResult<QueryStatsDatasResult>?> QueryStatsDatasAsync(
+    Task<FeishuApiResult<QueryStatsDatasResult>?> QueryUserStatsDataAsync(
      [Body] QueryStatsDatasRequest queryStatsDatasRequest,
      [Query("employee_type")] string employee_type = Consts.User_Id_Type,
      CancellationToken cancellationToken = default);

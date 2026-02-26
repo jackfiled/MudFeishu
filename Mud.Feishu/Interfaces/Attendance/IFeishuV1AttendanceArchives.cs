@@ -27,7 +27,7 @@ public interface IFeishuV1AttendanceArchives : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/archive_rule/user_stats_fields_query")]
-    Task<FeishuApiResult<QueryArchiveUserStatsFieldsResult>?> QueryUserArchiveStatsFieldsAsync(
+    Task<FeishuApiResult<QueryArchiveUserStatsFieldsResult>?> QueryUserStatsFieldsArchiveRuleAsync(
           [Body] QueryArchiveUserStatsFieldsRequest queryArchiveUserStatsFieldsRequest,
           [Query("employee_type")] string employee_type = Consts.User_Id_Type,
           CancellationToken cancellationToken = default);
@@ -40,7 +40,7 @@ public interface IFeishuV1AttendanceArchives : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/archive_rule/upload_report")]
-    Task<FeishuApiResult<ArchiveUploadReportResult>?> UploadArchiveReportAsync(
+    Task<FeishuApiResult<ArchiveUploadReportResult>?> UploadReportArchiveRuleAsync(
           [Body] ArchiveUploadReportRequest archiveUploadReportRequest,
           [Query("employee_type")] string employee_type = Consts.User_Id_Type,
           CancellationToken cancellationToken = default);
@@ -53,7 +53,7 @@ public interface IFeishuV1AttendanceArchives : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/archive_rule/del_report")]
-    Task<FeishuNullDataApiResult?> DeleteArchiveReportAsync(
+    Task<FeishuNullDataApiResult?> DeleteReportArchiveRuleAsync(
          [Body] DelArchiveReportRequest archiveUploadReportRequest,
          [Query("employee_type")] string employee_type = Consts.User_Id_Type,
          CancellationToken cancellationToken = default);
@@ -67,7 +67,7 @@ public interface IFeishuV1AttendanceArchives : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Get("/open-apis/attendance/v1/archive_rule")]
-    Task<FeishuApiResult<FeishuApiPageListResult<ArchiveReportMeta>>?> GetArchiveReportPageListAsync(
+    Task<FeishuApiResult<FeishuApiPageListResult<ArchiveReportMeta>>?> GetArchiveRulePageListAsync(
            [Query("page_size")] int page_size = Consts.PageSize,
            [Query("page_token")] string? page_token = null,
            CancellationToken cancellationToken = default);

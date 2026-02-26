@@ -14,7 +14,7 @@ namespace Mud.Feishu.Internal;
 
 partial class FeishuTenantV1AttendanceUserSettings
 {
-    public async Task<FeishuApiResult<UserFileUploadResult>?> UploadUserFaceFileAsync(string file, CancellationToken cancellationToken = default)
+    public async Task<FeishuApiResult<UserFileUploadResult>?> UploadFileAsync(string file, CancellationToken cancellationToken = default)
     {
         var tokenManager = _appContext.GetTokenManager(GetTokeType());
         var access_token = await tokenManager.GetTokenAsync();
