@@ -32,4 +32,15 @@ public interface IFeishuTenantV1AttendanceStats : IFeishuAppContextSwitcher
         [Path] string user_stats_view_id,
         [Query("employee_type")] string employee_type = Consts.User_Id_Type,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 查询考勤统计支持的日度统计或月度统计的统计表头。
+    /// </summary>
+    /// <param name="queryStatsFieldsRequest">查询统计表头请求体</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/attendance/v1/user_stats_fields/query")]
+    Task<FeishuApiResult<QueryStatsFieldsResult>?> QueryStatsFieldsAsync(
+       [Body] QueryStatsFieldsRequest queryStatsFieldsRequest,
+       CancellationToken cancellationToken = default);
 }
