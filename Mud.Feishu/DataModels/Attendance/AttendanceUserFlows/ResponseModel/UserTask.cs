@@ -5,13 +5,21 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu.DataModels.AttendanceRemedys;
+namespace Mud.Feishu.DataModels.AttendanceUserFlows;
 
 /// <summary>
-/// 通知补卡审批发起请求体
+/// 打卡任务列表
 /// </summary>
-public class AttendanceRemedysRequest
+public class UserTask
 {
+    /// <summary>
+    /// <para>打卡记录 ID</para>
+    /// <para>必填：是</para>
+    /// <para>示例值：6709359313699356941</para>
+    /// </summary>
+    [JsonPropertyName("result_id")]
+    public string ResultId { get; set; } = string.Empty;
+
     /// <summary>
     /// <para>用户 ID，对应employee_type</para>
     /// <para>必填：是</para>
@@ -21,50 +29,41 @@ public class AttendanceRemedysRequest
     public string UserId { get; set; } = string.Empty;
 
     /// <summary>
-    /// <para>补卡日期，日期格式yyyyMMdd</para>
+    /// <para>用户姓名</para>
     /// <para>必填：是</para>
-    /// <para>示例值：20210701</para>
+    /// <para>示例值：张三</para>
     /// </summary>
-    [JsonPropertyName("remedy_date")]
-    public int RemedyDate { get; set; }
+    [JsonPropertyName("employee_name")]
+    public string EmployeeName { get; set; } = string.Empty;
 
     /// <summary>
-    /// <para>第几次上下班，0：第 1 次上下班，1：第 2 次上下班，2：第 3 次上下班，自由班制填 0</para>
+    /// <para>日期，格式为yyyyMMdd</para>
     /// <para>必填：是</para>
-    /// <para>示例值：0</para>
+    /// <para>示例值：20190819</para>
     /// </summary>
-    [JsonPropertyName("punch_no")]
-    public int PunchNo { get; set; }
+    [JsonPropertyName("day")]
+    public int Day { get; set; }
 
     /// <summary>
-    /// <para>上班 / 下班，1：上班，2：下班，自由班制填 0</para>
+    /// <para>考勤组 ID（特别说明：1代表未加入考勤组）</para>
     /// <para>必填：是</para>
-    /// <para>示例值：1</para>
+    /// <para>示例值：6737202939523236110</para>
     /// </summary>
-    [JsonPropertyName("work_type")]
-    public int WorkType { get; set; }
+    [JsonPropertyName("group_id")]
+    public string GroupId { get; set; } = string.Empty;
 
     /// <summary>
-    /// <para>补卡时间，时间格式为 yyyy-MM-dd HH:mm</para>
+    /// <para>班次 ID（特别说明：9代表默认班次）</para>
     /// <para>必填：是</para>
-    /// <para>示例值：2021-07-01 08:00</para>
+    /// <para>示例值：6753520403404030215</para>
     /// </summary>
-    [JsonPropertyName("remedy_time")]
-    public string RemedyTime { get; set; } = string.Empty;
+    [JsonPropertyName("shift_id")]
+    public string ShiftId { get; set; } = string.Empty;
 
     /// <summary>
-    /// <para>补卡原因</para>
+    /// <para>用户考勤记录</para>
     /// <para>必填：是</para>
-    /// <para>示例值：忘记打卡</para>
     /// </summary>
-    [JsonPropertyName("reason")]
-    public string Reason { get; set; } = string.Empty;
-
-    /// <summary>
-    /// <para>字段已失效</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：-</para>
-    /// </summary>
-    [JsonPropertyName("time")]
-    public string? Time { get; set; }
+    [JsonPropertyName("records")]
+    public UserTaskRecord[] Records { get; set; } = [];
 }
