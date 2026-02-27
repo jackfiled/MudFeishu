@@ -221,6 +221,18 @@ public static class FeishuEventTypes
     public const string LeaveApprovalRevert = "leave_approval_revert";
     #endregion
 
+    #region Attendance Events
+    /// <summary>
+    /// 考勤用户打卡流水事件
+    /// </summary>
+    public const string AttendanceUserFlowCreated = "attendance.user_flow.created_v1";
+
+    /// <summary>
+    /// 考勤用户任务更新事件
+    /// </summary>
+    public const string AttendanceUserTaskUpdate = "attendance.user_task.updated_v1";
+    #endregion
+
     /// <summary>
     /// 用户加入群聊事件
     /// </summary>
