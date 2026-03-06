@@ -56,6 +56,7 @@ public class FeishuEventDecryptor : IFeishuEventDecryptor
                 {
                     // 特殊处理 URL 验证请求
                     eventData = new EventData();
+                    eventData.EventType = "url_verification";
                     // 将整个 JSON 作为 Event，这样 HandleEncryptedVerificationAsync 可以从中提取 challenge
                     eventData.Event = decryptedJson;
                 }
