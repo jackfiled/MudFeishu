@@ -66,14 +66,7 @@ partial class FeishuTenantV1Message
 
         ExceptionUtils.ThrowIfNull(uploadImageRequest, nameof(uploadImageRequest));
 
-        using var formData = new MultipartFormDataContent
-        {
-            { new StringContent(uploadImageRequest.ImageType), "image_type" }
-        };
-        var fileContent = new ByteArrayContent(File.ReadAllBytes(uploadImageRequest.FullName));
-        var contentType = GetContentType(uploadImageRequest.FullName);
-        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-        formData.Add(fileContent, "image", Path.GetFileName(uploadImageRequest.FullName));
+        using var formData = await HttpClientExtensions.GetFormDataContentAsync(uploadImageRequest, cancellationToken);
         request.Content = formData;
 
         var httpClient = _appContext.HttpClient;

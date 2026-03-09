@@ -159,4 +159,10 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
        [Body] CreateShortcutRequest createShortcutRequest,
        [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
        CancellationToken cancellationToken = default);
+
+    //[Post("/open-apis/drive/v1/files/upload_all")]
+    //Task<FeishuApiResult<CreateShortcutResult>?> UploadAllFileAsync(
+    //  [Body] UploadAllFileRequest uploadAllFileRequest,
+    //  [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
+    //  CancellationToken cancellationToken = default);
 }
