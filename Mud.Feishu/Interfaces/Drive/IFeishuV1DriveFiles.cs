@@ -146,4 +146,17 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
         [Path] string? file_token,
         [Query("type")] string file_type,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 创建指定文件的快捷方式到云空间的其它文件夹中。
+    /// </summary>
+    /// <param name="createShortcutRequest">创建文件快捷方式请求体</param>
+    /// <param name="user_id_type">用户 ID，ID 类型需要与查询参数中的 user_id_type 类型保持一致。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/drive/v1/files/create_shortcut")]
+    Task<FeishuApiResult<CreateShortcutResult>?> CreateShortcutAsync(
+       [Body] CreateShortcutRequest createShortcutRequest,
+       [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
+       CancellationToken cancellationToken = default);
 }
