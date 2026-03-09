@@ -52,7 +52,7 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Get("/open-apis/drive/v1/files/{file_token}/statistics")]
-    Task<FeishuApiResult<FileStatisticsReuslt>?> GetFileStatisticsAsync(
+    Task<FeishuApiResult<FileStatisticsReuslt>?> GetFileStatisticsByFileTokenAsync(
       [Path] string? file_token,
       [Query("file_type")] string file_type,
       CancellationToken cancellationToken = default);
@@ -83,7 +83,7 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
     /// <param name="viewer_id_type">用户 ID，ID 类型需要与查询参数中的 user_id_type 类型保持一致。</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     [Get("/open-apis/drive/v1/files/{file_token}/view_records")]
-    Task<FeishuApiPageListResult<FileViewRecord>?> GetFileViewRecordPageListAsync(
+    Task<FeishuApiPageListResult<FileViewRecord>?> GetFileViewRecordPageListByFileTokenAsync(
        [Path] string? file_token,
        [Query("file_type")] string file_type,
        [Query("page_size")] int page_size = Consts.PageSize,
@@ -100,7 +100,7 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/drive/v1/files/{file_token}/copy")]
-    Task<FeishuApiResult<CopyFileResult>?> CopyFileAsync(
+    Task<FeishuApiResult<CopyFileResult>?> CopyFileByFileTokenAsync(
       [Body] CopyFileRequest copyFileRequest,
       [Path] string? file_token,
       [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
@@ -114,8 +114,36 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/drive/v1/files/{file_token}/move")]
-    Task<FeishuApiResult<MoveFileResult>?> MoveFileAsync(
+    Task<FeishuApiResult<FileTaskResult>?> MoveFileByFileTokenAsync(
      [Body] MoveFileRequest moveFileRequest,
      [Path] string? file_token,
      CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 删除用户在云空间内的文件或者文件夹。文件或文件夹被删除后，会进入回收站中。
+    /// </summary>
+    /// <param name="file_type">被删除文件的类型
+    /// <para>必填：是</para>
+    /// <para>被删除文件的类型</para>
+    /// <para>示例值：file</para>
+    /// <list type="bullet">
+    /// <item>file：文件类型</item>
+    /// <item>docx：新版文档类型</item>
+    /// <item>bitable：多维表格类型</item>
+    /// <item>folder：文件夹类型</item>
+    /// <item>doc：文档类型</item>
+    /// <item>sheet：电子表格类型</item>
+    /// <item>mindnote：思维笔记类型</item>
+    /// <item>shortcut：快捷方式类型</item>
+    /// <item>slides：幻灯片</item>
+    /// </list>
+    /// </param>
+    /// <param name="file_token">文件 token。示例值：doccnfYZzTlvXqZIGTdAHKabcef</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Delete("/open-apis/drive/v1/files/{file_token}")]
+    Task<FeishuApiResult<FileTaskResult>?> DeleteFileByFileTokenAsync(
+        [Path] string? file_token,
+        [Query("type")] string file_type,
+        CancellationToken cancellationToken = default);
 }

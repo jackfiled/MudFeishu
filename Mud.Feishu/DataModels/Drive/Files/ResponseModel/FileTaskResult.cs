@@ -10,7 +10,7 @@ namespace Mud.Feishu.DataModels.Drive.Files;
 /// <summary>
 /// 移动文件或文件夹响应体
 /// </summary>
-public class MoveFileResult
+public class FileTaskResult
 {
     /// <summary>
     /// <para>异步任务 ID，移动文件夹时返回。</para>
