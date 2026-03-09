@@ -35,7 +35,6 @@ public interface IFeishuV4ApprovalQuery : IFeishuAppContextSwitcher
     /// <param name="page_token">分页标记，第一次请求不填，表示从头开始遍历；分页查询结果还有更多项时会同时返回新的 page_token，下次遍历可采用该 page_token 获取查询结果</param>
     /// <param name="user_id_type">用户 ID，ID 类型需要与查询参数中的 user_id_type 类型保持一致。</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
-
     [Get("/open-apis/approval/v4/tasks/query")]
     Task<FeishuApiResult<ApprovalInstancesTaskUserQueryResult>?> GetTasksPageListByUserIdAsync(
        [Query("user_id")] string user_id,
