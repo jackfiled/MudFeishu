@@ -91,11 +91,31 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
        [Query("viewer_id_type")] string? viewer_id_type = Consts.User_Id_Type,
        CancellationToken cancellationToken = default);
 
-
+    /// <summary>
+    /// 将用户云空间中的文件复制至其它文件夹下。该接口为异步接口。
+    /// </summary>
+    /// <param name="copyFileRequest">复制文件请求体</param>
+    /// <param name="file_token">文件 token。示例值：doccnfYZzTlvXqZIGTdAHKabcef</param>
+    /// <param name="user_id_type">用户 ID，ID 类型需要与查询参数中的 user_id_type 类型保持一致。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
     [Post("/open-apis/drive/v1/files/{file_token}/copy")]
     Task<FeishuApiResult<CopyFileResult>?> CopyFileAsync(
       [Body] CopyFileRequest copyFileRequest,
       [Path] string? file_token,
       [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
       CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 将文件或者文件夹移动到用户云空间的其他位置。该接口为异步接口。
+    /// </summary>
+    /// <param name="moveFileRequest">移动文件请求体</param>
+    /// <param name="file_token">文件 token。示例值：doccnfYZzTlvXqZIGTdAHKabcef</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/drive/v1/files/{file_token}/move")]
+    Task<FeishuApiResult<MoveFileResult>?> MoveFileAsync(
+     [Body] MoveFileRequest moveFileRequest,
+     [Path] string? file_token,
+     CancellationToken cancellationToken = default);
 }
