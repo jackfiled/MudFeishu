@@ -23,4 +23,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\Mud.Feishu.Abstractions\Mud.Feishu.Abstractions.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="DataModels\Drive\FileVersions\" />
+	</ItemGroup>
 </Project>
