@@ -8,12 +8,12 @@
 namespace Mud.Feishu.DataModels.Drive.Files;
 
 /// <summary>
-/// 创建导入任务响应体
+/// 创建导入\导出任务响应体
 /// </summary>
-public class ImportTasksResult
+public class TasksResult
 {
     /// <summary>
-    /// <para>导入任务 ID</para>
+    /// <para>导入\导出任务 ID</para>
     /// <para>必填：否</para>
     /// <para>示例值：7369583175086912356</para>
     /// </summary>

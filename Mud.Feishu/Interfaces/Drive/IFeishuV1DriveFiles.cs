@@ -183,8 +183,57 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/drive/v1/import_tasks")]
-    Task<FeishuApiResult<ImportTasksResult>?> CreateImportTaskAsync(
+    Task<FeishuApiResult<TasksResult>?> CreateImportTaskAsync(
       [Body] ImportTasksRequest importTasksRequest,
       CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// <para>根据创建导入任务返回的导入任务 ID（ticket）轮询导入结果。</para>
+    /// </summary>
+    /// <param name="ticket">导入任务 ID。示例值："7369583175086912356"。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Get("/open-apis/drive/v1/import_tasks/{ticket}")]
+    Task<FeishuApiResult<ImportTaskResult>?> GetImportTaskAsync(
+      [Path] string ticket,
+      CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <para>用于创建导出文件的任务，并返回导出任务 ID。导出文件指将飞书文档、电子表格、多维表格导出为本地文件，包括 Word、Excel、PDF、CSV 格式。</para>
+    /// <para>该接口为异步接口，需要继续调用查询导出任务结果接口获取导出结果。</para>
+    /// </summary>
+    /// <param name="exportTasksRequest">创建导出任务请求体。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/drive/v1/export_tasks")]
+    Task<FeishuApiResult<TasksResult>?> CreateExportTaskAsync(
+     [Body] ExportTasksRequest exportTasksRequest,
+     CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <para>根据创建导出任务返回的导出任务 ID（ticket）轮询导出任务结果，并返回导出文件的 token。</para>
+    /// <para>你可使用该 token 继续调用下载导出文件接口将导出的产物下载到本地。</para>
+    /// </summary>
+    /// <param name="ticket">导出任务 ID。示例值："7369583175086912356"。</param>
+    /// <param name="token">要导出的云文档的 token。示例值："docbcZVGtv1papC6jAVGiyabcef"</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Get("/open-apis/drive/v1/export_tasks/{ticket}")]
+    Task<FeishuApiResult<ExportTasksResult>?> GetExportTaskAsync(
+    [Path] string ticket,
+    [Query] string? token,
+    CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// 根据查询导出任务结果返回的导出文件的 token，下载导出产物到本地。
+    /// </summary>
+    /// <remarks>你需及时下载导出的文件。在导出任务结束 10 分钟后，导出的文件将被删除，导致无法下载。</remarks>
+    /// <param name="file_token">导出的文件的 token，示例值："boxcnabCdefgabcef"。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Get("/open-apis/drive/v1/export_tasks/file/{file_token}/download")]
+    Task<byte[]?> DownloadExportFileAsync([Path] string file_token, CancellationToken cancellationToken = default);
 
 }
