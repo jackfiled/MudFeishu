@@ -165,4 +165,26 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
     //  [Body] UploadAllFileRequest uploadAllFileRequest,
     //  [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
     //  CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 下载云空间中的文件，如 PDF 文件。不包含飞书文档、电子表格以及多维表格等在线文档。该接口支持通过在请求头添加 Range 参数分片下载部分文件。
+    /// </summary>
+    /// <param name="file_token">文件的 token，示例值："boxcnabCdefgabcef"。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Get("/open-apis/drive/v1/files/{file_token}/download")]
+    Task<byte[]?> DownloadFileAsync([Path] string file_token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// <para>用于创建导入文件的任务，并返回导入任务 ID。导入文件指将本地文件如 Word、TXT、Markdown、Excel 等格式的文件导入为某种格式的飞书在线云文档。</para>
+    /// <para>该接口为异步接口，需要继续调用查询导入任务结果接口获取导入结果。</para>
+    /// </summary>
+    /// <param name="importTasksRequest">创建导入任务请求体。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/drive/v1/import_tasks")]
+    Task<FeishuApiResult<ImportTasksResult>?> CreateImportTaskAsync(
+      [Body] ImportTasksRequest importTasksRequest,
+      CancellationToken cancellationToken = default);
+
 }
