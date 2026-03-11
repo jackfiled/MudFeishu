@@ -49,11 +49,15 @@ public interface IFeishuTenantV1AttendanceUserSettings : IFeishuAppContextSwitch
     /// <summary>
     /// 上传用户人脸照片并获取文件 ID，对应小程序端的人脸录入功能。
     /// </summary>
-    /// <param name="file">需要上传的用户人脸照片文件。</param>
+    /// <param name="file_name">带后缀的文件名</param>
+    /// <param name="uploadFileRequest">需要上传的用户人脸照片文件。</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
-    [Post("/open-apis/attendance/v1/files/upload"), IgnoreImplement]
-    Task<FeishuApiResult<UserFileUploadResult>?> UploadFileAsync(string file, CancellationToken cancellationToken = default);
+    [Post("/open-apis/attendance/v1/files/upload")]
+    Task<FeishuApiResult<UserFileUploadResult>?> UploadFileAsync(
+        [Query("file_name")] string file_name,
+        [FormContent] UploadFileRequest uploadFileRequest,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 通过文件 ID 下载用户的头像照片文件。

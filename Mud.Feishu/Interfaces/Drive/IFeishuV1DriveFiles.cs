@@ -160,11 +160,21 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
        [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
        CancellationToken cancellationToken = default);
 
-    //[Post("/open-apis/drive/v1/files/upload_all")]
-    //Task<FeishuApiResult<CreateShortcutResult>?> UploadAllFileAsync(
-    //  [Body] UploadAllFileRequest uploadAllFileRequest,
-    //  [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
-    //  CancellationToken cancellationToken = default);
+    /// <summary>
+    /// 将指定文件上传至云空间指定目录中。
+    /// <para>将指定文件上传至云空间指定目录中。</para>
+    /// <para>## 使用限制</para>
+    /// <para>- 文件大小不得超过 20 MB，且不可上传空文件。要上传大于 20 MB 的文件，你需使用分片上传文件相关接口。详情参考[上传文件概述](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/drive-v1/file/multipart-upload-file-/introduction)。</para>
+    /// <para>- 该接口调用频率上限为 5 QPS，10000 次/天。否则会返回 1061045 错误码，可通过稍后重试解决。</para>
+    /// </summary>
+    /// <param name="uploadAllFileRequest">上传文件请求体</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/drive/v1/files/upload_all")]
+    Task<FeishuApiResult<FilesUploadAllResult>?> UploadAllFileAsync(
+      [FormContent] UploadAllFileRequest uploadAllFileRequest,
+      CancellationToken cancellationToken = default);
+
 
     /// <summary>
     /// 下载云空间中的文件，如 PDF 文件。不包含飞书文档、电子表格以及多维表格等在线文档。该接口支持通过在请求头添加 Range 参数分片下载部分文件。

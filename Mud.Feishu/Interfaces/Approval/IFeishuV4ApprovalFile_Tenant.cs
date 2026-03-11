@@ -27,8 +27,7 @@ public interface IFeishuTenantV2ApprovalFile : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/approval/openapi/v2/file/upload")]
-    [IgnoreImplement]
     Task<FeishuApiResult<FileUploadResult>?> UploadFileAsync(
-      UploadFileRequest uploadFileRequest,
-      CancellationToken cancellationToken = default);
+          [FormContent] UploadFileRequest uploadFileRequest,
+          CancellationToken cancellationToken = default);
 }

@@ -13,13 +13,7 @@ namespace Mud.Feishu.DataModels.ApprovalFile;
 public class UploadFileRequest
 {
     /// <summary>
-    /// <para>文件全路径名，需包含文件扩展名。例如 `C:\\文件.doc`</para>
-    /// <para>必填：是</para>
-    /// </summary>
-    public string FullName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// <para>文件全名，需包含文件扩展名。例如 `文件.doc`</para>
+    /// <para>文件名，需包含文件扩展名。例如 `文件.doc</para>
     /// <para>必填：是</para>
     /// </summary>
     [JsonPropertyName("name")]
@@ -31,4 +25,11 @@ public class UploadFileRequest
     /// </summary>
     [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 需要上传的文件的本地路径，必须是绝对路径。上传前会先检查该路径下是否存在该文件，如果不存在则会抛出异常。
+    /// </summary>
+    [FilePath]
+    [JsonPropertyName("file")]
+    public string? FilePath { get; set; }
 }

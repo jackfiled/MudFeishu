@@ -295,9 +295,8 @@ public interface IFeishuTenantV1Message : IFeishuV1Message
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/im/v1/files")]
-    [IgnoreImplement]
     Task<FeishuApiResult<FileUploadResult>?> UploadFileAsync(
-       [Body] UploadFileRequest uploadFileRequest,
+       [FormContent] UploadFileRequest uploadFileRequest,
        CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -307,9 +306,8 @@ public interface IFeishuTenantV1Message : IFeishuV1Message
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/im/v1/images")]
-    [IgnoreImplement]
     Task<FeishuApiResult<ImageUpdateResult>?> UploadImageAsync(
-         [Body] UploadImageRequest uploadImageRequest,
+         [FormContent] UploadImageRequest uploadImageRequest,
          CancellationToken cancellationToken = default);
 
     #endregion

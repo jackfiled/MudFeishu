@@ -5,29 +5,17 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu.DataModels.Messages;
+namespace Mud.Feishu.DataModels.AttendanceUser;
 
 /// <summary>
-/// 文件图片请求体。
+/// 上传文件请求体
 /// </summary>
-public class UploadImageRequest
+public class UploadFileRequest
 {
-    /// <summary>
-    /// <para>图片类型</para>
-    /// <para>必填：是</para>
-    /// <para>示例值：message</para>
-    /// <para>可选值：<list type="bullet">
-    /// <item>message：用于发送消息</item>
-    /// <item>avatar：用于设置头像</item>
-    /// </list></para>
-    /// </summary>
-    [JsonPropertyName("image_type")]
-    public string ImageType { get; set; } = string.Empty;
-
     /// <summary>
     /// 需要上传的文件的本地路径，必须是绝对路径。上传前会先检查该路径下是否存在该文件，如果不存在则会抛出异常。
     /// </summary>
     [FilePath]
-    [JsonPropertyName("image")]
+    [JsonPropertyName("file")]
     public string? FilePath { get; set; }
 }

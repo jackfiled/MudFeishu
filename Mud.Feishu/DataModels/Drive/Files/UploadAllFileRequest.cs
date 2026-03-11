@@ -56,4 +56,11 @@ public class UploadAllFileRequest
     /// </summary>
     [JsonPropertyName("checksum")]
     public string? Checksum { get; set; }
+
+    /// <summary>
+    /// 需要上传的文件的本地路径，必须是绝对路径。上传前会先检查该路径下是否存在该文件，如果不存在则会抛出异常。
+    /// </summary>
+    [FilePath]
+    [JsonPropertyName("file")]
+    public string? FilePath { get; set; }
 }
