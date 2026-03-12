@@ -59,4 +59,57 @@ public interface IFeishuV1DriveFilesVersions : IFeishuAppContextSwitcher
          [Query("page_token")] string? page_token = null,
          [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
          CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 用于获取文档或电子表格指定版本的信息，包括标题、标识、创建者、创建时间等。
+    /// </summary>
+    /// <param name="file_token">文件的 token
+    /// <para>示例值：XIHSdYSI7oMEU1xrsnxc8fabcef</para>
+    /// </param>
+    /// <param name="version_id">版本文档的版本标识，示例值："fnJfyX"</param>
+    /// <param name="obj_type">
+    /// <para>必填：是</para>
+    /// <para>源文档的类型</para>
+    /// <para>示例值：docx</para>
+    /// <list type="bullet">
+    /// <item>docx：新版文档</item>
+    /// <item>sheet：电子表格</item>
+    /// </list>
+    /// </param>
+    /// <param name="user_id_type">用户 ID，ID 类型需要与查询参数中的 user_id_type 类型保持一致。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    [Get("/open-apis/drive/v1/files/{file_token}/versions/{version_id}")]
+    Task<FeishuApiResult<FileVersionInfo>?> GetFileVersionByFileTokenAsync(
+       [Path] string? file_token,
+       [Path] string version_id,
+       [Query("obj_type")] string obj_type,
+       [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
+       CancellationToken cancellationToken = default);
+
+
+    /// <summary>
+    /// 删除基于在线文档或电子表格创建的版本。
+    /// </summary>
+    /// <param name="file_token">文件的 token
+    /// <para>示例值：XIHSdYSI7oMEU1xrsnxc8fabcef</para>
+    /// </param>
+    /// <param name="version_id">版本文档的版本标识，示例值："fnJfyX"</param>
+    /// <param name="obj_type">
+    /// <para>必填：是</para>
+    /// <para>源文档的类型</para>
+    /// <para>示例值：docx</para>
+    /// <list type="bullet">
+    /// <item>docx：新版文档</item>
+    /// <item>sheet：电子表格</item>
+    /// </list>
+    /// </param>
+    /// <param name="user_id_type">用户 ID，ID 类型需要与查询参数中的 user_id_type 类型保持一致。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    [Delete("/open-apis/drive/v1/files/{file_token}/versions/{version_id}")]
+    Task<FeishuNullDataApiResult?> DeleteFileVersionByFileTokenAsync(
+       [Path] string? file_token,
+       [Path] string version_id,
+       [Query("obj_type")] string obj_type,
+       [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
+       CancellationToken cancellationToken = default);
 }
