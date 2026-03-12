@@ -601,19 +601,7 @@ internal static class HttpClientExtensions
 
             if (filePathAttr != null)
             {
-                if (!File.Exists(stringValue))
-                    throw new FileNotFoundException($"文件未找到: {stringValue}");
-
-
-#if NETSTANDARD2_0
-                var fileBytes =  File.ReadAllBytes(stringValue);
-#else
-                // 异步读取文件
-                var fileBytes = await File.ReadAllBytesAsync(stringValue, cancellationToken);
-#endif
-                var fileContent = new ByteArrayContent(fileBytes);
-                var contentType = GetContentType(stringValue);
-                fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+                var fileContent = await GetByteArrayContentAsync(stringValue);
                 formData.Add(fileContent, fieldName, Path.GetFileName(stringValue));
             }
             else
@@ -626,6 +614,60 @@ internal static class HttpClientExtensions
         return formData;
     }
 
+    /// <summary>
+    /// 根据文件路径异步创建ByteArrayContent，自动设置Content-Type
+    /// </summary>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>配置了Content-Type的ByteArrayContent实例</returns>
+    /// <exception cref="FileNotFoundException">文件不存在时抛出</exception>
+    /// <exception cref="ArgumentNullException">文件路径为null时抛出</exception>
+    /// <exception cref="PathTooLongException">路径过长时抛出</exception>
+    /// <exception cref="DirectoryNotFoundException">目录不存在时抛出</exception>
+    /// <exception cref="UnauthorizedAccessException">没有文件读取权限时抛出</exception>
+    public static async Task<ByteArrayContent> GetByteArrayContentAsync(
+        string filePath,
+        CancellationToken cancellationToken = default)
+    {
+        // 参数验证
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentNullException(nameof(filePath), "文件路径不能为空");
+
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException($"文件未找到: {filePath}", filePath);
+
+        try
+        {
+            byte[] fileBytes;
+#if NETSTANDARD2_0
+            fileBytes = File.ReadAllBytes(filePath);
+#else
+            // 异步读取文件
+            fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken)
+                .ConfigureAwait(false);
+#endif
+
+            var contentType = GetContentType(filePath);
+            var byteContent = new ByteArrayContent(fileBytes);
+            byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+
+            return byteContent;
+        }
+        catch (OperationCanceledException)
+        {
+            // 可以记录日志或直接抛出
+            throw;
+        }
+        catch (Exception ex) when (ex is IOException ||
+                                   ex is UnauthorizedAccessException ||
+                                   ex is PathTooLongException)
+        {
+            // 包装常见的IO异常，提供更具体的错误信息
+            throw new InvalidOperationException($"读取文件失败: {filePath}", ex);
+        }
+    }
+
+    // 使用readonly修饰符，表明这个字典不应该被修改
     private static readonly Dictionary<string, string> ContentTypeMappings = new(StringComparer.OrdinalIgnoreCase)
     {
         // 图片
@@ -672,10 +714,20 @@ internal static class HttpClientExtensions
         [".xml"] = "application/xml",
     };
 
-    // 根据文件扩展名获取对应的 Content-Type
+    /// <summary>
+    /// 根据文件扩展名获取对应的 Content-Type
+    /// </summary>
+    /// <param name="fileName">文件名或文件路径</param>
+    /// <returns>Content-Type字符串，默认返回 application/octet-stream</returns>
     private static string GetContentType(string fileName)
     {
+        // 处理特殊情况
+        if (string.IsNullOrEmpty(fileName))
+            return "application/octet-stream";
+
         var extension = Path.GetExtension(fileName);
+
+        // 使用TryGetValue避免两次查找
         return ContentTypeMappings.TryGetValue(extension, out var contentType)
             ? contentType
             : "application/octet-stream";
