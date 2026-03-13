@@ -303,4 +303,33 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
     [Get("/open-apis/drive/v1/export_tasks/file/{file_token}/download")]
     Task DownloadExportLargeFileAsync([Path] string file_token, [FilePath] string localFile, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// 获取指定云文档的点赞者列表并按点赞时间由近到远分页返回。
+    /// </summary>
+    /// <param name="file_token">文件的 token
+    /// <para>示例值：XIHSdYSI7oMEU1xrsnxc8fabcef</para>
+    /// </param>
+    /// <param name="file_type">
+    /// <para>必填：是</para>
+    /// <para>云文档类型，如果该值为空或者与云文档实际类型不匹配，接口会返回失败。</para>
+    /// <para>示例值：doc</para>
+    /// <list type="bullet">
+    /// <item>doc：旧版文档</item>
+    /// <item>docx：新版文档</item>
+    /// <item>file：文件</item>
+    /// </list>
+    /// </param>
+    /// <param name="page_size">分页大小，即本次请求所返回的用户信息列表内的最大条目数。默认值：10</param>
+    /// <param name="page_token">分页标记，第一次请求不填，表示从头开始遍历；分页查询结果还有更多项时会同时返回新的 page_token，下次遍历可采用该 page_token 获取查询结果</param>
+    /// <param name="user_id_type">用户 ID，ID 类型需要与查询参数中的 user_id_type 类型保持一致。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+
+    [Get("/open-apis/drive/v2/files/{file_token}/likes")]
+    Task<FeishuApiPageListResult<FileLikeInfo>?> GetFileLikePageListByFileTokenAsync(
+       [Path] string? file_token,
+       [Query("file_type")] string file_type,
+       [Query("page_size")] int page_size = Consts.PageSize,
+       [Query("page_token")] string? page_token = null,
+       [Query("user_id_type")] string? user_id_type = Consts.User_Id_Type,
+       CancellationToken cancellationToken = default);
 }
