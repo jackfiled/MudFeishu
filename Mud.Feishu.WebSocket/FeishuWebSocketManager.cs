@@ -21,7 +21,7 @@ namespace Mud.Feishu.WebSocket;
 public class FeishuWebSocketManager : IFeishuWebSocketManager
 {
     private readonly ILogger<FeishuWebSocketManager> _logger;
-    private readonly IMudAppContext _appContext;
+    private readonly IFeishuAppContext _appContext;
     private readonly FeishuWebSocketOptions _webSocketOptions;
     private readonly IFeishuWebSocketClient _webSocketClient;
     private readonly SemaphoreSlim _startStopLock = new(1, 1);
@@ -42,7 +42,7 @@ public class FeishuWebSocketManager : IFeishuWebSocketManager
     /// <param name="webSocketClient">WebSocket客户端</param>
     public FeishuWebSocketManager(
         ILogger<FeishuWebSocketManager> logger,
-        IMudAppContext appContext,
+        IFeishuAppContext appContext,
         IOptions<FeishuWebSocketOptions> webSocketOptions,
         IFeishuWebSocketClient webSocketClient)
     {

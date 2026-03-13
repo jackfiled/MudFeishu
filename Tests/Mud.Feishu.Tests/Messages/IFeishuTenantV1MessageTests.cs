@@ -281,7 +281,7 @@ public class IFeishuTenantV1MessageTests
     public void TestUploadFileAsyncRequestBody()
     {
         string bodyStr = "";
-        var requestBody = JsonSerializer.Deserialize<UploadFileRequest>(bodyStr, _jsonSerializerOptions);
+        var requestBody = JsonSerializer.Deserialize<UploadMessageFileRequest>(bodyStr, _jsonSerializerOptions);
 
         // 验证顶层对象非空
         Assert.NotNull(requestBody);

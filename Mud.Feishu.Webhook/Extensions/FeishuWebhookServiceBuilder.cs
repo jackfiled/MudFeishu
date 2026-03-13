@@ -508,7 +508,10 @@ public class FeishuWebhookServiceBuilder
         catch (Exception ex)
         {
             // 健康检查注册失败不应该影响主要功能
-            System.Diagnostics.Debug.WriteLine($"健康检查注册失败: {ex.Message}");
+            // 使用日志记录而非 Debug.WriteLine
+            var loggerFactory = _services.BuildServiceProvider().GetService<ILoggerFactory>();
+            var logger = loggerFactory?.CreateLogger<FeishuWebhookServiceBuilder>();
+            logger?.LogWarning(ex, "健康检查注册失败: {Message}", ex.Message);
         }
     }
 

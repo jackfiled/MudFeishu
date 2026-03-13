@@ -23,7 +23,7 @@ public class SecurityAuditService : ISecurityAuditService
     }
 
     /// <inheritdoc />
-    public async Task LogSecurityFailureAsync(
+    public Task LogSecurityFailureAsync(
         SecurityEventType eventType,
         string clientIp,
         string requestPath,
@@ -44,11 +44,11 @@ public class SecurityAuditService : ISecurityAuditService
         _logger.LogWarning(message);
 
         // 这里可以扩展到外部安全审计系统，如SIEM等
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public async Task LogSecuritySuccessAsync(
+    public Task LogSecuritySuccessAsync(
         SecurityEventType eventType,
         string clientIp,
         string requestPath,
@@ -69,6 +69,6 @@ public class SecurityAuditService : ISecurityAuditService
         _logger.LogInformation(message);
 
         // 这里可以扩展到外部安全审计系统，如SIEM等
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

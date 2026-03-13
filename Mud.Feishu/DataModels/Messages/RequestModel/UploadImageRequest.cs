@@ -10,7 +10,8 @@ namespace Mud.Feishu.DataModels.Messages;
 /// <summary>
 /// 文件图片请求体。
 /// </summary>
-public class UploadImageRequest
+[FormContent]
+public partial class UploadImageRequest
 {
     /// <summary>
     /// <para>图片类型</para>

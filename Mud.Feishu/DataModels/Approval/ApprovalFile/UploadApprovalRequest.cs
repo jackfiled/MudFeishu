@@ -10,7 +10,8 @@ namespace Mud.Feishu.DataModels.ApprovalFile;
 /// <summary>
 /// 上传文件请求体
 /// </summary>
-public class UploadFileRequest
+[FormContent]
+public partial class UploadApprovalRequest
 {
     /// <summary>
     /// <para>文件名，需包含文件扩展名。例如 `文件.doc</para>

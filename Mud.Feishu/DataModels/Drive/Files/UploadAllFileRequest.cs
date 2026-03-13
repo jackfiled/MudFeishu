@@ -10,7 +10,8 @@ namespace Mud.Feishu.DataModels.Drive.Files;
 /// <summary>
 /// 上传文件请求体
 /// </summary>
-public class UploadAllFileRequest
+[FormContent]
+public partial class UploadAllFileRequest
 {
     /// <summary>
     /// <para>要上传的文件的名称。</para>

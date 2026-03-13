@@ -55,7 +55,6 @@ public interface IFeishuTenantV1AttendanceUserSettings : IFeishuAppContextSwitch
     /// <returns></returns>
     [Post("/open-apis/attendance/v1/files/upload")]
     Task<FeishuApiResult<UserFileUploadResult>?> UploadFileAsync(
-        [Query("file_name")] string file_name,
         [FormContent] UploadFileRequest uploadFileRequest,
         CancellationToken cancellationToken = default);
 

@@ -21,7 +21,7 @@ namespace Mud.Feishu.Abstractions;
 /// 
 /// 每个应用上下文是完全独立的，不同应用之间的配置、缓存和资源互不干扰。
 /// </remarks>
-public class FeishuAppContext : IMudAppContext, IDisposable
+public class FeishuAppContext : IFeishuAppContext, IMudAppContext, IDisposable
 {
     /// <summary>
     /// HTTP客户端

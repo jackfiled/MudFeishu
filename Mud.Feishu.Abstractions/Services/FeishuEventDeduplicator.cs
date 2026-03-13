@@ -284,10 +284,10 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
     }
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         if (_disposed)
-            return;
+            return new ValueTask();
 
         _disposed = true;
         _cleanupTimer.Dispose();
@@ -297,7 +297,7 @@ public class FeishuEventDeduplicator : IFeishuEventDeduplicator
             _eventCache.Clear();
         }
 
-        await Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <summary>

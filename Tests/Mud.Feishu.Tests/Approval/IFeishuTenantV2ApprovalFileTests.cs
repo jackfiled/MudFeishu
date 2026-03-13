@@ -26,7 +26,7 @@ public class IFeishuTenantV2ApprovalFileTests
     }
 
     /// <summary>
-    /// 用于测试<see cref="IFeishuTenantV2ApprovalFile.UploadFileAsync(UploadFileRequest, CancellationToken)"/>函数的请求体反序列化。
+    /// 用于测试<see cref="IFeishuTenantV2ApprovalFile.UploadFileAsync(UploadApprovalRequest, CancellationToken)"/>函数的请求体反序列化。
     /// </summary>
     [Fact]
     public void Test_UploadFileAsync_RequestBody()
@@ -37,13 +37,13 @@ public class IFeishuTenantV2ApprovalFileTests
 	""type"":""attachment""
 }
 ";
-        var requestBody = JsonSerializer.Deserialize<UploadFileRequest>(bodyStr, _jsonSerializerOptions);
+        var requestBody = JsonSerializer.Deserialize<UploadApprovalRequest>(bodyStr, _jsonSerializerOptions);
 
         Assert.NotNull(requestBody);
     }
 
     /// <summary>
-    /// 用于测试<see cref="IFeishuTenantV2ApprovalFile.UploadFileAsync(UploadFileRequest, CancellationToken)"/>函数的返回结果反序列化。
+    /// 用于测试<see cref="IFeishuTenantV2ApprovalFile.UploadFileAsync(UploadApprovalRequest, CancellationToken)"/>函数的返回结果反序列化。
     /// </summary>
     [Fact]
     public void Test_UploadFileAsync_Result()

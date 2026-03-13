@@ -101,7 +101,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 获取默认应用上下文
     /// </summary>
-    public IMudAppContext GetDefaultApp()
+    public IFeishuAppContext GetDefaultApp()
     {
         var defaultApp = _apps.Values.FirstOrDefault(a => a.Config.IsDefault)
             ?? throw new InvalidOperationException("未配置默认应用");
@@ -112,7 +112,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 获取指定应用上下文
     /// </summary>
-    public IMudAppContext GetApp(string appKey)
+    public IFeishuAppContext GetApp(string appKey)
     {
         if (string.IsNullOrWhiteSpace(appKey))
             return GetDefaultApp();
@@ -126,7 +126,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 尝试获取应用上下文
     /// </summary>
-    public bool TryGetApp(string appKey, out IMudAppContext? appContext)
+    public bool TryGetApp(string appKey, out IFeishuAppContext? appContext)
     {
         if (string.IsNullOrWhiteSpace(appKey))
         {
@@ -150,7 +150,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 获取所有已注册的应用
     /// </summary>
-    public IEnumerable<IMudAppContext> GetAllApps()
+    public IEnumerable<IFeishuAppContext> GetAllApps()
     {
         return _apps.Values;
     }
@@ -166,7 +166,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <summary>
     /// 运行时添加应用
     /// </summary>
-    public IMudAppContext AddApp(FeishuAppConfig config)
+    public IFeishuAppContext AddApp(FeishuAppConfig config)
     {
         config.Validate();
 

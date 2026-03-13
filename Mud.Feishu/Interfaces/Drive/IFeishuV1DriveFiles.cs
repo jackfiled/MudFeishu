@@ -180,10 +180,17 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
     /// 下载云空间中的文件，如 PDF 文件。不包含飞书文档、电子表格以及多维表格等在线文档。该接口支持通过在请求头添加 Range 参数分片下载部分文件。
     /// </summary>
     /// <param name="file_token">文件的 token，示例值："boxcnabCdefgabcef"。</param>
+    /// <param name="range">
+    /// <para> 在 HTTP 请求头中，通过指定 Range 来下载文件的部分内容，单位是字节（byte）。</para>
+    /// <para> 该参数的格式为 Range: bytes=start-end，示例值为 Range: bytes=0-1024，表示下载第 0 个字节到第 1024 个字节之间的数据。</para>
+    /// </param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Get("/open-apis/drive/v1/files/{file_token}/download")]
-    Task<byte[]?> DownloadFileAsync([Path] string file_token, CancellationToken cancellationToken = default);
+    Task<byte[]?> DownloadFileAsync(
+        [Path] string file_token,
+        [Header("Range")] string? range = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// <para>用于创建导入文件的任务，并返回导入任务 ID。导入文件指将本地文件如 Word、TXT、Markdown、Excel 等格式的文件导入为某种格式的飞书在线云文档。</para>
@@ -245,5 +252,16 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
     /// <returns></returns>
     [Get("/open-apis/drive/v1/export_tasks/file/{file_token}/download")]
     Task<byte[]?> DownloadExportFileAsync([Path] string file_token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 根据查询导出任务结果返回的导出文件的 token，下载导出产物到本地（适应于导出的大文件下载）。
+    /// </summary>
+    /// <remarks>你需及时下载导出的文件。在导出任务结束 10 分钟后，导出的文件将被删除，导致无法下载。</remarks>
+    /// <param name="file_token">导出的文件的 token，示例值："boxcnabCdefgabcef"。</param>
+    /// <param name="localFile">需要保存的本地文件。</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Get("/open-apis/drive/v1/export_tasks/file/{file_token}/download")]
+    Task DownloadExportLargeFileAsync([Path] string file_token, [FilePath] string localFile, CancellationToken cancellationToken = default);
 
 }

@@ -296,7 +296,7 @@ public interface IFeishuTenantV1Message : IFeishuV1Message
     /// <returns></returns>
     [Post("/open-apis/im/v1/files")]
     Task<FeishuApiResult<FileUploadResult>?> UploadFileAsync(
-       [FormContent] UploadFileRequest uploadFileRequest,
+       [FormContent] UploadMessageFileRequest uploadFileRequest,
        CancellationToken cancellationToken = default);
 
     /// <summary>

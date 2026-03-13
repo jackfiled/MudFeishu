@@ -12,212 +12,93 @@ namespace Mud.Feishu.Abstractions.Services;
 /// <para>使用内存 HashSet 存储已处理的 SeqID，自动清理过期数据</para>
 /// <para>适用于单实例场景，多实例部署建议使用 Redis 实现</para>
 /// </summary>
-public class FeishuSeqIDDeduplicator : IFeishuSeqIDDeduplicator, IAsyncDisposable
+public sealed class FeishuSeqIDDeduplicator : MemoryDeduplicator<ulong>, IFeishuSeqIDDeduplicator
 {
-    private readonly ILogger<FeishuSeqIDDeduplicator>? _logger;
-    private readonly HashSet<ulong> _processedSeqIds;
-    private readonly Timer _cleanupTimer;
-    private readonly TimeSpan _cacheExpiration;
-    private readonly TimeSpan _cleanupInterval;
-    private readonly Dictionary<ulong, DateTimeOffset> _seqIdTimestamps; // 用于跟踪 SeqID 的时间戳
-    private readonly object _lock = new();
-    private bool _disposed;
     private ulong _maxProcessedSeqId = 0;
+    private readonly object _maxIdLock = new();
 
     /// <summary>
     /// 构造函数
     /// </summary>
-    /// <param name="logger">日志记录器（可选）</param>
-    /// <param name="cacheExpiration">缓存过期时间，默认 24 小时</param>
-    /// <param name="cleanupInterval">清理间隔时间，默认 5 分钟</param>
     public FeishuSeqIDDeduplicator(
         ILogger<FeishuSeqIDDeduplicator>? logger = null,
         TimeSpan? cacheExpiration = null,
         TimeSpan? cleanupInterval = null)
+        : base(logger, cacheExpiration, cleanupInterval)
     {
-        _logger = logger;
-        _processedSeqIds = new HashSet<ulong>();
-        _seqIdTimestamps = new Dictionary<ulong, DateTimeOffset>();
-        _cacheExpiration = cacheExpiration ?? TimeSpan.FromHours(24);
-        _cleanupInterval = cleanupInterval ?? TimeSpan.FromMinutes(5);
-
-        // 启动定期清理任务
-        _cleanupTimer = new Timer(CleanupExpiredEntries, null, _cleanupInterval, _cleanupInterval);
-
-        _logger?.LogInformation("飞书 SeqID 去重服务初始化完成，缓存过期时间: {Expiration}, 清理间隔: {CleanupInterval}",
-            _cacheExpiration, _cleanupInterval);
+        logger?.LogInformation("飞书 SeqID 去重服务初始化完成，缓存过期时间: {Expiration}, 清理间隔: {CleanupInterval}",
+            cacheExpiration ?? TimeSpan.FromHours(24),
+            cleanupInterval ?? TimeSpan.FromMinutes(5));
     }
 
     /// <inheritdoc />
     public bool TryMarkAsProcessed(ulong seqId)
     {
-        lock (_lock)
+        var result = base.TryMarkAsProcessed(seqId);
+
+        if (result)
         {
-            // 检查是否已存在
-            if (_processedSeqIds.Contains(seqId))
-            {
-                _logger?.LogDebug("SeqID {SeqId} 已处理过，跳过", seqId);
-                return true; // 已处理
-            }
-
-            // 记录新 SeqID
-            _processedSeqIds.Add(seqId);
-            _seqIdTimestamps[seqId] = DateTimeOffset.UtcNow;
-
-            // 更新最大 SeqID
-            if (seqId > _maxProcessedSeqId)
-            {
-                _maxProcessedSeqId = seqId;
-            }
-
-            _logger?.LogDebug("SeqID {SeqId} 标记为已处理，当前最大 SeqID: {MaxSeqId}", seqId, _maxProcessedSeqId);
-            return false; // 未处理，新消息
+            Logger?.LogDebug("SeqID {SeqId} 已处理过，跳过", seqId);
         }
+        else
+        {
+            lock (_maxIdLock)
+            {
+                if (seqId > _maxProcessedSeqId)
+                {
+                    _maxProcessedSeqId = seqId;
+                }
+            }
+            Logger?.LogDebug("SeqID {SeqId} 标记为已处理，当前最大 SeqID: {MaxSeqId}", seqId, _maxProcessedSeqId);
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
     public Task<bool> TryMarkAsProcessedAsync(ulong seqId)
     {
-        lock (_lock)
-        {
-            // 检查是否已存在
-            if (_processedSeqIds.Contains(seqId))
-            {
-                _logger?.LogDebug("SeqID {SeqId} 已处理过，跳过", seqId);
-                return Task.FromResult(true); // 已处理
-            }
-
-            // 记录新 SeqID
-            _processedSeqIds.Add(seqId);
-            _seqIdTimestamps[seqId] = DateTimeOffset.UtcNow;
-
-            // 更新最大 SeqID
-            if (seqId > _maxProcessedSeqId)
-            {
-                _maxProcessedSeqId = seqId;
-            }
-
-            _logger?.LogDebug("SeqID {SeqId} 标记为已处理，当前最大 SeqID: {MaxSeqId}", seqId, _maxProcessedSeqId);
-            return Task.FromResult(false); // 未处理，新消息
-        }
+        return Task.FromResult(TryMarkAsProcessed(seqId));
     }
 
     /// <inheritdoc />
     public bool IsProcessed(ulong seqId)
     {
-        lock (_lock)
-        {
-            return _processedSeqIds.Contains(seqId);
-        }
+        return base.IsProcessed(seqId);
     }
 
     /// <inheritdoc />
     public Task<bool> IsProcessedAsync(ulong seqId)
     {
-        lock (_lock)
-        {
-            return Task.FromResult(_processedSeqIds.Contains(seqId));
-        }
+        return Task.FromResult(base.IsProcessed(seqId));
     }
 
     /// <inheritdoc />
-    public void ClearCache()
+    public override void ClearCache()
     {
-        lock (_lock)
+        var count = Count;
+        base.ClearCache();
+
+        lock (_maxIdLock)
         {
-            var count = _processedSeqIds.Count;
-            _processedSeqIds.Clear();
-            _seqIdTimestamps.Clear();
             _maxProcessedSeqId = 0;
-            _logger?.LogInformation("清空了 {Count} 个 SeqID 缓存条目", count);
         }
+
+        Logger?.LogInformation("清空了 {Count} 个 SeqID 缓存条目", count);
     }
 
     /// <inheritdoc />
     public int GetCacheCount()
     {
-        lock (_lock)
-        {
-            return _processedSeqIds.Count;
-        }
+        return Count;
     }
 
     /// <inheritdoc />
     public ulong GetMaxProcessedSeqId()
     {
-        lock (_lock)
+        lock (_maxIdLock)
         {
             return _maxProcessedSeqId;
         }
-    }
-
-    /// <summary>
-    /// 清理过期条目
-    /// </summary>
-    private void CleanupExpiredEntries(object? state)
-    {
-        try
-        {
-            lock (_lock)
-            {
-                var now = DateTimeOffset.UtcNow;
-                var expiredKeys = _seqIdTimestamps
-                    .Where(kvp => (now - kvp.Value) > _cacheExpiration)
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-
-                foreach (var key in expiredKeys)
-                {
-                    _processedSeqIds.Remove(key);
-                    _seqIdTimestamps.Remove(key);
-                }
-
-                if (expiredKeys.Count > 0)
-                {
-                    _logger?.LogDebug("清理了 {Count} 个过期的 SeqID 缓存条目", expiredKeys.Count);
-
-                    // 清理完成后统一重新计算最大 SeqID，添加异常捕获防止空集合异常
-                    try
-                    {
-                        if (_seqIdTimestamps.Count > 0)
-                        {
-                            _maxProcessedSeqId = _seqIdTimestamps.Keys.Max();
-                        }
-                        else
-                        {
-                            _maxProcessedSeqId = 0;
-                        }
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        _logger?.LogWarning(ex, "计算最大 SeqID 时集合为空，已重置为0");
-                        _maxProcessedSeqId = 0;
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // Timer 回调异常不会影响主流程，仅记录日志
-            _logger?.LogError(ex, "清理过期 SeqID 条目时发生异常");
-        }
-    }
-
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed)
-            return;
-
-        _disposed = true;
-        _cleanupTimer.Dispose();
-
-        lock (_lock)
-        {
-            _processedSeqIds.Clear();
-            _seqIdTimestamps.Clear();
-        }
-
-        await Task.CompletedTask;
     }
 }

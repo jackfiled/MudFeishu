@@ -28,6 +28,6 @@ public interface IFeishuTenantV2ApprovalFile : IFeishuAppContextSwitcher
     /// <returns></returns>
     [Post("/approval/openapi/v2/file/upload")]
     Task<FeishuApiResult<FileUploadResult>?> UploadFileAsync(
-          [FormContent] UploadFileRequest uploadFileRequest,
+          [FormContent] UploadApprovalRequest uploadFileRequest,
           CancellationToken cancellationToken = default);
 }

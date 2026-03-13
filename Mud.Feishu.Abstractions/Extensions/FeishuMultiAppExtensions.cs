@@ -135,7 +135,7 @@ public static class FeishuMultiAppExtensions
             sp.GetRequiredService<ILogger<FeishuAppManager>>()
         ));
         // 注册 IMudAppContext 接口，从 IFeishuAppManager 获取默认应用
-        services.AddSingleton<IMudAppContext>(sp =>
+        services.AddSingleton(sp =>
         {
             var appManager = sp.GetRequiredService<IFeishuAppManager>();
             return appManager.GetDefaultApp();

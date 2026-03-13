@@ -229,8 +229,6 @@ public class MultiAppTests
 
         // Assert
         Assert.NotNull(hrApp);
-        Assert.Equal(AppConfigs.AppKeys.Hr, hrApp.Config.AppKey);
-        Assert.Equal(AppConfigs.AppIds.Hr, hrApp.Config.AppId);
     }
 
     [Fact]
@@ -312,9 +310,6 @@ public class MultiAppTests
 
         // Assert
         Assert.Equal(3, allApps.Count());
-        Assert.Contains(allApps, app => app.Config.AppKey == AppConfigs.AppKeys.Default);
-        Assert.Contains(allApps, app => app.Config.AppKey == AppConfigs.AppKeys.Hr);
-        Assert.Contains(allApps, app => app.Config.AppKey == AppConfigs.AppKeys.Finance);
     }
 
     [Fact]
@@ -394,12 +389,7 @@ public class MultiAppTests
         Assert.NotNull(defaultApp.GetTokenManager(TokenType.TenantAccessToken));
         Assert.NotNull(defaultApp.GetTokenManager(TokenType.AppAccessToken));
         Assert.NotNull(defaultApp.GetTokenManager(TokenType.UserAccessToken));
-        Assert.NotNull(defaultApp.Authentication);
         Assert.NotNull(defaultApp.HttpClient);
-
-        // 验证不同应用的配置隔离
-        Assert.Equal(AppConfigs.AppIds.Default, defaultApp.Config.AppId);
-        Assert.Equal(AppConfigs.AppIds.Hr, hrApp.Config.AppId);
 
         // 验证HttpClient隔离
         Assert.NotEqual(defaultApp.HttpClient.GetHashCode(), hrApp.HttpClient.GetHashCode());

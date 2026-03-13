@@ -46,7 +46,7 @@ public interface IFeishuAppManager
     /// 获取系统配置的默认应用上下文。
     /// 默认应用是通过 FeishuAppConfig.IsDefault = true 标记的应用。
     /// </remarks>
-    IMudAppContext GetDefaultApp();
+    IFeishuAppContext GetDefaultApp();
 
     /// <summary>
     /// 获取指定应用上下文
@@ -58,7 +58,7 @@ public interface IFeishuAppManager
     /// 根据应用键获取对应的飞书应用上下文。
     /// 应用键是在配置中定义的唯一标识，如 "default", "hr-app" 等。
     /// </remarks>
-    IMudAppContext GetApp(string appKey);
+    IFeishuAppContext GetApp(string appKey);
 
     /// <summary>
     /// 尝试获取应用上下文
@@ -69,7 +69,7 @@ public interface IFeishuAppManager
     /// <remarks>
     /// 安全地尝试获取应用上下文，如果应用不存在不会抛出异常。
     /// </remarks>
-    bool TryGetApp(string appKey, out IMudAppContext? appContext);
+    bool TryGetApp(string appKey, out IFeishuAppContext? appContext);
 
     /// <summary>
     /// 获取所有已注册的应用
@@ -78,7 +78,7 @@ public interface IFeishuAppManager
     /// <remarks>
     /// 返回系统中所有已注册的飞书应用上下文。
     /// </remarks>
-    IEnumerable<IMudAppContext> GetAllApps();
+    IEnumerable<IFeishuAppContext> GetAllApps();
 
     /// <summary>
     /// 检查应用是否存在
@@ -101,7 +101,7 @@ public interface IFeishuAppManager
     /// 应用配置会自动验证，验证通过后会创建对应的应用上下文。
     /// 如果应用键已存在，会抛出异常。
     /// </remarks>
-    IMudAppContext AddApp(FeishuAppConfig config);
+    IFeishuAppContext AddApp(FeishuAppConfig config);
 
     /// <summary>
     /// 移除应用
