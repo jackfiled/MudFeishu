@@ -79,3 +79,5 @@ node_modules
 /Demos/Mud.Feishu.Demo/logs
 /Tests/Mud.Feishu.Tests/bin/Debug
 /Tests/Mud.Feishu.Tests/obj
+/Demos/FeishuFileServer/backend/obj
+/Demos/FeishuFileServer/backend/bin
