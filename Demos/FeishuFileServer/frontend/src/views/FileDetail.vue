@@ -73,7 +73,7 @@ const loadFileInfo = async () => {
   loading.value = true
   try {
     const response = await fileApi.getInfo(fileToken)
-    fileInfo.value = response.data
+    fileInfo.value = response
   } catch (error) {
     ElMessage.error('加载文件信息失败')
   } finally {
@@ -90,7 +90,7 @@ const handleDownload = async () => {
   
   try {
     const response = await fileApi.download(fileInfo.value.fileToken)
-    const blob = new Blob([response.data as any])
+    const blob = new Blob([response as any])
     downloadBlob(blob, fileInfo.value.fileName)
     ElMessage.success('下载成功')
   } catch (error) {

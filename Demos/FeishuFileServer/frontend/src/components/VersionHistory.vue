@@ -79,7 +79,7 @@ const loadVersions = async () => {
   loading.value = true
   try {
     const response = await versionApi.getList(props.fileToken)
-    versions.value = response.data.versions || []
+    versions.value = response.versions || []
   } catch (error) {
     ElMessage.error('加载版本历史失败')
   } finally {
@@ -90,7 +90,7 @@ const loadVersions = async () => {
 const handleDownload = async (version: VersionResponse) => {
   try {
     const response = await versionApi.download(props.fileToken, version.versionToken)
-    const blob = new Blob([response.data as any])
+    const blob = new Blob([response as any])
     const filename = `${props.fileName}_v${version.versionNumber}`
     downloadBlob(blob, filename)
     ElMessage.success('下载成功')

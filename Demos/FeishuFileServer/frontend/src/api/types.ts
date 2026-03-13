@@ -103,3 +103,41 @@ export interface VersionCreateResponse {
   versionNumber: number
   createdTime: string
 }
+
+// 用户认证相关类型
+export interface UserInfo {
+  id: number
+  username: string
+  email?: string
+  displayName?: string
+  role: string
+}
+
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
+export interface LoginResponse {
+  token: string
+  tokenType: string
+  expiresIn: number
+  user: UserInfo
+}
+
+export interface RegisterRequest {
+  username: string
+  password: string
+  email?: string
+  displayName?: string
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
+
+export interface UpdateProfileRequest {
+  email?: string
+  displayName?: string
+}

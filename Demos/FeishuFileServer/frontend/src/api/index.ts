@@ -7,9 +7,14 @@ import type {
   FolderResponse,
   FolderListResponse,
   FolderContentsResponse,
-  VersionResponse,
   VersionListResponse,
-  VersionCreateResponse
+  VersionCreateResponse,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  UserInfo,
+  ChangePasswordRequest,
+  UpdateProfileRequest
 } from './types'
 
 export const fileApi = {
@@ -132,6 +137,47 @@ export const versionApi = {
     return request({
       url: `/api/files/${fileToken}/versions/${versionToken}`,
       method: 'delete'
+    })
+  }
+}
+
+export const authApi = {
+  login: (data: LoginRequest) => {
+    return request({
+      url: '/api/auth/login',
+      method: 'post',
+      data
+    }) as Promise<LoginResponse>
+  },
+
+  register: (data: RegisterRequest) => {
+    return request({
+      url: '/api/auth/register',
+      method: 'post',
+      data
+    }) as Promise<LoginResponse>
+  },
+
+  getProfile: () => {
+    return request({
+      url: '/api/auth/profile',
+      method: 'get'
+    }) as Promise<UserInfo>
+  },
+
+  updateProfile: (data: UpdateProfileRequest) => {
+    return request({
+      url: '/api/auth/profile',
+      method: 'put',
+      data
+    }) as Promise<UserInfo>
+  },
+
+  changePassword: (data: ChangePasswordRequest) => {
+    return request({
+      url: '/api/auth/change-password',
+      method: 'post',
+      data
     })
   }
 }

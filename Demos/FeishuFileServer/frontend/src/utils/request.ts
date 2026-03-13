@@ -1,6 +1,8 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { AxiosInstance, AxiosResponse } from 'axios'
+import { useAuthStore } from '@/stores/authStore'
+import router from '@/router'
 
 const service: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -9,6 +11,10 @@ const service: AxiosInstance = axios.create({
 
 service.interceptors.request.use(
   (config) => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   (error) => {
@@ -19,11 +25,20 @@ service.interceptors.request.use(
 
 service.interceptors.response.use(
   (response: AxiosResponse) => {
-    return response
+    return response.data
   },
   (error) => {
     const message = error.response?.data?.message || error.message || '请求失败'
-    ElMessage.error(message)
+    
+    if (error.response?.status === 401) {
+      const authStore = useAuthStore()
+      authStore.logout()
+      router.push('/login')
+      ElMessage.error('登录已过期，请重新登录')
+    } else {
+      ElMessage.error(message)
+    }
+    
     return Promise.reject(error)
   }
 )

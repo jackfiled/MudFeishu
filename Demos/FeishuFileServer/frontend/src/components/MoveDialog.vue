@@ -15,7 +15,7 @@
         :default-expand-all="true"
         @node-click="handleNodeClick"
       >
-        <template #default="{ node, data }">
+        <template #default="{ node }">
           <div class="tree-node">
             <el-icon class="folder-icon"><Folder /></el-icon>
             <span>{{ node.label }}</span>
@@ -60,7 +60,7 @@ const treeProps = {
 const loadFolders = async () => {
   try {
     const response = await folderApi.getList()
-    folders.value = buildTree(response.data.folders)
+    folders.value = buildTree(response.folders)
   } catch (error) {
     ElMessage.error('加载文件夹失败')
   }

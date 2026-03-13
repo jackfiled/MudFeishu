@@ -46,6 +46,26 @@
                 <el-icon><Grid /></el-icon>
               </el-radio-button>
             </el-radio-group>
+            <el-dropdown @command="handleUserCommand">
+              <el-button text>
+                <el-icon><User /></el-icon>
+                {{ authStore.displayName }}
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="profile">
+                    <el-icon><UserFilled /></el-icon>个人信息
+                  </el-dropdown-item>
+                  <el-dropdown-item command="password">
+                    <el-icon><Lock /></el-icon>修改密码
+                  </el-dropdown-item>
+                  <el-dropdown-item divided command="logout">
+                    <el-icon><SwitchButton /></el-icon>退出登录
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
 
@@ -127,17 +147,28 @@
       :file-name="currentFileName"
       @close="versionHistoryVisible = false"
     />
+
+    <UserProfileDialog
+      v-if="userProfileVisible"
+      @close="userProfileVisible = false"
+    />
+
+    <ChangePasswordDialog
+      v-if="changePasswordVisible"
+      @close="changePasswordVisible = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Upload, FolderAdd, Search, List, Grid, HomeFilled, Fold, Expand, User, ArrowDown, UserFilled, Lock, SwitchButton } from '@element-plus/icons-vue'
 import { useFileStore } from '@/stores/fileStore'
 import { useFolderStore } from '@/stores/folderStore'
 import { useAppStore } from '@/stores/appStore'
-import { useUploadStore } from '@/stores/uploadStore'
+import { useAuthStore } from '@/stores/authStore'
 import { folderApi, fileApi } from '@/api'
 import FolderTree from '@/components/FolderTree.vue'
 import FileList from '@/components/FileList.vue'
@@ -146,12 +177,15 @@ import CreateFolderDialog from '@/components/CreateFolderDialog.vue'
 import RenameDialog from '@/components/RenameDialog.vue'
 import MoveDialog from '@/components/MoveDialog.vue'
 import VersionHistory from '@/components/VersionHistory.vue'
+import UserProfileDialog from '@/components/UserProfileDialog.vue'
+import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue'
 
 const route = useRoute()
+const router = useRouter()
 const fileStore = useFileStore()
 const folderStore = useFolderStore()
 const appStore = useAppStore()
-const uploadStore = useUploadStore()
+const authStore = useAuthStore()
 
 const searchKeyword = ref('')
 const showCreateFolderDialog = ref(false)
@@ -159,17 +193,28 @@ const currentFolderToken = ref<string | undefined>(undefined)
 const currentFileToken = ref('')
 const currentFileName = ref('')
 const versionHistoryVisible = ref(false)
+const userProfileVisible = ref(false)
+const changePasswordVisible = ref(false)
 
 const breadcrumbList = computed(() => folderStore.currentFolderPath)
 
-const renameDialog = ref({
+const renameDialog = ref<{
+  visible: boolean
+  currentName: string
+  type: 'file' | 'folder'
+  token: string
+}>({
   visible: false,
   currentName: '',
   type: 'file',
   token: ''
 })
 
-const moveDialog = ref({
+const moveDialog = ref<{
+  visible: boolean
+  itemToken: string
+  itemType: 'file' | 'folder'
+}>({
   visible: false,
   itemToken: '',
   itemType: 'file'
@@ -179,7 +224,7 @@ const loadFolders = async () => {
   try {
     folderStore.setLoading(true)
     const response = await folderApi.getList()
-    folderStore.setFolders(response.data.folders)
+    folderStore.setFolders(response.folders)
   } catch (error) {
     ElMessage.error('加载文件夹失败')
   } finally {
@@ -191,7 +236,7 @@ const loadFiles = async () => {
   try {
     fileStore.setLoading(true)
     const response = await fileApi.getList(currentFolderToken.value, fileStore.page, fileStore.pageSize)
-    fileStore.setFiles(response.data.files, response.data.totalCount)
+    fileStore.setFiles(response.files, response.totalCount)
   } catch (error) {
     ElMessage.error('加载文件列表失败')
   } finally {
@@ -317,6 +362,31 @@ const handleSizeChange = () => {
 
 const handlePageChange = () => {
   loadFiles()
+}
+
+const handleUserCommand = async (command: string) => {
+  switch (command) {
+    case 'profile':
+      userProfileVisible.value = true
+      break
+    case 'password':
+      changePasswordVisible.value = true
+      break
+    case 'logout':
+      try {
+        await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+          type: 'warning'
+        })
+        authStore.logout()
+        router.push('/login')
+        ElMessage.success('已退出登录')
+      } catch (error: any) {
+        if (error !== 'cancel') {
+          console.error('退出登录失败:', error)
+        }
+      }
+      break
+  }
 }
 
 watch(() => route.params.folderToken, (newToken) => {

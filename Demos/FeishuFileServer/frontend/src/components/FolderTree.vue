@@ -93,7 +93,6 @@ const hideContextMenu = () => {
 
 const handleCreateSubFolder = async () => {
   hideContextMenu()
-  const parentToken = contextMenu.value.folder?.folderToken
   // 可以在这里打开创建子文件夹对话框
 }
 

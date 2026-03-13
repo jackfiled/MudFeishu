@@ -12,6 +12,7 @@ public class FeishuFileDbContext : DbContext
     public DbSet<FileRecord> FileRecords { get; set; }
     public DbSet<FolderRecord> FolderRecords { get; set; }
     public DbSet<VersionRecord> VersionRecords { get; set; }
+    public DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,13 @@ public class FeishuFileDbContext : DbContext
             entity.HasIndex(e => e.FileToken);
             entity.HasIndex(e => e.VersionToken).IsUnique();
             entity.HasIndex(e => e.IsCurrentVersion);
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasIndex(e => e.Username).IsUnique();
+            entity.HasIndex(e => e.Email);
+            entity.HasIndex(e => e.IsActive);
         });
     }
 }

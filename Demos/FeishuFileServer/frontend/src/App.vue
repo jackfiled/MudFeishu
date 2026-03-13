@@ -1,5 +1,16 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import { onMounted } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
+
+const authStore = useAuthStore()
+
+onMounted(() => {
+  authStore.init()
+  if (authStore.isLoggedIn) {
+    authStore.fetchProfile()
+  }
+})
 </script>
 
 <template>

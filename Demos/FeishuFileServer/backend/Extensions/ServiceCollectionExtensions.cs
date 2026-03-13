@@ -1,9 +1,13 @@
+using System.Text;
 using FeishuFileServer.Configuration;
 using FeishuFileServer.Data;
+using FeishuFileServer.Models;
 using FeishuFileServer.Services;
 using FeishuFileServer.Services.Feishu;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using Mud.Feishu.Abstractions;
 using Mud.Feishu.Interfaces;
 
@@ -29,6 +33,33 @@ public static class ServiceCollectionExtensions
         services.Configure<FileUploadSettings>(configuration.GetSection("FileUploadSettings"));
         services.Configure<VersionManagementSettings>(configuration.GetSection("VersionManagement"));
         services.Configure<CorsSettings>(configuration.GetSection("CorsSettings"));
+        services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
+
+        // 添加 JWT 认证
+        var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>();
+        if (jwtSettings != null && !string.IsNullOrEmpty(jwtSettings.Secret))
+        {
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwtSettings.Issuer,
+                        ValidAudience = jwtSettings.Audience,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                });
+        }
+
+        services.AddAuthorization();
+
+        // 注册认证服务
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }

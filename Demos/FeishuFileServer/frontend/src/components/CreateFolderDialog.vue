@@ -18,10 +18,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage, FormInstance } from 'element-plus'
 import { folderApi } from '@/api'
-import { useFolderStore } from '@/stores/folderStore'
 
 const props = defineProps<{
   parentToken?: string
@@ -35,7 +34,6 @@ const emit = defineEmits<{
 const visible = ref(true)
 const loading = ref(false)
 const formRef = ref<FormInstance>()
-const folderStore = useFolderStore()
 
 const form = reactive({
   name: ''

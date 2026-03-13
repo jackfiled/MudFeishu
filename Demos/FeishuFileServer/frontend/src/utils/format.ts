@@ -109,3 +109,12 @@ export function downloadBlob(blob: Blob, filename: string) {
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
 }
+
+export function getFileIcon(filename: string): string {
+  return getFileTypeIcon(filename)
+}
+
+export function getFileIconClass(filename: string): string {
+  const ext = getFileExtension(filename)
+  return `file-icon ${ext}`
+}
