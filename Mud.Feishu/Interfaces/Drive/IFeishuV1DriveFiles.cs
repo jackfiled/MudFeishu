@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.Feishu.DataModels.Drive;
 using Mud.Feishu.DataModels.Drive.Files;
 
 namespace Mud.Feishu.Interfaces;
@@ -192,7 +193,7 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
 
     /// <summary>
     /// 根据 预上传接口返回的上传事务 ID 和分片策略上传对应的文件分片。
-    /// <para>上传完成后，你需调用分片上传文件（完成上传）触发完成上传。</para>
+    /// <para>上传完成后，需调用分片上传文件（完成上传）触发完成上传。</para>
     /// </summary>
     /// <param name="filesUploadPartRequest"> 分片上传文件-上传分片请求体</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
@@ -203,7 +204,7 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
        CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 将分片全部上传完毕后，你需调用本接口触发完成上传。否则将上传失败。
+    /// 将分片全部上传完毕后，需调用本接口触发完成上传。否则将上传失败。
     /// </summary>
     /// <param name="filesUploadPartRequest">分片上传文件-完成上传请求体</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>

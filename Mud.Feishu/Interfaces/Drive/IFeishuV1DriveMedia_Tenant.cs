@@ -5,18 +5,15 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu.DataModels.Drive.Files;
+namespace Mud.Feishu;
 
 /// <summary>
-/// 分片上传文件-完成上传响应体
+/// 素材指在文档、电子表格、多维表格等中用到的资源素材，如文档中的图片、视频或文件等。每个素材都有唯一的 token 作为标识。
+/// <para>接口详细文档请参见：<see href="https://open.feishu.cn/document/server-docs/docs/drive-v1/media/introduction"/></para>
 /// </summary>
-public class FilesUploadFinishResult
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Drive", InheritedFrom = nameof(FeishuV1DriveMedia))]
+[Header(Consts.Authorization)]
+[Token(TokenType.TenantAccessToken)]
+public interface IFeishuTenantV1DriveMedia : IFeishuV1DriveMedia
 {
-    /// <summary>
-    /// <para>新创建的文件token</para>
-    /// <para>必填：否</para>
-    /// <para>示例值：boxcnrHpsg1QDqXAAAyachabcef</para>
-    /// </summary>
-    [JsonPropertyName("file_token")]
-    public string? FileToken { get; set; }
 }
