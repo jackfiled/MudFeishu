@@ -123,6 +123,20 @@ public class FeishuServiceBuilder
     }
 
     /// <summary>
+    /// 添加飞书云盘管理 API 服务
+    /// </summary>
+    /// <returns>建造者实例，支持链式调用</returns>
+    public FeishuServiceBuilder AddDriveApi()
+    {
+        if (!_configuration.DriveApiAdded)
+        {
+            _services.AddDriveWebApiHttpClient();
+            _configuration.DriveApiAdded = true;
+        }
+        return this;
+    }
+
+    /// <summary>
     /// 添加所有 API 服务
     /// </summary>
     /// <returns>建造者实例，支持链式调用</returns>
@@ -134,6 +148,7 @@ public class FeishuServiceBuilder
                .AddApprovalApi()
                .AddTaskApi()
                .AddCardApi()
+               .AddDriveApi()
                .AddAttendanceApi();
     }
 
@@ -217,6 +232,11 @@ public enum FeishuModule
     Attendance,
 
     /// <summary>
+    /// 飞书云盘管理
+    /// </summary>
+    Drive,
+
+    /// <summary>
     /// 所有功能
     /// </summary>
     All
@@ -235,6 +255,7 @@ internal class FeishuServiceConfiguration
     public bool TaskApiAdded { get; set; }
     public bool AuthenticationApiAdded { get; set; }
     public bool AttendanceAdded { get; set; }
+    public bool DriveApiAdded { get; set; }
 
     /// <summary>
     /// 检查是否添加了任何服务
@@ -250,6 +271,7 @@ internal class FeishuServiceConfiguration
                AttendanceAdded ||
                TaskApiAdded ||
                CardApiAdded ||
-               ApprovalApiAdded;
+               ApprovalApiAdded ||
+               DriveApiAdded;
     }
 }
