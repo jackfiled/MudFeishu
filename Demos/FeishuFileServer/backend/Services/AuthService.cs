@@ -11,17 +11,32 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace FeishuFileServer.Services;
 
+/// <summary>
+/// 认证服务实现
+/// 提供用户登录、注册、密码修改和个人信息管理功能的具体实现
+/// </summary>
 public class AuthService : IAuthService
 {
     private readonly FeishuFileDbContext _dbContext;
     private readonly JwtSettings _jwtSettings;
 
+    /// <summary>
+    /// 初始化认证服务实例
+    /// </summary>
+    /// <param name="dbContext">数据库上下文</param>
+    /// <param name="jwtSettings">JWT配置选项</param>
     public AuthService(FeishuFileDbContext dbContext, IOptions<JwtSettings> jwtSettings)
     {
         _dbContext = dbContext;
         _jwtSettings = jwtSettings.Value;
     }
 
+    /// <summary>
+    /// 用户登录
+    /// 验证用户名和密码，成功后生成JWT令牌
+    /// </summary>
+    /// <param name="request">登录请求</param>
+    /// <returns>登录响应或null</returns>
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
         var user = await _dbContext.Users
@@ -46,6 +61,13 @@ public class AuthService : IAuthService
         };
     }
 
+    /// <summary>
+    /// 用户注册
+    /// 创建新用户账户并生成JWT令牌
+    /// </summary>
+    /// <param name="request">注册请求</param>
+    /// <returns>登录响应</returns>
+    /// <exception cref="InvalidOperationException">用户名或邮箱已存在</exception>
     public async Task<LoginResponse?> RegisterAsync(RegisterRequest request)
     {
         if (await _dbContext.Users.AnyAsync(u => u.Username == request.Username))
@@ -83,6 +105,13 @@ public class AuthService : IAuthService
         };
     }
 
+    /// <summary>
+    /// 修改用户密码
+    /// 验证当前密码后更新为新密码
+    /// </summary>
+    /// <param name="userId">用户ID</param>
+    /// <param name="request">修改密码请求</param>
+    /// <returns>是否修改成功</returns>
     public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequest request)
     {
         var user = await _dbContext.Users.FindAsync(userId);
@@ -102,12 +131,24 @@ public class AuthService : IAuthService
         return true;
     }
 
+    /// <summary>
+    /// 获取用户信息
+    /// </summary>
+    /// <param name="userId">用户ID</param>
+    /// <returns>用户信息</returns>
     public async Task<UserInfo?> GetUserInfoAsync(int userId)
     {
         var user = await _dbContext.Users.FindAsync(userId);
         return user == null ? null : MapToUserInfo(user);
     }
 
+    /// <summary>
+    /// 更新用户资料
+    /// 更新用户的邮箱和显示名称
+    /// </summary>
+    /// <param name="userId">用户ID</param>
+    /// <param name="request">更新资料请求</param>
+    /// <returns>更新后的用户信息</returns>
     public async Task<UserInfo?> UpdateProfileAsync(int userId, UpdateProfileRequest request)
     {
         var user = await _dbContext.Users.FindAsync(userId);
@@ -135,6 +176,11 @@ public class AuthService : IAuthService
         return MapToUserInfo(user);
     }
 
+    /// <summary>
+    /// 生成JWT令牌
+    /// </summary>
+    /// <param name="user">用户实体</param>
+    /// <returns>JWT令牌字符串</returns>
     private string GenerateJwtToken(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
@@ -160,6 +206,11 @@ public class AuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    /// <summary>
+    /// 将用户实体映射为用户信息DTO
+    /// </summary>
+    /// <param name="user">用户实体</param>
+    /// <returns>用户信息DTO</returns>
     private static UserInfo MapToUserInfo(User user)
     {
         return new UserInfo
