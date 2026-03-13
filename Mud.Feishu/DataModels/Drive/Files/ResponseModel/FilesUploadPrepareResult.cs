@@ -5,18 +5,34 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Feishu.DataModels.Tasks;
+namespace Mud.Feishu.DataModels.Drive.Files;
 
 /// <summary>
-/// 添加任务依赖请求体
+/// 分片上传文件-预上传 响应体
 /// </summary>
-public class AddTaskDependenciesRequest
+public class FilesUploadPrepareResult
 {
     /// <summary>
-    /// <para>要添加的依赖</para>
+    /// <para>分片上传事务 ID</para>
     /// <para>必填：否</para>
+    /// <para>示例值：7111211691345512356</para>
     /// </summary>
-    [JsonPropertyName("dependencies")]
-    public TaskDependency[]? Dependencies { get; set; }
+    [JsonPropertyName("upload_id")]
+    public string? UploadId { get; set; }
 
+    /// <summary>
+    /// <para>分片大小策略</para>
+    /// <para>必填：否</para>
+    /// <para>示例值：4194304</para>
+    /// </summary>
+    [JsonPropertyName("block_size")]
+    public int? BlockSize { get; set; }
+
+    /// <summary>
+    /// <para>分片的数量</para>
+    /// <para>必填：否</para>
+    /// <para>示例值：1</para>
+    /// </summary>
+    [JsonPropertyName("block_num")]
+    public int? BlockNum { get; set; }
 }

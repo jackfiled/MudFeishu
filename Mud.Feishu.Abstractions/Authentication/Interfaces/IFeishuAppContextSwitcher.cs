@@ -16,35 +16,7 @@ namespace Mud.Feishu.Abstractions;
 /// 
 /// <para>此接口通常由飞书HTTP客户端服务实现，用于支持多应用场景下的上下文管理。</para>
 /// </remarks>
-public interface IFeishuAppContextSwitcher
+public interface IFeishuAppContextSwitcher : IAppContextSwitcher
 {
-    /// <summary>
-    /// 切换到指定的飞书应用上下文
-    /// </summary>
-    /// <param name="appKey">应用键</param>
-    /// <returns>切换后的应用上下文</returns>
-    /// <remarks>
-    /// <para>根据应用键切换到对应的飞书应用上下文。</para>
-    /// <para>应用键是在配置中定义的唯一标识，如 "default", "hr-app" 等。</para>
-    /// <para>切换上下文后，后续的API调用将使用该应用的配置、凭证和HTTP客户端。</para>
-    /// <para>每个应用上下文都是完全独立的，包含该应用的所有资源和配置。</para>
-    /// </remarks>
-    /// <exception cref="KeyNotFoundException">当指定的应用键不存在时抛出</exception>
-    /// <exception cref="InvalidOperationException">当应用上下文切换失败时抛出</exception>
-    IMudAppContext UseApp(string appKey);
 
-    /// <summary>
-    /// 切换到系统默认的飞书应用上下文
-    /// </summary>
-    /// <returns>切换后的应用上下文</returns>
-    /// <remarks>
-    /// <para>切换到系统默认的飞书应用上下文。</para>
-    /// <para>默认的飞书应用是在配置中定义的IsDefault为true。</para>
-    /// 
-    /// <para>切换上下文后，后续的API调用将使用该应用的配置、凭证和HTTP客户端。</para>
-    /// <para>每个应用上下文都是完全独立的，包含该应用的所有资源和配置。</para>
-    /// </remarks>
-    /// <exception cref="KeyNotFoundException">当指定的应用键不存在时抛出</exception>
-    /// <exception cref="InvalidOperationException">当应用上下文切换失败时抛出</exception>
-    IMudAppContext UseDefaultApp();
 }

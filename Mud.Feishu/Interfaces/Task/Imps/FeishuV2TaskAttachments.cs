@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.Abstractions.Utilities;
-using Mud.Feishu.DataModels.TaskAttachments;
+using Mud.Feishu.DataModels.TasksAttachments;
 using System.Net.Http.Headers;
 
 namespace Mud.Feishu.Interfaces.Internal;

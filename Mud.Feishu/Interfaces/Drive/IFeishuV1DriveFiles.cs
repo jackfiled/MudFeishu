@@ -175,6 +175,44 @@ public interface IFeishuV1DriveFiles : IFeishuAppContextSwitcher
       [FormContent] UploadAllFileRequest uploadAllFileRequest,
       CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// 发送初始化请求，以获取上传事务 ID 和分片策略，为上传分片做准备。平台固定以 4MB 的大小对文件进行分片。
+    /// <para>上传事务 ID 和上传进度在 24 小时内有效。请及时保存和恢复上传。</para>
+    /// <para>## 使用限制</para>
+    /// <para>- 上传文件的大小限制因飞书版本而异。</para>
+    /// <para>- 该接口不支持并发调用，且调用频率上限为 5 QPS，10000 次/天。否则会返回 1061045 错误码，可通过稍后重试解决。</para>
+    /// </summary>
+    /// <param name="filesUploadPartRequest">预上传请求体</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/drive/v1/files/upload_prepare")]
+    Task<FeishuApiResult<FilesUploadPrepareResult>?> UploadPrepareFileAsync(
+       [Body] FilesUploadPrepareRequest filesUploadPartRequest,
+       CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 根据 预上传接口返回的上传事务 ID 和分片策略上传对应的文件分片。
+    /// <para>上传完成后，你需调用分片上传文件（完成上传）触发完成上传。</para>
+    /// </summary>
+    /// <param name="filesUploadPartRequest"> 分片上传文件-上传分片请求体</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/drive/v1/files/upload_part")]
+    Task<FeishuNullDataApiResult?> UploadPartFileAsync(
+       [FormContent] FilesUploadPartRequest filesUploadPartRequest,
+       CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 将分片全部上传完毕后，你需调用本接口触发完成上传。否则将上传失败。
+    /// </summary>
+    /// <param name="filesUploadPartRequest">分片上传文件-完成上传请求体</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
+    /// <returns></returns>
+    [Post("/open-apis/drive/v1/files/upload_finish")]
+    Task<FeishuApiResult<FilesUploadFinishResult>?> UploadFinishFileAsync(
+      [Body] FilesUploadFinishRequest filesUploadPartRequest,
+      CancellationToken cancellationToken = default);
+
 
     /// <summary>
     /// 下载云空间中的文件，如 PDF 文件。不包含飞书文档、电子表格以及多维表格等在线文档。该接口支持通过在请求头添加 Range 参数分片下载部分文件。
