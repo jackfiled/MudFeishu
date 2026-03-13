@@ -1,11 +1,22 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+// -----------------------------------------------------------------------
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
+// -----------------------------------------------------------------------
+
 using FeishuFileServer.Models.DTOs;
 using FeishuFileServer.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FeishuFileServer.Controllers;
 
+/// <summary>
+/// 文件控制器
+/// 提供文件的上传、下载、查询、删除等API接口
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -14,12 +25,21 @@ public class FilesController : ControllerBase
     private readonly IFileService _fileService;
     private readonly ILogger<FilesController> _logger;
 
+    /// <summary>
+    /// 初始化文件控制器实例
+    /// </summary>
+    /// <param name="fileService">文件服务</param>
+    /// <param name="logger">日志记录器</param>
     public FilesController(IFileService fileService, ILogger<FilesController> logger)
     {
         _fileService = fileService;
         _logger = logger;
     }
 
+    /// <summary>
+    /// 从当前请求的JWT令牌中获取用户ID
+    /// </summary>
+    /// <returns>用户ID，未登录时返回null</returns>
     private int? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -30,6 +50,14 @@ public class FilesController : ControllerBase
         return null;
     }
 
+    /// <summary>
+    /// 上传文件
+    /// <para>将文件上传到飞书云存储，支持指定目标文件夹</para>
+    /// </summary>
+    /// <param name="file">上传的文件</param>
+    /// <param name="folderToken">目标文件夹令牌，为空表示根目录</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>上传响应，包含文件令牌和基本信息</returns>
     [HttpPost("upload")]
     [ProducesResponseType(typeof(FileUploadResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -55,6 +83,14 @@ public class FilesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// 下载文件
+    /// <para>从飞书云存储下载指定文件，支持下载特定版本</para>
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="versionToken">版本令牌，可选，指定时下载特定版本</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件内容</returns>
     [HttpGet("{fileToken}/download")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -89,6 +125,15 @@ public class FilesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// 获取文件列表
+    /// <para>支持按文件夹筛选，支持分页</para>
+    /// </summary>
+    /// <param name="folderToken">文件夹令牌，可选</param>
+    /// <param name="page">页码，从1开始</param>
+    /// <param name="pageSize">每页数量</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件列表响应</returns>
     [HttpGet]
     [ProducesResponseType(typeof(FileListResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<FileListResponse>> GetFiles(
@@ -102,6 +147,12 @@ public class FilesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// 获取文件信息
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件详细信息</returns>
     [HttpGet("{fileToken}")]
     [ProducesResponseType(typeof(FileInfoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -117,6 +168,13 @@ public class FilesController : ControllerBase
         return Ok(file);
     }
 
+    /// <summary>
+    /// 删除文件
+    /// <para>从飞书云存储和本地数据库删除文件</para>
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>删除结果</returns>
     [HttpDelete("{fileToken}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -1,23 +1,69 @@
-using Microsoft.Extensions.Logging;
-using Mud.Feishu;
-using Mud.Feishu.Interfaces;
-using Mud.Feishu.DataModels.Drive.Files;
 using FeishuFileServer.Models;
-
-using FeishuFileServer.Services.Feishu;
+using Mud.Feishu;
+using Mud.Feishu.DataModels.Drive.Files;
 
 namespace FeishuFileServer.Services.Feishu;
 
+/// <summary>
+/// 飞书云盘服务接口
+/// 提供与飞书云盘API交互的核心功能
+/// </summary>
 public interface IFeishuDriveService
 {
+    /// <summary>
+    /// 上传文件到飞书云盘
+    /// </summary>
+    /// <param name="fileStream">文件流</param>
+    /// <param name="fileName">文件名</param>
+    /// <param name="folderToken">目标文件夹令牌，为空表示根目录</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>上传后的文件记录</returns>
     Task<FileRecord> UploadFileAsync(Stream fileStream, string fileName, string? folderToken = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 从飞书云盘下载文件
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件内容字节数组</returns>
     Task<byte[]> DownloadFileAsync(string fileToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 从飞书云盘删除文件
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     Task DeleteFileAsync(string fileToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 从飞书云盘删除文件夹
+    /// </summary>
+    /// <param name="folderToken">文件夹令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     Task DeleteFolderAsync(string folderToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 移动文件到目标文件夹
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="destFolderToken">目标文件夹令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     Task MoveFileAsync(string fileToken, string destFolderToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 复制文件到目标文件夹
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="destFolderToken">目标文件夹令牌</param>
+    /// <param name="newName">新文件名，可选</param>
+    /// <param name="cancellationToken">取消令牌</param>
     Task CopyFileAsync(string fileToken, string destFolderToken, string? newName = null, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// 飞书云盘服务实现
+/// 封装飞书云盘API的调用逻辑
+/// </summary>
 public class FeishuDriveService : IFeishuDriveService
 {
     private readonly IFeishuTenantV1DriveFiles _driveFiles;
@@ -25,6 +71,12 @@ public class FeishuDriveService : IFeishuDriveService
     private readonly ILogger<FeishuDriveService> _logger;
     private readonly string _tempDirectory;
 
+    /// <summary>
+    /// 初始化飞书云盘服务实例
+    /// </summary>
+    /// <param name="driveFiles">飞书文件API</param>
+    /// <param name="driveFolder">飞书文件夹API</param>
+    /// <param name="logger">日志记录器</param>
     public FeishuDriveService(
         IFeishuTenantV1DriveFiles driveFiles,
         IFeishuTenantV1DriveFolder driveFolder,
@@ -37,6 +89,15 @@ public class FeishuDriveService : IFeishuDriveService
         Directory.CreateDirectory(_tempDirectory);
     }
 
+    /// <summary>
+    /// 上传文件到飞书云盘
+    /// 使用临时文件作为中转，支持大文件上传
+    /// </summary>
+    /// <param name="fileStream">文件流</param>
+    /// <param name="fileName">文件名</param>
+    /// <param name="folderToken">目标文件夹令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件记录</returns>
     public async Task<FileRecord> UploadFileAsync(Stream fileStream, string fileName, string? folderToken = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Uploading file {FileName} to folder {FolderToken}", fileName, folderToken ?? "root");
@@ -91,6 +152,12 @@ public class FeishuDriveService : IFeishuDriveService
         }
     }
 
+    /// <summary>
+    /// 从飞书云盘下载文件
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件内容字节数组</returns>
     public async Task<byte[]> DownloadFileAsync(string fileToken, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Downloading file {FileToken}", fileToken);
@@ -105,6 +172,11 @@ public class FeishuDriveService : IFeishuDriveService
         return content;
     }
 
+    /// <summary>
+    /// 从飞书云盘删除文件
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     public async Task DeleteFileAsync(string fileToken, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Deleting file {FileToken}", fileToken);
@@ -117,6 +189,11 @@ public class FeishuDriveService : IFeishuDriveService
         }
     }
 
+    /// <summary>
+    /// 从飞书云盘删除文件夹
+    /// </summary>
+    /// <param name="folderToken">文件夹令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     public async Task DeleteFolderAsync(string folderToken, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Deleting folder {FolderToken}", folderToken);
@@ -129,6 +206,12 @@ public class FeishuDriveService : IFeishuDriveService
         }
     }
 
+    /// <summary>
+    /// 移动文件到目标文件夹
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="destFolderToken">目标文件夹令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     public async Task MoveFileAsync(string fileToken, string destFolderToken, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Moving file {FileToken} to folder {DestFolderToken}", fileToken, destFolderToken);
@@ -147,6 +230,13 @@ public class FeishuDriveService : IFeishuDriveService
         }
     }
 
+    /// <summary>
+    /// 复制文件到目标文件夹
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="destFolderToken">目标文件夹令牌</param>
+    /// <param name="newName">新文件名</param>
+    /// <param name="cancellationToken">取消令牌</param>
     public async Task CopyFileAsync(string fileToken, string destFolderToken, string? newName = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Copying file {FileToken} to folder {DestFolderToken}", fileToken, destFolderToken);
@@ -166,6 +256,12 @@ public class FeishuDriveService : IFeishuDriveService
         }
     }
 
+    /// <summary>
+    /// 获取文件夹内的文件列表
+    /// </summary>
+    /// <param name="folderToken">文件夹令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件记录列表</returns>
     public async Task<List<FileRecord>> GetFilesAsync(string? folderToken = null, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Getting files from folder {FolderToken}", folderToken ?? "root");
@@ -188,6 +284,12 @@ public class FeishuDriveService : IFeishuDriveService
         }).ToList();
     }
 
+    /// <summary>
+    /// 解析创建时间字符串
+    /// 支持Unix时间戳和ISO日期格式
+    /// </summary>
+    /// <param name="timeStr">时间字符串</param>
+    /// <returns>DateTime对象</returns>
     private DateTime ParseCreateTime(string? timeStr)
     {
         if (string.IsNullOrEmpty(timeStr))
@@ -208,6 +310,11 @@ public class FeishuDriveService : IFeishuDriveService
         return DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// 根据文件扩展名获取MIME类型
+    /// </summary>
+    /// <param name="fileName">文件名</param>
+    /// <returns>MIME类型字符串</returns>
     private string GetMimeType(string fileName)
     {
         var extension = Path.GetExtension(fileName).ToLowerInvariant();

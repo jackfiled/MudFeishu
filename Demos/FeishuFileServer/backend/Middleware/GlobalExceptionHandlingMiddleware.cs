@@ -3,17 +3,31 @@ using System.Text.Json;
 
 namespace FeishuFileServer.Middleware;
 
+/// <summary>
+/// 全局异常处理中间件
+/// 捕获应用程序中未处理的异常，并返回统一的错误响应
+/// </summary>
 public class GlobalExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
 
+    /// <summary>
+    /// 初始化全局异常处理中间件实例
+    /// </summary>
+    /// <param name="next">下一个中间件委托</param>
+    /// <param name="logger">日志记录器</param>
     public GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlingMiddleware> logger)
     {
         _next = next;
         _logger = logger;
     }
 
+    /// <summary>
+    /// 处理HTTP请求
+    /// 捕获请求处理过程中的异常
+    /// </summary>
+    /// <param name="context">HTTP上下文</param>
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -27,6 +41,11 @@ public class GlobalExceptionHandlingMiddleware
         }
     }
 
+    /// <summary>
+    /// 处理异常并返回错误响应
+    /// </summary>
+    /// <param name="context">HTTP上下文</param>
+    /// <param name="exception">异常对象</param>
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
@@ -53,8 +72,17 @@ public class GlobalExceptionHandlingMiddleware
     }
 }
 
+/// <summary>
+/// 全局异常处理中间件扩展方法
+/// 提供中间件的注册扩展方法
+/// </summary>
 public static class GlobalExceptionHandlingMiddlewareExtensions
 {
+    /// <summary>
+    /// 注册全局异常处理中间件
+    /// </summary>
+    /// <param name="builder">应用程序构建器</param>
+    /// <returns>应用程序构建器</returns>
     public static IApplicationBuilder UseGlobalExceptionHandling(this IApplicationBuilder builder)
     {
         return builder.UseMiddleware<GlobalExceptionHandlingMiddleware>();

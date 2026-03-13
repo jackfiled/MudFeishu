@@ -10,15 +10,59 @@ using FeishuFileServer.Services.Feishu;
 
 namespace FeishuFileServer.Services;
 
+/// <summary>
+/// 版本服务接口
+/// 提供文件版本的查询、创建、下载、恢复和删除功能
+/// </summary>
 public interface IVersionService
 {
+    /// <summary>
+    /// 获取文件版本列表
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>版本响应列表</returns>
     Task<List<VersionResponse>> GetVersionsAsync(string fileToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 创建新版本
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="file">上传的文件</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>版本创建响应</returns>
     Task<VersionCreateResponse> CreateVersionAsync(string fileToken, IFormFile file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 下载指定版本
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="versionToken">版本令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件内容字节数组</returns>
     Task<byte[]> DownloadVersionAsync(string fileToken, string versionToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 恢复到指定版本
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="versionToken">版本令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     Task RestoreVersionAsync(string fileToken, string versionToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 删除指定版本
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="versionToken">版本令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     Task DeleteVersionAsync(string fileToken, string versionToken, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// 版本服务实现
+/// 提供文件版本管理的具体实现
+/// </summary>
 public class VersionService : IVersionService
 {
     private readonly FeishuFileDbContext _dbContext;
@@ -27,6 +71,14 @@ public class VersionService : IVersionService
     private readonly ILogger<VersionService> _logger;
     private readonly VersionManagementSettings _versionSettings;
 
+    /// <summary>
+    /// 初始化版本服务实例
+    /// </summary>
+    /// <param name="dbContext">数据库上下文</param>
+    /// <param name="feishuDriveService">飞书云盘服务</param>
+    /// <param name="fileVersions">飞书文件版本API</param>
+    /// <param name="versionSettings">版本管理配置</param>
+    /// <param name="logger">日志记录器</param>
     public VersionService(
         FeishuFileDbContext dbContext,
         IFeishuDriveService feishuDriveService,
@@ -41,6 +93,12 @@ public class VersionService : IVersionService
         _logger = logger;
     }
 
+    /// <summary>
+    /// 获取文件版本列表
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>版本响应列表</returns>
     public async Task<List<VersionResponse>> GetVersionsAsync(string fileToken, CancellationToken cancellationToken = default)
     {
         var fileRecord = await _dbContext.FileRecords
@@ -59,6 +117,14 @@ public class VersionService : IVersionService
         return versions.Select(MapToVersionResponse).ToList();
     }
 
+    /// <summary>
+    /// 创建新版本
+    /// 当版本数量超过限制时，自动删除最旧的版本
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="file">上传的文件</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>版本创建响应</returns>
     public async Task<VersionCreateResponse> CreateVersionAsync(string fileToken, IFormFile file, CancellationToken cancellationToken = default)
     {
         if (!_versionSettings.Enabled)
@@ -117,6 +183,14 @@ public class VersionService : IVersionService
         };
     }
 
+    /// <summary>
+    /// 下载指定版本
+    /// 优先从飞书API获取版本，失败时回退到当前文件
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="versionToken">版本令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件内容字节数组</returns>
     public async Task<byte[]> DownloadVersionAsync(string fileToken, string versionToken, CancellationToken cancellationToken = default)
     {
         var fileRecord = await _dbContext.FileRecords
@@ -162,6 +236,13 @@ public class VersionService : IVersionService
         return await _feishuDriveService.DownloadFileAsync(fileToken, cancellationToken);
     }
 
+    /// <summary>
+    /// 恢复到指定版本
+    /// 将指定版本标记为当前版本
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="versionToken">版本令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     public async Task RestoreVersionAsync(string fileToken, string versionToken, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Restoring version {VersionToken} for file {FileToken}", versionToken, fileToken);
@@ -180,6 +261,13 @@ public class VersionService : IVersionService
         _logger.LogInformation("Version restored successfully");
     }
 
+    /// <summary>
+    /// 删除指定版本
+    /// 如果删除的是当前版本，自动将最新版本设为当前版本
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="versionToken">版本令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
     public async Task DeleteVersionAsync(string fileToken, string versionToken, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Deleting version {VersionToken} for file {FileToken}", versionToken, fileToken);
@@ -209,6 +297,11 @@ public class VersionService : IVersionService
         _logger.LogInformation("Version deleted successfully");
     }
 
+    /// <summary>
+    /// 根据文件扩展名获取飞书对象类型
+    /// </summary>
+    /// <param name="fileName">文件名</param>
+    /// <returns>对象类型，不支持时返回null</returns>
     private string? GetObjectType(string fileName)
     {
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
@@ -220,6 +313,11 @@ public class VersionService : IVersionService
         };
     }
 
+    /// <summary>
+    /// 将版本记录实体映射为版本响应DTO
+    /// </summary>
+    /// <param name="record">版本记录实体</param>
+    /// <returns>版本响应DTO</returns>
     private static VersionResponse MapToVersionResponse(VersionRecord record)
     {
         return new VersionResponse
