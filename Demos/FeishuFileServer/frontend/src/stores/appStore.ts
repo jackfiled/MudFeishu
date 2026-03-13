@@ -42,8 +42,10 @@ export const useAppStore = defineStore('app', () => {
     
     if (dark) {
       html.setAttribute('data-theme', 'dark')
+      html.classList.add('dark')
     } else {
       html.removeAttribute('data-theme')
+      html.classList.remove('dark')
     }
     
     const metaThemeColor = document.querySelector('meta[name="theme-color"]')

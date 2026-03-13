@@ -236,6 +236,9 @@ const handleCommand = (command: string, file: FileInfoResponse) => {
 <style scoped lang="scss">
 .file-list {
   width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .list-header {
@@ -251,12 +254,14 @@ const handleCommand = (command: string, file: FileInfoResponse) => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: var(--spacing-sm);
+  flex-shrink: 0;
 }
 
 .list-body {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+  flex: 1;
 }
 
 .list-item {

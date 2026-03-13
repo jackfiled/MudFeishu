@@ -136,25 +136,18 @@
           element-loading-background="transparent"
           @scroll="handleScroll"
         >
-          <transition-group 
-            name="list" 
-            tag="div" 
-            class="file-grid"
-            :class="fileStore.viewMode"
-          >
-            <FileList
-              :files="fileStore.files"
-              :view-mode="fileStore.viewMode"
-              :selected-files="fileStore.selectedFiles"
-              @select="handleFileSelect"
-              @preview="handleFilePreview"
-              @download="handleFileDownload"
-              @rename="handleFileRename"
-              @move="handleFileMove"
-              @delete="handleFileDelete"
-              @versions="handleVersionHistory"
-            />
-          </transition-group>
+          <FileList
+            :files="fileStore.files"
+            :view-mode="fileStore.viewMode"
+            :selected-files="fileStore.selectedFiles"
+            @select="handleFileSelect"
+            @preview="handleFilePreview"
+            @download="handleFileDownload"
+            @rename="handleFileRename"
+            @move="handleFileMove"
+            @delete="handleFileDelete"
+            @versions="handleVersionHistory"
+          />
 
           <transition name="fade">
             <div v-if="!fileStore.loading && fileStore.files.length === 0" class="empty-state">
@@ -715,12 +708,14 @@ onMounted(() => {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
+  flex-shrink: 0;
 }
 
 .toolbar-left, .toolbar-right {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .breadcrumb-modern {
@@ -860,6 +855,7 @@ onMounted(() => {
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
   
   &:hover {
     transform: scale(1.05);
@@ -869,9 +865,12 @@ onMounted(() => {
 
 .file-list-container {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--spacing-lg);
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .file-grid {
