@@ -17,11 +17,11 @@ namespace FeishuFileServer.Services;
 
 public interface IFolderService
 {
-    Task<FolderResponse> CreateFolderAsync(FolderCreateRequest request, CancellationToken cancellationToken = default);
+    Task<FolderResponse> CreateFolderAsync(FolderCreateRequest request, int? userId = null, CancellationToken cancellationToken = default);
     Task<FolderResponse> UpdateFolderAsync(string folderToken, FolderUpdateRequest request, CancellationToken cancellationToken = default);
     Task DeleteFolderAsync(string folderToken, CancellationToken cancellationToken = default);
     Task<FolderResponse?> GetFolderAsync(string folderToken, CancellationToken cancellationToken = default);
-    Task<FolderListResponse> GetFoldersAsync(string? parentFolderToken = null, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
+    Task<FolderListResponse> GetFoldersAsync(string? parentFolderToken = null, int? userId = null, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default);
     Task<FolderContentsResponse> GetFolderContentsAsync(string folderToken, CancellationToken cancellationToken = default);
 }
 
@@ -44,9 +44,9 @@ public class FolderService : IFolderService
         _logger = logger;
     }
 
-    public async Task<FolderResponse> CreateFolderAsync(FolderCreateRequest request, CancellationToken cancellationToken = default)
+    public async Task<FolderResponse> CreateFolderAsync(FolderCreateRequest request, int? userId = null, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating folder {FolderName} in parent {ParentFolderToken}", request.Name, request.ParentFolderToken);
+        _logger.LogInformation("Creating folder {FolderName} in parent {ParentFolderToken} by user {UserId}", request.Name, request.ParentFolderToken, userId);
 
         var createRequest = new CreateFolderRequest
         {
@@ -66,7 +66,8 @@ public class FolderService : IFolderService
             FolderToken = result.Data.Token,
             FolderName = request.Name,
             ParentFolderToken = request.ParentFolderToken,
-            CreatedTime = DateTime.UtcNow
+            CreatedTime = DateTime.UtcNow,
+            UserId = userId
         };
 
         _dbContext.FolderRecords.Add(folderRecord);
@@ -161,13 +162,18 @@ public class FolderService : IFolderService
         return MapToFolderResponse(folderRecord);
     }
 
-    public async Task<FolderListResponse> GetFoldersAsync(string? parentFolderToken = null, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
+    public async Task<FolderListResponse> GetFoldersAsync(string? parentFolderToken = null, int? userId = null, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
     {
         var query = _dbContext.FolderRecords.Where(f => !f.IsDeleted);
 
         if (!string.IsNullOrEmpty(parentFolderToken))
         {
             query = query.Where(f => f.ParentFolderToken == parentFolderToken);
+        }
+
+        if (userId.HasValue)
+        {
+            query = query.Where(f => f.UserId == userId);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

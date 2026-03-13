@@ -30,6 +30,10 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? LastLoginAt { get; set; }
+
+    public ICollection<FileRecord> Files { get; set; } = new List<FileRecord>();
+
+    public ICollection<FolderRecord> Folders { get; set; } = new List<FolderRecord>();
 }
 
 public enum UserRole

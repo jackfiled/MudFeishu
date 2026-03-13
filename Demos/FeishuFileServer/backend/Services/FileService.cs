@@ -11,11 +11,11 @@ namespace FeishuFileServer.Services;
 
 public interface IFileService
 {
-    Task<FileUploadResponse> UploadFileAsync(IFormFile file, string? folderToken, CancellationToken cancellationToken = default);
+    Task<FileUploadResponse> UploadFileAsync(IFormFile file, string? folderToken, int? userId = null, CancellationToken cancellationToken = default);
     Task<byte[]> DownloadFileAsync(string fileToken, string? versionToken = null, CancellationToken cancellationToken = default);
     Task DeleteFileAsync(string fileToken, CancellationToken cancellationToken = default);
     Task<FileInfoResponse?> GetFileAsync(string fileToken, CancellationToken cancellationToken = default);
-    Task<FileListResponse> GetFilesAsync(string? folderToken = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<FileListResponse> GetFilesAsync(string? folderToken = null, int? userId = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
     Task MoveFileAsync(string fileToken, string destFolderToken, CancellationToken cancellationToken = default);
     Task CopyFileAsync(string fileToken, string destFolderToken, string? newName = null, CancellationToken cancellationToken = default);
 }
@@ -42,7 +42,7 @@ public class FileService : IFileService
         _logger = logger;
     }
 
-    public async Task<FileUploadResponse> UploadFileAsync(IFormFile file, string? folderToken, CancellationToken cancellationToken = default)
+    public async Task<FileUploadResponse> UploadFileAsync(IFormFile file, string? folderToken, int? userId = null, CancellationToken cancellationToken = default)
     {
         ValidateFile(file);
 
@@ -78,11 +78,12 @@ public class FileService : IFileService
 
         fileRecord.FileMD5 = fileMD5;
         fileRecord.FolderToken = folderToken;
+        fileRecord.UserId = userId;
 
         _dbContext.FileRecords.Add(fileRecord);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("File uploaded successfully: {FileToken}", fileRecord.FileToken);
+        _logger.LogInformation("File uploaded successfully: {FileToken} by user {UserId}", fileRecord.FileToken, userId);
 
         return new FileUploadResponse
         {
@@ -159,13 +160,18 @@ public class FileService : IFileService
         return MapToFileInfoResponse(fileRecord);
     }
 
-    public async Task<FileListResponse> GetFilesAsync(string? folderToken = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<FileListResponse> GetFilesAsync(string? folderToken = null, int? userId = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
         var query = _dbContext.FileRecords.Where(f => !f.IsDeleted);
 
         if (!string.IsNullOrEmpty(folderToken))
         {
             query = query.Where(f => f.FolderToken == folderToken);
+        }
+
+        if (userId.HasValue)
+        {
+            query = query.Where(f => f.UserId == userId);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

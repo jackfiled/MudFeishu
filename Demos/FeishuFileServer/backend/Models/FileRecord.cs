@@ -34,4 +34,9 @@ public class FileRecord
     public DateTime UploadTime { get; set; } = DateTime.UtcNow;
 
     public bool IsDeleted { get; set; } = false;
+
+    public int? UserId { get; set; }
+
+    [ForeignKey(nameof(UserId))]
+    public User? User { get; set; }
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FeishuFileServer.Models.DTOs;
@@ -19,6 +20,16 @@ public class FoldersController : ControllerBase
         _logger = logger;
     }
 
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+        {
+            return userId;
+        }
+        return null;
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(FolderResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -33,7 +44,8 @@ public class FoldersController : ControllerBase
                 return BadRequest(new { message = "Folder name is required" });
             }
 
-            var result = await _folderService.CreateFolderAsync(request, cancellationToken);
+            var userId = GetCurrentUserId();
+            var result = await _folderService.CreateFolderAsync(request, userId, cancellationToken);
             return CreatedAtAction(nameof(GetFolder), new { folderToken = result.FolderToken }, result);
         }
         catch (Exception ex)
@@ -98,7 +110,8 @@ public class FoldersController : ControllerBase
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var result = await _folderService.GetFoldersAsync(parentFolderToken, page, pageSize, cancellationToken);
+        var userId = GetCurrentUserId();
+        var result = await _folderService.GetFoldersAsync(parentFolderToken, userId, page, pageSize, cancellationToken);
         return Ok(result);
     }
 

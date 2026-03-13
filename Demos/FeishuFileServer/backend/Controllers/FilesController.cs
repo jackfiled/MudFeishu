@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FeishuFileServer.Models.DTOs;
@@ -19,6 +20,16 @@ public class FilesController : ControllerBase
         _logger = logger;
     }
 
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+        {
+            return userId;
+        }
+        return null;
+    }
+
     [HttpPost("upload")]
     [ProducesResponseType(typeof(FileUploadResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -29,7 +40,8 @@ public class FilesController : ControllerBase
     {
         try
         {
-            var result = await _fileService.UploadFileAsync(file, folderToken, cancellationToken);
+            var userId = GetCurrentUserId();
+            var result = await _fileService.UploadFileAsync(file, folderToken, userId, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -60,7 +72,7 @@ public class FilesController : ControllerBase
             }
 
             var content = await _fileService.DownloadFileAsync(fileToken, versionToken, cancellationToken);
-            
+
             var mimeType = fileInfo.MimeType ?? "application/octet-stream";
             var fileName = Uri.EscapeDataString(fileInfo.FileName);
 
@@ -85,7 +97,8 @@ public class FilesController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var result = await _fileService.GetFilesAsync(folderToken, page, pageSize, cancellationToken);
+        var userId = GetCurrentUserId();
+        var result = await _fileService.GetFilesAsync(folderToken, userId, page, pageSize, cancellationToken);
         return Ok(result);
     }
 
