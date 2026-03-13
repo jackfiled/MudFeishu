@@ -16,23 +16,28 @@ public interface IFileService
     Task DeleteFileAsync(string fileToken, CancellationToken cancellationToken = default);
     Task<FileInfoResponse?> GetFileAsync(string fileToken, CancellationToken cancellationToken = default);
     Task<FileListResponse> GetFilesAsync(string? folderToken = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task MoveFileAsync(string fileToken, string destFolderToken, CancellationToken cancellationToken = default);
+    Task CopyFileAsync(string fileToken, string destFolderToken, string? newName = null, CancellationToken cancellationToken = default);
 }
 
 public class FileService : IFileService
 {
     private readonly FeishuFileDbContext _dbContext;
     private readonly IFeishuDriveService _feishuDriveService;
+    private readonly IVersionService _versionService;
     private readonly FileUploadSettings _uploadSettings;
     private readonly ILogger<FileService> _logger;
 
     public FileService(
         FeishuFileDbContext dbContext,
         IFeishuDriveService feishuDriveService,
+        IVersionService versionService,
         IOptions<FileUploadSettings> uploadSettings,
         ILogger<FileService> logger)
     {
         _dbContext = dbContext;
         _feishuDriveService = feishuDriveService;
+        _versionService = versionService;
         _uploadSettings = uploadSettings.Value;
         _logger = logger;
     }
@@ -100,6 +105,12 @@ public class FileService : IFileService
             throw new KeyNotFoundException($"File with token {fileToken} not found");
         }
 
+        if (!string.IsNullOrEmpty(versionToken))
+        {
+            _logger.LogInformation("Downloading file {FileToken} version {VersionToken}", fileToken, versionToken);
+            return await _versionService.DownloadVersionAsync(fileToken, versionToken, cancellationToken);
+        }
+
         return await _feishuDriveService.DownloadFileAsync(fileToken, cancellationToken);
     }
 
@@ -113,12 +124,26 @@ public class FileService : IFileService
             throw new KeyNotFoundException($"File with token {fileToken} not found");
         }
 
-        await _feishuDriveService.DeleteFileAsync(fileToken, cancellationToken);
+        try
+        {
+            await _feishuDriveService.DeleteFileAsync(fileToken, cancellationToken);
+            _logger.LogInformation("File deleted from Feishu: {FileToken}", fileToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete file from Feishu, continuing with local deletion: {FileToken}", fileToken);
+        }
+
+        var versionRecords = await _dbContext.VersionRecords
+            .Where(v => v.FileToken == fileToken)
+            .ToListAsync(cancellationToken);
+
+        _dbContext.VersionRecords.RemoveRange(versionRecords);
 
         fileRecord.IsDeleted = true;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("File deleted: {FileToken}", fileToken);
+        _logger.LogInformation("File deleted locally with {VersionCount} versions: {FileToken}", versionRecords.Count, fileToken);
     }
 
     public async Task<FileInfoResponse?> GetFileAsync(string fileToken, CancellationToken cancellationToken = default)
@@ -158,6 +183,39 @@ public class FileService : IFileService
             Page = page,
             PageSize = pageSize
         };
+    }
+
+    public async Task MoveFileAsync(string fileToken, string destFolderToken, CancellationToken cancellationToken = default)
+    {
+        var fileRecord = await _dbContext.FileRecords
+            .FirstOrDefaultAsync(f => f.FileToken == fileToken && !f.IsDeleted, cancellationToken);
+
+        if (fileRecord == null)
+        {
+            throw new KeyNotFoundException($"File with token {fileToken} not found");
+        }
+
+        await _feishuDriveService.MoveFileAsync(fileToken, destFolderToken, cancellationToken);
+
+        fileRecord.FolderToken = destFolderToken;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("File moved: {FileToken} to {DestFolderToken}", fileToken, destFolderToken);
+    }
+
+    public async Task CopyFileAsync(string fileToken, string destFolderToken, string? newName = null, CancellationToken cancellationToken = default)
+    {
+        var fileRecord = await _dbContext.FileRecords
+            .FirstOrDefaultAsync(f => f.FileToken == fileToken && !f.IsDeleted, cancellationToken);
+
+        if (fileRecord == null)
+        {
+            throw new KeyNotFoundException($"File with token {fileToken} not found");
+        }
+
+        await _feishuDriveService.CopyFileAsync(fileToken, destFolderToken, newName, cancellationToken);
+
+        _logger.LogInformation("File copied: {FileToken} to {DestFolderToken}", fileToken, destFolderToken);
     }
 
     private void ValidateFile(IFormFile file)

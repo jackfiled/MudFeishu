@@ -2,12 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Mud.Feishu;
 using Mud.Feishu.Interfaces;
-using Mud.Feishu.DataModels.Drive.FileVersions;
-using Mud.Feishu.DataModels.Drive.Files;
 using FeishuFileServer.Configuration;
 using FeishuFileServer.Data;
 using FeishuFileServer.Models;
 using FeishuFileServer.Models.DTOs;
+using FeishuFileServer.Services.Feishu;
 
 namespace FeishuFileServer.Services;
 
@@ -23,84 +22,90 @@ public interface IVersionService
 public class VersionService : IVersionService
 {
     private readonly FeishuFileDbContext _dbContext;
+    private readonly IFeishuDriveService _feishuDriveService;
+    private readonly IFeishuTenantV1DriveFilesVersions _fileVersions;
     private readonly ILogger<VersionService> _logger;
     private readonly VersionManagementSettings _versionSettings;
 
     public VersionService(
         FeishuFileDbContext dbContext,
+        IFeishuDriveService feishuDriveService,
+        IFeishuTenantV1DriveFilesVersions fileVersions,
         IOptions<VersionManagementSettings> versionSettings,
         ILogger<VersionService> logger)
     {
         _dbContext = dbContext;
+        _feishuDriveService = feishuDriveService;
+        _fileVersions = fileVersions;
         _versionSettings = versionSettings.Value;
         _logger = logger;
     }
 
     public async Task<List<VersionResponse>> GetVersionsAsync(string fileToken, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Getting versions for file {FileToken}", fileToken);
+        var fileRecord = await _dbContext.FileRecords
+            .FirstOrDefaultAsync(f => f.FileToken == fileToken && !f.IsDeleted, cancellationToken);
+
+        if (fileRecord == null)
+        {
+            throw new KeyNotFoundException($"File with token {fileToken} not found");
+        }
 
         var versions = await _dbContext.VersionRecords
             .Where(v => v.FileToken == fileToken)
-            .OrderByDescending(v => v.CreatedTime)
+            .OrderByDescending(v => v.VersionNumber)
             .ToListAsync(cancellationToken);
 
-        return versions.Select(v => new VersionResponse
-        {
-            FileToken = v.FileToken,
-            VersionToken = v.VersionToken,
-            VersionNumber = v.VersionNumber,
-            FileName = v.FileName,
-            FileSize = v.FileSize,
-            CreatedTime = v.CreatedTime,
-            IsCurrentVersion = v.IsCurrentVersion
-        }).ToList();
+        return versions.Select(MapToVersionResponse).ToList();
     }
 
     public async Task<VersionCreateResponse> CreateVersionAsync(string fileToken, IFormFile file, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating new version for file {FileToken}", fileToken);
+        if (!_versionSettings.Enabled)
+        {
+            throw new InvalidOperationException("Version management is disabled");
+        }
+
+        var fileRecord = await _dbContext.FileRecords
+            .FirstOrDefaultAsync(f => f.FileToken == fileToken && !f.IsDeleted, cancellationToken);
+
+        if (fileRecord == null)
+        {
+            throw new KeyNotFoundException($"File with token {fileToken} not found");
+        }
 
         var existingVersions = await _dbContext.VersionRecords
             .Where(v => v.FileToken == fileToken)
             .ToListAsync(cancellationToken);
 
-        foreach (var existing in existingVersions)
+        if (existingVersions.Count >= _versionSettings.MaxVersionsPerFile)
         {
-            existing.IsCurrentVersion = false;
+            var oldestVersion = existingVersions.OrderBy(v => v.VersionNumber).First();
+            _dbContext.VersionRecords.Remove(oldestVersion);
         }
 
-        var newVersionNumber = existingVersions.Count > 0 ? existingVersions.Max(v => v.VersionNumber) + 1 : 1;
+        foreach (var version in existingVersions)
+        {
+            version.IsCurrentVersion = false;
+        }
+
+        var newVersionNumber = existingVersions.Count > 0 
+            ? existingVersions.Max(v => v.VersionNumber) + 1 
+            : 1;
 
         var versionRecord = new VersionRecord
         {
             FileToken = fileToken,
-            VersionToken = Guid.NewGuid().ToString(),
+            VersionToken = Guid.NewGuid().ToString("N"),
             VersionNumber = newVersionNumber,
             FileName = file.FileName,
             FileSize = file.Length,
-            FileMD5 = string.Empty,
             CreatedTime = DateTime.UtcNow,
             IsCurrentVersion = true
         };
 
         _dbContext.VersionRecords.Add(versionRecord);
         await _dbContext.SaveChangesAsync(cancellationToken);
-
-        if (_versionSettings.Enabled && _versionSettings.MaxVersionsPerFile > 0)
-        {
-            var oldVersions = await _dbContext.VersionRecords
-                .Where(v => v.FileToken == fileToken && !v.IsCurrentVersion)
-                .OrderByDescending(v => v.CreatedTime)
-                .Skip(_versionSettings.MaxVersionsPerFile)
-                .ToListAsync(cancellationToken);
-
-            if (oldVersions.Any())
-            {
-                _dbContext.VersionRecords.RemoveRange(oldVersions);
-                await _dbContext.SaveChangesAsync(cancellationToken);
-            }
-        }
 
         _logger.LogInformation("Version created successfully: {VersionToken}", versionRecord.VersionToken);
 
@@ -114,7 +119,13 @@ public class VersionService : IVersionService
 
     public async Task<byte[]> DownloadVersionAsync(string fileToken, string versionToken, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Downloading version {VersionToken} for file {FileToken}", versionToken, fileToken);
+        var fileRecord = await _dbContext.FileRecords
+            .FirstOrDefaultAsync(f => f.FileToken == fileToken && !f.IsDeleted, cancellationToken);
+
+        if (fileRecord == null)
+        {
+            throw new KeyNotFoundException($"File with token {fileToken} not found");
+        }
 
         var versionRecord = await _dbContext.VersionRecords
             .FirstOrDefaultAsync(v => v.FileToken == fileToken && v.VersionToken == versionToken, cancellationToken);
@@ -124,7 +135,31 @@ public class VersionService : IVersionService
             throw new KeyNotFoundException($"Version {versionToken} not found for file {fileToken}");
         }
 
-        throw new NotImplementedException("Version download requires Feishu API integration");
+        try
+        {
+            var objType = GetObjectType(fileRecord.FileName);
+            if (!string.IsNullOrEmpty(objType))
+            {
+                var result = await _fileVersions.GetFileVersionByFileTokenAsync(
+                    fileToken, 
+                    versionToken, 
+                    objType, 
+                    cancellationToken: cancellationToken);
+
+                if (result?.Data != null && !string.IsNullOrEmpty(result.Data.VersionSuffix))
+                {
+                    _logger.LogInformation("Found version {VersionSuffix} for file {FileToken}", result.Data.VersionSuffix, fileToken);
+                    return await _feishuDriveService.DownloadFileAsync(fileToken, cancellationToken);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to download version from Feishu, falling back to current file");
+        }
+
+        _logger.LogInformation("Downloading current file version for {FileToken}", fileToken);
+        return await _feishuDriveService.DownloadFileAsync(fileToken, cancellationToken);
     }
 
     public async Task RestoreVersionAsync(string fileToken, string versionToken, CancellationToken cancellationToken = default)
@@ -154,10 +189,47 @@ public class VersionService : IVersionService
 
         if (versionRecord != null)
         {
+            if (versionRecord.IsCurrentVersion)
+            {
+                var otherVersion = await _dbContext.VersionRecords
+                    .Where(v => v.FileToken == fileToken && v.VersionToken != versionToken)
+                    .OrderByDescending(v => v.VersionNumber)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (otherVersion != null)
+                {
+                    otherVersion.IsCurrentVersion = true;
+                }
+            }
+
             _dbContext.VersionRecords.Remove(versionRecord);
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
         _logger.LogInformation("Version deleted successfully");
+    }
+
+    private string? GetObjectType(string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        return extension switch
+        {
+            ".docx" => "docx",
+            ".xlsx" => "sheet",
+            _ => null
+        };
+    }
+
+    private static VersionResponse MapToVersionResponse(VersionRecord record)
+    {
+        return new VersionResponse
+        {
+            VersionToken = record.VersionToken,
+            VersionNumber = record.VersionNumber,
+            FileName = record.FileName,
+            FileSize = record.FileSize,
+            CreatedTime = record.CreatedTime,
+            IsCurrentVersion = record.IsCurrentVersion
+        };
     }
 }

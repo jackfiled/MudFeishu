@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FeishuFileServer.Models.DTOs;
 using FeishuFileServer.Services;
@@ -6,6 +7,7 @@ namespace FeishuFileServer.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class FilesController : ControllerBase
 {
     private readonly IFileService _fileService;

@@ -8,6 +8,7 @@
 using FeishuFileServer.Data;
 using FeishuFileServer.Models;
 using FeishuFileServer.Models.DTOs;
+using FeishuFileServer.Services.Feishu;
 using Microsoft.EntityFrameworkCore;
 using Mud.Feishu;
 using Mud.Feishu.DataModels.Drive.Folder;
@@ -28,15 +29,18 @@ public class FolderService : IFolderService
 {
     private readonly FeishuFileDbContext _dbContext;
     private readonly IFeishuTenantV1DriveFolder _driveFolder;
+    private readonly IFeishuDriveService _feishuDriveService;
     private readonly ILogger<FolderService> _logger;
 
     public FolderService(
         FeishuFileDbContext dbContext,
         IFeishuTenantV1DriveFolder driveFolder,
+        IFeishuDriveService feishuDriveService,
         ILogger<FolderService> logger)
     {
         _dbContext = dbContext;
         _driveFolder = driveFolder;
+        _feishuDriveService = feishuDriveService;
         _logger = logger;
     }
 
@@ -110,10 +114,38 @@ public class FolderService : IFolderService
             throw new KeyNotFoundException($"Folder with token {folderToken} not found");
         }
 
+        try
+        {
+            await _feishuDriveService.DeleteFolderAsync(folderToken, cancellationToken);
+            _logger.LogInformation("Folder deleted from Feishu: {FolderToken}", folderToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete folder from Feishu, continuing with local deletion: {FolderToken}", folderToken);
+        }
+
+        var subFolders = await _dbContext.FolderRecords
+            .Where(f => f.ParentFolderToken == folderToken && !f.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var subFolder in subFolders)
+        {
+            subFolder.IsDeleted = true;
+        }
+
+        var files = await _dbContext.FileRecords
+            .Where(f => f.FolderToken == folderToken && !f.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var file in files)
+        {
+            file.IsDeleted = true;
+        }
+
         folderRecord.IsDeleted = true;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Folder deleted: {FolderToken}", folderToken);
+        _logger.LogInformation("Folder deleted locally: {FolderToken}", folderToken);
     }
 
     public async Task<FolderResponse?> GetFolderAsync(string folderToken, CancellationToken cancellationToken = default)
