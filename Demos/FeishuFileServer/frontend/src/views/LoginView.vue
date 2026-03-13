@@ -1,9 +1,18 @@
 <template>
   <div class="login-container">
-    <div class="login-box">
+    <div class="login-background">
+      <div class="gradient-orb orb-1"></div>
+      <div class="gradient-orb orb-2"></div>
+      <div class="gradient-orb orb-3"></div>
+    </div>
+    
+    <div class="login-card glass-card">
       <div class="login-header">
-        <h2>{{ isLogin ? '用户登录' : '用户注册' }}</h2>
-        <p>飞书文件管理系统</p>
+        <div class="logo-icon gradient-bg">
+          <el-icon size="32"><FolderOpened /></el-icon>
+        </div>
+        <h1 class="gradient-text">{{ isLogin ? '欢迎回来' : '创建账户' }}</h1>
+        <p class="subtitle">飞书文件管理系统</p>
       </div>
 
       <el-form
@@ -14,73 +23,105 @@
         @keyup.enter="handleSubmit"
       >
         <el-form-item prop="username">
-          <el-input
-            v-model="form.username"
-            placeholder="用户名"
-            :prefix-icon="User"
-            size="large"
-          />
+          <div class="input-wrapper">
+            <el-icon class="input-icon"><User /></el-icon>
+            <el-input
+              v-model="form.username"
+              placeholder="用户名"
+              size="large"
+              class="modern-input"
+            />
+          </div>
         </el-form-item>
 
         <el-form-item prop="password">
-          <el-input
-            v-model="form.password"
-            type="password"
-            placeholder="密码"
-            :prefix-icon="Lock"
-            size="large"
-            show-password
-          />
+          <div class="input-wrapper">
+            <el-icon class="input-icon"><Lock /></el-icon>
+            <el-input
+              v-model="form.password"
+              type="password"
+              placeholder="密码"
+              size="large"
+              show-password
+              class="modern-input"
+            />
+          </div>
         </el-form-item>
 
         <template v-if="!isLogin">
           <el-form-item prop="confirmPassword">
-            <el-input
-              v-model="form.confirmPassword"
-              type="password"
-              placeholder="确认密码"
-              :prefix-icon="Lock"
-              size="large"
-              show-password
-            />
+            <div class="input-wrapper">
+              <el-icon class="input-icon"><Lock /></el-icon>
+              <el-input
+                v-model="form.confirmPassword"
+                type="password"
+                placeholder="确认密码"
+                size="large"
+                show-password
+                class="modern-input"
+              />
+            </div>
           </el-form-item>
 
           <el-form-item prop="email">
-            <el-input
-              v-model="form.email"
-              placeholder="邮箱（可选）"
-              :prefix-icon="Message"
-              size="large"
-            />
+            <div class="input-wrapper">
+              <el-icon class="input-icon"><Message /></el-icon>
+              <el-input
+                v-model="form.email"
+                placeholder="邮箱（可选）"
+                size="large"
+                class="modern-input"
+              />
+            </div>
           </el-form-item>
 
           <el-form-item prop="displayName">
-            <el-input
-              v-model="form.displayName"
-              placeholder="显示名称（可选）"
-              :prefix-icon="UserFilled"
-              size="large"
-            />
+            <div class="input-wrapper">
+              <el-icon class="input-icon"><UserFilled /></el-icon>
+              <el-input
+                v-model="form.displayName"
+                placeholder="显示名称（可选）"
+                size="large"
+                class="modern-input"
+              />
+            </div>
           </el-form-item>
         </template>
 
         <el-form-item>
-          <el-button
-            type="primary"
-            size="large"
-            :loading="authStore.loading"
-            class="submit-btn"
+          <button 
+            type="button" 
+            class="submit-btn btn-primary"
+            :disabled="authStore.loading"
             @click="handleSubmit"
           >
-            {{ isLogin ? '登录' : '注册' }}
-          </el-button>
+            <transition name="fade" mode="out-in">
+              <span v-if="!authStore.loading">{{ isLogin ? '登录' : '注册' }}</span>
+              <span v-else class="loading-text">
+                <el-icon class="is-loading"><Loading /></el-icon>
+                处理中...
+              </span>
+            </transition>
+          </button>
         </el-form-item>
       </el-form>
 
       <div class="login-footer">
-        <el-link type="primary" @click="toggleMode">
-          {{ isLogin ? '还没有账号？立即注册' : '已有账号？立即登录' }}
-        </el-link>
+        <p class="switch-text">
+          {{ isLogin ? '还没有账号？' : '已有账号？' }}
+          <a class="switch-link" @click="toggleMode">
+            {{ isLogin ? '立即注册' : '立即登录' }}
+          </a>
+        </p>
+      </div>
+      
+      <div class="theme-toggle-login" @click="appStore.toggleTheme">
+        <transition name="scale" mode="out-in">
+          <el-icon :key="appStore.isDark ? 'dark' : 'light'" :size="20">
+            <Moon v-if="!appStore.isDark" />
+            <Sunny v-else />
+          </el-icon>
+        </transition>
       </div>
     </div>
   </div>
@@ -89,12 +130,14 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Lock, Message, UserFilled } from '@element-plus/icons-vue'
+import { User, Lock, Message, UserFilled, Moon, Sunny, FolderOpened, Loading } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
+import { useAppStore } from '@/stores/appStore'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const appStore = useAppStore()
 const formRef = ref<FormInstance>()
 const isLogin = ref(true)
 
@@ -171,44 +214,233 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  padding: var(--spacing-lg);
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-color);
 }
 
-.login-box {
+.login-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  animation: float 20s ease-in-out infinite;
+  
+  &.orb-1 {
+    width: 600px;
+    height: 600px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    top: -200px;
+    right: -200px;
+    animation-delay: 0s;
+  }
+  
+  &.orb-2 {
+    width: 500px;
+    height: 500px;
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    bottom: -150px;
+    left: -150px;
+    animation-delay: -5s;
+  }
+  
+  &.orb-3 {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, #22c55e, #3b82f6);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation-delay: -10s;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(50px, -50px) scale(1.1);
+  }
+  50% {
+    transform: translate(-30px, 30px) scale(0.95);
+  }
+  75% {
+    transform: translate(-50px, -30px) scale(1.05);
+  }
+}
+
+.login-card {
   width: 100%;
   max-width: 420px;
-  background: white;
-  border-radius: 12px;
-  padding: 40px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  padding: var(--spacing-xl);
+  position: relative;
+  z-index: 1;
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 30px;
-
-  h2 {
-    margin: 0 0 8px 0;
-    font-size: 28px;
-    color: #303133;
+  margin-bottom: var(--spacing-xl);
+  
+  .logo-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-lg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-bottom: var(--spacing-md);
+    box-shadow: var(--shadow-lg), 0 8px 24px rgba(99, 102, 241, 0.3);
   }
-
-  p {
-    margin: 0;
-    color: #909399;
+  
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .subtitle {
+    color: var(--text-secondary);
     font-size: 14px;
   }
 }
 
 .login-form {
-  .submit-btn {
-    width: 100%;
+  .el-form-item {
+    margin-bottom: var(--spacing-md);
+  }
+}
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+  
+  .input-icon {
+    position: absolute;
+    left: var(--spacing-md);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    z-index: 1;
+    transition: color var(--transition-fast);
+  }
+  
+  &:focus-within .input-icon {
+    color: var(--primary-color);
+  }
+}
+
+.modern-input {
+  :deep(.el-input__wrapper) {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0 var(--spacing-md);
+    padding-left: 44px;
+    box-shadow: none;
+    transition: all var(--transition-fast);
+    
+    &:hover {
+      border-color: var(--text-tertiary);
+    }
+    
+    &.is-focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px var(--primary-bg);
+    }
+  }
+  
+  :deep(.el-input__inner) {
+    color: var(--text-primary);
+    
+    &::placeholder {
+      color: var(--text-tertiary);
+    }
+  }
+}
+
+.submit-btn {
+  width: 100%;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  .loading-text {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    
+    .el-icon {
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
 .login-footer {
   text-align: center;
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
+}
+
+.switch-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.switch-link {
+  color: var(--primary-color);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.theme-toggle-login {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    background: var(--primary-bg);
+    color: var(--primary-color);
+  }
 }
 </style>

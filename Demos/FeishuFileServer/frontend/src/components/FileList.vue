@@ -1,84 +1,136 @@
 <template>
   <div class="file-list">
-    <el-table
-      v-if="viewMode === 'list'"
-      :data="files"
-      @selection-change="handleSelectionChange"
-      @row-click="handleRowClick"
-      @row-dblclick="handleRowDblClick"
-      style="width: 100%"
-      row-key="fileToken"
-      :row-class-name="getRowClassName"
-    >
-      <el-table-column type="selection" width="40" />
-      <el-table-column label="文件名" min-width="300">
-        <template #default="{ row }">
-          <div class="file-name-cell">
-            <el-icon :class="getFileIconClass(row.fileName)">
-              <component :is="getFileIcon(row.fileName)" />
-            </el-icon>
-            <span class="file-name">{{ row.fileName }}</span>
+    <template v-if="viewMode === 'list'">
+      <div class="list-header">
+        <div class="col-checkbox"></div>
+        <div class="col-name">文件名</div>
+        <div class="col-size">大小</div>
+        <div class="col-date">修改时间</div>
+        <div class="col-actions">操作</div>
+      </div>
+      <transition-group name="list" tag="div" class="list-body">
+        <div
+          v-for="file in files"
+          :key="file.fileToken"
+          class="list-item"
+          :class="{ selected: selectedFiles.includes(file.fileToken) }"
+          @click="handleRowClick(file)"
+          @dblclick="handleRowDblClick(file)"
+        >
+          <div class="col-checkbox" @click.stop>
+            <el-checkbox
+              :model-value="selectedFiles.includes(file.fileToken)"
+              @change="handleGridSelect(file.fileToken)"
+            />
           </div>
-        </template>
-      </el-table-column>
-      <el-table-column prop="fileSize" label="大小" width="120">
-        <template #default="{ row }">
-          {{ formatFileSize(row.fileSize) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="uploadTime" label="修改时间" width="180">
-        <template #default="{ row }">
-          {{ formatDate(row.uploadTime) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
-        <template #default="{ row }">
-          <el-button-group>
-            <el-button size="small" @click.stop="handleDownload(row)">
-              <el-icon><Download /></el-icon>
-            </el-button>
-            <el-button size="small" @click.stop="handleVersions(row)">
-              <el-icon><Clock /></el-icon>
-            </el-button>
-            <el-dropdown @command="(cmd: string) => handleCommand(cmd, row)">
-              <el-button size="small">
-                <el-icon><MoreFilled /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="preview">预览</el-dropdown-item>
-                  <el-dropdown-item command="rename">重命名</el-dropdown-item>
-                  <el-dropdown-item command="move">移动到</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </el-button-group>
-        </template>
-      </el-table-column>
-    </el-table>
+          <div class="col-name">
+            <div class="file-icon-wrapper">
+              <el-icon :class="getFileIconClass(file.fileName)" :size="32">
+                <component :is="getFileIcon(file.fileName)" />
+              </el-icon>
+            </div>
+            <div class="file-info">
+              <span class="file-name">{{ file.fileName }}</span>
+              <span class="file-token">{{ file.fileToken.substring(0, 8) }}...</span>
+            </div>
+          </div>
+          <div class="col-size">
+            <span class="size-badge">{{ formatFileSize(file.fileSize) }}</span>
+          </div>
+          <div class="col-date">
+            <span class="date-text">{{ formatDate(file.uploadTime) }}</span>
+          </div>
+          <div class="col-actions">
+            <div class="action-buttons">
+              <button class="action-btn icon-btn" @click.stop="handleDownload(file)" title="下载">
+                <el-icon><Download /></el-icon>
+              </button>
+              <button class="action-btn icon-btn" @click.stop="handleVersions(file)" title="版本历史">
+                <el-icon><Clock /></el-icon>
+              </button>
+              <el-dropdown @command="(cmd: string) => handleCommand(cmd, file)" trigger="click">
+                <button class="action-btn icon-btn" @click.stop title="更多">
+                  <el-icon><MoreFilled /></el-icon>
+                </button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="preview">
+                      <el-icon><View /></el-icon>
+                      <span>预览</span>
+                    </el-dropdown-item>
+                    <el-dropdown-item command="rename">
+                      <el-icon><Edit /></el-icon>
+                      <span>重命名</span>
+                    </el-dropdown-item>
+                    <el-dropdown-item command="move">
+                      <el-icon><FolderRemove /></el-icon>
+                      <span>移动到</span>
+                    </el-dropdown-item>
+                    <el-dropdown-item command="delete" divided>
+                      <el-icon><Delete /></el-icon>
+                      <span>删除</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </div>
+        </div>
+      </transition-group>
+    </template>
 
-    <div v-else class="grid-view">
+    <transition-group v-else name="grid" tag="div" class="grid-view">
       <div
         v-for="file in files"
         :key="file.fileToken"
-        class="grid-item"
+        class="grid-item modern-card"
         :class="{ selected: selectedFiles.includes(file.fileToken) }"
         @click="handleGridClick(file)"
         @dblclick="handleGridDblClick(file)"
       >
-        <el-checkbox
-          :model-value="selectedFiles.includes(file.fileToken)"
-          @click.stop
-          @change="handleGridSelect(file.fileToken)"
-        />
-        <el-icon :class="getFileIconClass(file.fileName)" class="grid-icon">
-          <component :is="getFileIcon(file.fileName)" />
-        </el-icon>
-        <div class="grid-name">{{ file.fileName }}</div>
-        <div class="grid-size">{{ formatFileSize(file.fileSize) }}</div>
+        <div class="grid-item-header">
+          <el-checkbox
+            :model-value="selectedFiles.includes(file.fileToken)"
+            @click.stop
+            @change="handleGridSelect(file.fileToken)"
+          />
+          <el-dropdown @command="(cmd: string) => handleCommand(cmd, file)" trigger="click">
+            <button class="more-btn" @click.stop>
+              <el-icon><MoreFilled /></el-icon>
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="download">
+                  <el-icon><Download /></el-icon>
+                  <span>下载</span>
+                </el-dropdown-item>
+                <el-dropdown-item command="rename">
+                  <el-icon><Edit /></el-icon>
+                  <span>重命名</span>
+                </el-dropdown-item>
+                <el-dropdown-item command="delete" divided>
+                  <el-icon><Delete /></el-icon>
+                  <span>删除</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+        
+        <div class="grid-icon-wrapper">
+          <el-icon :class="getFileIconClass(file.fileName)" class="grid-icon">
+            <component :is="getFileIcon(file.fileName)" />
+          </el-icon>
+        </div>
+        
+        <div class="grid-info">
+          <div class="grid-name" :title="file.fileName">{{ file.fileName }}</div>
+          <div class="grid-meta">
+            <span class="grid-size">{{ formatFileSize(file.fileSize) }}</span>
+          </div>
+        </div>
       </div>
-    </div>
+    </transition-group>
   </div>
 </template>
 
@@ -86,7 +138,7 @@
 import type { FileInfoResponse } from '@/api/types'
 import { formatFileSize, formatDate } from '@/utils/format'
 
-const props = defineProps<{
+defineProps<{
   files: FileInfoResponse[]
   viewMode: 'list' | 'grid'
   selectedFiles: string[]
@@ -120,6 +172,7 @@ const getFileIcon = (filename: string): string => {
     case 'jpg':
     case 'jpeg':
     case 'gif':
+    case 'tiff':
       return 'Picture'
     default:
       return 'Document'
@@ -131,20 +184,12 @@ const getFileIconClass = (filename: string): string => {
   return `file-icon ${ext}`
 }
 
-const handleSelectionChange = (selection: FileInfoResponse[]) => {
-  selection.forEach(file => {
-    if (!props.selectedFiles.includes(file.fileToken)) {
-      emit('select', file.fileToken)
-    }
-  })
+const handleRowClick = (file: FileInfoResponse) => {
+  emit('select', file.fileToken)
 }
 
-const handleRowClick = (row: FileInfoResponse) => {
-  emit('select', row.fileToken)
-}
-
-const handleRowDblClick = (row: FileInfoResponse) => {
-  emit('preview', row)
+const handleRowDblClick = (file: FileInfoResponse) => {
+  emit('preview', file)
 }
 
 const handleGridClick = (file: FileInfoResponse) => {
@@ -172,6 +217,9 @@ const handleCommand = (command: string, file: FileInfoResponse) => {
     case 'preview':
       emit('preview', file)
       break
+    case 'download':
+      emit('download', file)
+      break
     case 'rename':
       emit('rename', file)
       break
@@ -183,10 +231,6 @@ const handleCommand = (command: string, file: FileInfoResponse) => {
       break
   }
 }
-
-const getRowClassName = ({ row }: { row: FileInfoResponse }) => {
-  return props.selectedFiles.includes(row.fileToken) ? 'selected-row' : ''
-}
 </script>
 
 <style scoped lang="scss">
@@ -194,84 +238,267 @@ const getRowClassName = ({ row }: { row: FileInfoResponse }) => {
   width: 100%;
 }
 
-.file-name-cell {
+.list-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 100px 150px 140px;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.list-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.list-item {
+  display: grid;
+  grid-template-columns: 40px 1fr 100px 150px 140px;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  
+  &:hover {
+    background: var(--bg-tertiary);
+    transform: translateX(4px);
+    
+    .action-buttons {
+      opacity: 1;
+    }
+  }
+  
+  &.selected {
+    background: var(--primary-bg);
+    border-color: var(--primary-color);
+  }
+}
+
+.col-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
 
-  .file-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.file-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+  
+  .list-item:hover & {
+    background: var(--primary-bg);
   }
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-token {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.size-badge {
+  display: inline-flex;
+  padding: 2px var(--spacing-sm);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.date-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-xs);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xs);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    background: var(--primary-bg);
+    color: var(--primary-color);
+  }
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
 }
 
 .file-icon {
   font-size: 24px;
-
-  &.docx, &.doc { color: #2196f3; }
-  &.xlsx, &.xls { color: #4caf50; }
-  &.pptx, &.ppt { color: #ff9800; }
-  &.pdf { color: #f44336; }
-  &.png, &.jpg, &.jpeg, &.gif { color: #9c27b0; }
+  
+  &.docx, &.doc { color: #3b82f6; }
+  &.xlsx, &.xls { color: #22c55e; }
+  &.pptx, &.ppt { color: #f97316; }
+  &.pdf { color: #ef4444; }
+  &.png, &.jpg, &.jpeg, &.gif { color: #a855f7; }
+  &.tiff { color: #ec4899; }
 }
 
 .grid-view {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 16px;
-  padding: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--spacing-md);
+}
 
-  .grid-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-
-    &:hover {
-      background-color: var(--el-fill-color-light);
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    
+    .more-btn {
+      opacity: 1;
     }
-
-    &.selected {
-      background-color: var(--el-color-primary-light-9);
-      outline: 2px solid var(--el-color-primary);
-    }
-
-    .el-checkbox {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-    }
-
-    .grid-icon {
-      font-size: 48px;
-      margin: 8px 0;
-    }
-
-    .grid-name {
-      font-size: 14px;
-      text-align: center;
-      word-break: break-all;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      max-width: 100%;
-    }
-
-    .grid-size {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-      margin-top: 4px;
-    }
+  }
+  
+  &.selected {
+    border-color: var(--primary-color);
+    background: var(--primary-bg);
   }
 }
 
-.selected-row {
-  background-color: var(--el-color-primary-light-9) !important;
+.grid-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.more-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    background: var(--primary-bg);
+    color: var(--primary-color);
+  }
+}
+
+.grid-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-sm);
+}
+
+.grid-icon {
+  font-size: 56px;
+  transition: transform var(--transition-spring);
+  
+  .grid-item:hover & {
+    transform: scale(1.1);
+  }
+}
+
+.grid-info {
+  text-align: center;
+}
+
+.grid-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: var(--spacing-xs);
+}
+
+.grid-meta {
+  display: flex;
+  justify-content: center;
+}
+
+.grid-size {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.grid-enter-active,
+.grid-leave-active {
+  transition: all var(--transition-normal);
+}
+
+.grid-enter-from {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.grid-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.grid-move {
+  transition: transform var(--transition-normal);
 }
 </style>
