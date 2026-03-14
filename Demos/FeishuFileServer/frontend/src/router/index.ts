@@ -23,6 +23,24 @@ const routes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: '/recycle-bin',
+    name: 'RecycleBin',
+    component: () => import('@/views/RecycleBin.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/shares',
+    name: 'ShareList',
+    component: () => import('@/views/ShareList.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/share/:shareCode',
+    name: 'ShareAccess',
+    component: () => import('@/views/ShareAccess.vue'),
+    meta: { public: true }
+  },
+  {
     path: '/file/:fileToken',
     name: 'FileDetail',
     component: () => import('@/views/FileDetail.vue'),

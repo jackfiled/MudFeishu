@@ -193,3 +193,24 @@ export interface ShareContentResponse {
   folderContents?: FolderContentsResponse
   allowDownload: boolean
 }
+
+// 操作日志相关类型
+export interface OperationLog {
+  id: number
+  userId?: number
+  username?: string
+  operationType: string
+  resourceType: string
+  resourceToken?: string
+  resourceName?: string
+  details?: string
+  ipAddress?: string
+  operationTime: string
+  isSuccess: boolean
+  errorMessage?: string
+}
+
+export interface OperationLogListResponse {
+  logs: OperationLog[]
+  totalCount: number
+}
