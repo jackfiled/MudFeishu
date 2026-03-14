@@ -193,6 +193,61 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// 刷新访问令牌
+    /// <para>使用刷新令牌获取新的访问令牌</para>
+    /// </summary>
+    /// <param name="request">刷新令牌请求</param>
+    /// <returns>新的登录响应</returns>
+    [HttpPost("refresh-token")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        try
+        {
+            var response = await _authService.RefreshTokenAsync(request.RefreshToken);
+            if (response == null)
+            {
+                return Unauthorized(new { message = "无效的刷新令牌" });
+            }
+
+            return Ok(response);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "刷新令牌失败");
+            return StatusCode(500, new { message = "刷新令牌失败，请稍后重试" });
+        }
+    }
+
+    /// <summary>
+    /// 撤销刷新令牌
+    /// <para>使刷新令牌失效，需要登录认证</para>
+    /// </summary>
+    /// <param name="request">刷新令牌请求</param>
+    /// <returns>撤销结果</returns>
+    [HttpPost("revoke-token")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Unauthorized(new { message = "未登录" });
+        }
+
+        await _authService.RevokeRefreshTokenAsync(request.RefreshToken, userId.Value);
+        return Ok(new { message = "令牌已撤销" });
+    }
+
+    /// <summary>
     /// 从当前请求的JWT令牌中获取用户ID
     /// </summary>
     /// <returns>用户ID，未登录时返回null</returns>

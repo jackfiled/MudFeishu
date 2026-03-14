@@ -98,6 +98,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFileService, FileService>();
         services.AddScoped<IFolderService, FolderService>();
         services.AddScoped<IVersionService, VersionService>();
+        services.AddScoped<IRecycleBinService, RecycleBinService>();
+        services.AddScoped<IShareService, ShareService>();
+        services.AddScoped<IOperationLogService, OperationLogService>();
 
         return services;
     }
