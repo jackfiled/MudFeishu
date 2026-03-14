@@ -7,6 +7,16 @@
     >
       <el-icon class="folder-icon"><HomeFilled /></el-icon>
       <span class="folder-name">根目录</span>
+      <div class="folder-actions" @click.stop>
+        <el-button 
+          type="primary" 
+          size="small" 
+          text 
+          @click="handleCreateFolder(null)"
+        >
+          <el-icon><Plus /></el-icon>
+        </el-button>
+      </div>
     </div>
 
     <div class="folder-list">
@@ -20,14 +30,33 @@
       >
         <el-icon class="folder-icon"><Folder /></el-icon>
         <span class="folder-name">{{ folder.folderName }}</span>
-        <div class="folder-actions">
+        <div class="folder-actions" @click.stop>
           <el-button 
             type="primary" 
             size="small" 
             text 
-            @click.stop="handleCreateSubFolder(folder)"
+            @click="handleCreateFolder(folder)"
+            title="新建子文件夹"
           >
             <el-icon><Plus /></el-icon>
+          </el-button>
+          <el-button 
+            type="warning" 
+            size="small" 
+            text 
+            @click="handleRenameFolder(folder)"
+            title="重命名"
+          >
+            <el-icon><Edit /></el-icon>
+          </el-button>
+          <el-button 
+            type="danger" 
+            size="small" 
+            text 
+            @click="handleDeleteFolder(folder)"
+            title="删除"
+          >
+            <el-icon><Delete /></el-icon>
           </el-button>
         </div>
       </div>
@@ -40,25 +69,71 @@
       class="context-menu glass-effect"
       :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
     >
-      <div class="context-menu-item" @click="handleCreateSubFolder(contextMenu.folder)">
+      <div class="context-menu-item" @click="handleCreateFolder(contextMenu.folder)">
         <el-icon><FolderAdd /></el-icon>
         <span>新建子文件夹</span>
       </div>
-      <div class="context-menu-item" @click="handleRename">
+      <div class="context-menu-item" @click="handleRenameFolder(contextMenu.folder)">
         <el-icon><Edit /></el-icon>
         <span>重命名</span>
       </div>
-      <div class="context-menu-item danger" @click="handleDelete">
+      <div class="context-menu-item danger" @click="handleDeleteFolder(contextMenu.folder)">
         <el-icon><Delete /></el-icon>
         <span>删除</span>
       </div>
     </div>
+
+    <el-dialog
+      v-model="createFolderDialogVisible"
+      :title="dialogTitle"
+      width="400px"
+      @close="resetCreateFolderForm"
+    >
+      <el-form :model="createFolderForm" :rules="createFolderRules" ref="createFolderFormRef">
+        <el-form-item label="文件夹名称" prop="name">
+          <el-input 
+            v-model="createFolderForm.name" 
+            placeholder="请输入文件夹名称"
+            @keyup.enter="submitCreateFolder"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createFolderDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitCreateFolder" :loading="createFolderLoading">
+          创建
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="renameDialogVisible"
+      title="重命名文件夹"
+      width="400px"
+      @close="resetRenameForm"
+    >
+      <el-form :model="renameForm" :rules="renameRules" ref="renameFormRef">
+        <el-form-item label="文件夹名称" prop="name">
+          <el-input 
+            v-model="renameForm.name" 
+            placeholder="请输入新的文件夹名称"
+            @keyup.enter="submitRename"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="renameDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitRename" :loading="renameLoading">
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { HomeFilled, Folder, FolderAdd, Edit, Delete, Plus } from '@element-plus/icons-vue'
 import { useFolderStore } from '@/stores/folderStore'
 import { folderApi } from '@/api'
@@ -70,9 +145,17 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [folder: FolderResponse | null]
+  folderCreated: []
+  folderUpdated: []
 }>()
 
 const folderStore = useFolderStore()
+
+const dialogTitle = computed(() => {
+  return createFolderParent.value 
+    ? `在"${createFolderParent.value.folderName}"中新建文件夹` 
+    : '新建文件夹'
+})
 
 const contextMenu = ref({
   visible: false,
@@ -80,6 +163,36 @@ const contextMenu = ref({
   y: 0,
   folder: null as FolderResponse | null
 })
+
+const createFolderDialogVisible = ref(false)
+const createFolderLoading = ref(false)
+const createFolderParent = ref<FolderResponse | null>(null)
+const createFolderFormRef = ref<FormInstance>()
+const createFolderForm = reactive({
+  name: ''
+})
+
+const createFolderRules: FormRules = {
+  name: [
+    { required: true, message: '请输入文件夹名称', trigger: 'blur' },
+    { min: 1, max: 100, message: '文件夹名称长度为1-100个字符', trigger: 'blur' }
+  ]
+}
+
+const renameDialogVisible = ref(false)
+const renameLoading = ref(false)
+const renameFolder = ref<FolderResponse | null>(null)
+const renameFormRef = ref<FormInstance>()
+const renameForm = reactive({
+  name: ''
+})
+
+const renameRules: FormRules = {
+  name: [
+    { required: true, message: '请输入文件夹名称', trigger: 'blur' },
+    { min: 1, max: 100, message: '文件夹名称长度为1-100个字符', trigger: 'blur' }
+  ]
+}
 
 const handleRootClick = () => {
   emit('select', null)
@@ -102,17 +215,87 @@ const hideContextMenu = () => {
   contextMenu.value.visible = false
 }
 
-const handleCreateSubFolder = (_folder: FolderResponse | null) => {
+const handleCreateFolder = (parentFolder: FolderResponse | null) => {
   hideContextMenu()
+  createFolderParent.value = parentFolder
+  createFolderDialogVisible.value = true
 }
 
-const handleRename = async () => {
-  hideContextMenu()
+const resetCreateFolderForm = () => {
+  createFolderForm.name = ''
+  createFolderParent.value = null
+  createFolderFormRef.value?.resetFields()
 }
 
-const handleDelete = async () => {
+const submitCreateFolder = async () => {
+  if (!createFolderFormRef.value) return
+  
+  try {
+    await createFolderFormRef.value.validate()
+    createFolderLoading.value = true
+    
+    await folderApi.create({
+      name: createFolderForm.name,
+      parentFolderToken: createFolderParent.value?.folderToken
+    })
+    
+    ElMessage.success('文件夹创建成功')
+    createFolderDialogVisible.value = false
+    resetCreateFolderForm()
+    emit('folderCreated')
+  } catch (error: any) {
+    if (error.response?.data?.message) {
+      ElMessage.error(error.response.data.message)
+    } else if (error !== false) {
+      ElMessage.error('创建文件夹失败')
+    }
+  } finally {
+    createFolderLoading.value = false
+  }
+}
+
+const handleRenameFolder = (folder: FolderResponse | null) => {
   hideContextMenu()
-  const folder = contextMenu.value.folder
+  if (!folder) return
+  renameFolder.value = folder
+  renameForm.name = folder.folderName
+  renameDialogVisible.value = true
+}
+
+const resetRenameForm = () => {
+  renameForm.name = ''
+  renameFolder.value = null
+  renameFormRef.value?.resetFields()
+}
+
+const submitRename = async () => {
+  if (!renameFormRef.value || !renameFolder.value) return
+  
+  try {
+    await renameFormRef.value.validate()
+    renameLoading.value = true
+    
+    await folderApi.update(renameFolder.value.folderToken, {
+      name: renameForm.name
+    })
+    
+    ElMessage.success('文件夹重命名成功')
+    renameDialogVisible.value = false
+    resetRenameForm()
+    emit('folderUpdated')
+  } catch (error: any) {
+    if (error.response?.data?.message) {
+      ElMessage.error(error.response.data.message)
+    } else if (error !== false) {
+      ElMessage.error('重命名失败')
+    }
+  } finally {
+    renameLoading.value = false
+  }
+}
+
+const handleDeleteFolder = async (folder: FolderResponse | null) => {
+  hideContextMenu()
   if (!folder) return
 
   try {
@@ -159,6 +342,10 @@ onUnmounted(() => {
   &:hover {
     background: var(--bg-tertiary);
     transform: translateX(2px);
+
+    .folder-actions {
+      opacity: 1;
+    }
   }
 
   &.is-active {
@@ -184,6 +371,13 @@ onUnmounted(() => {
     white-space: nowrap;
     font-weight: 500;
     font-size: 14px;
+  }
+
+  .folder-actions {
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    display: flex;
+    gap: var(--spacing-xs);
   }
 }
 
@@ -239,7 +433,7 @@ onUnmounted(() => {
     opacity: 0;
     transition: opacity var(--transition-fast);
     display: flex;
-    gap: var(--spacing-xs);
+    gap: 2px;
   }
 }
 

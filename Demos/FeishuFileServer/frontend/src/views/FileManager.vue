@@ -42,7 +42,9 @@
             </div>
             <FolderTree 
               :current-folder-token="currentFolderToken"
-              @select="handleFolderSelect" 
+              @select="handleFolderSelect"
+              @folder-created="loadFolders"
+              @folder-updated="loadFolders"
             />
           </div>
         </div>
