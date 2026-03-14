@@ -21,6 +21,14 @@ import type {
   ShareListResponse,
   ShareContentResponse,
   OperationLogListResponse,
+  BatchDeleteRequest,
+  BatchMoveRequest,
+  BatchCopyRequest,
+  BatchRestoreRequest,
+  BatchOperationResponse,
+  InitChunkUploadRequest,
+  InitChunkUploadResponse,
+  ChunkUploadResponse,
 } from "./types";
 
 export const fileApi = {
@@ -344,5 +352,75 @@ export const operationLogApi = {
       method: "get",
       params: { page, pageSize },
     }) as Promise<OperationLogListResponse>;
+  },
+};
+
+export const batchApi = {
+  delete: (data: BatchDeleteRequest) => {
+    return request({
+      url: "/api/batch/delete",
+      method: "post",
+      data,
+    }) as Promise<BatchOperationResponse>;
+  },
+
+  move: (data: BatchMoveRequest) => {
+    return request({
+      url: "/api/batch/move",
+      method: "post",
+      data,
+    }) as Promise<BatchOperationResponse>;
+  },
+
+  copy: (data: BatchCopyRequest) => {
+    return request({
+      url: "/api/batch/copy",
+      method: "post",
+      data,
+    }) as Promise<BatchOperationResponse>;
+  },
+
+  restore: (data: BatchRestoreRequest) => {
+    return request({
+      url: "/api/batch/restore",
+      method: "post",
+      data,
+    }) as Promise<BatchOperationResponse>;
+  },
+};
+
+export const chunkUploadApi = {
+  init: (data: InitChunkUploadRequest) => {
+    return request({
+      url: "/api/files/chunk/init",
+      method: "post",
+      data,
+    }) as Promise<InitChunkUploadResponse>;
+  },
+
+  uploadChunk: (uploadId: string, chunkNumber: number, chunk: Blob, onUploadProgress?: (progressEvent: any) => void) => {
+    const formData = new FormData();
+    formData.append("chunk", chunk);
+    return request({
+      url: `/api/files/chunk/${uploadId}/${chunkNumber}`,
+      method: "post",
+      data: formData,
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress,
+    }) as Promise<ChunkUploadResponse>;
+  },
+
+  complete: (uploadId: string) => {
+    return request({
+      url: `/api/files/chunk/${uploadId}/complete`,
+      method: "post",
+    }) as Promise<ChunkUploadResponse>;
+  },
+
+  cancel: (uploadId: string) => {
+    return request({
+      url: `/api/files/chunk/${uploadId}/cancel`,
+      method: "delete",
+    });
   },
 };

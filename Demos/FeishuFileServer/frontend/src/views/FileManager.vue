@@ -135,7 +135,52 @@
           v-loading="fileStore.loading"
           element-loading-background="transparent"
           @scroll="handleScroll"
+          @dragover.prevent="handleDragOver"
+          @dragleave.prevent="handleDragLeave"
+          @drop.prevent="handleDrop"
         >
+          <transition name="fade">
+            <div v-if="isDragging" class="drag-overlay">
+              <div class="drag-content">
+                <el-icon :size="60"><Upload /></el-icon>
+                <p>释放文件以上传</p>
+              </div>
+            </div>
+          </transition>
+
+          <transition name="slide">
+            <div v-if="fileStore.selectedFiles.length > 0" class="batch-toolbar glass-effect">
+              <div class="batch-info">
+                <el-checkbox 
+                  :model-value="isAllSelected" 
+                  @change="handleSelectAll"
+                />
+                <span>已选择 {{ fileStore.selectedFiles.length }} 个文件</span>
+              </div>
+              <div class="batch-actions">
+                <el-button type="primary" size="small" @click="handleBatchDownload">
+                  <el-icon><Download /></el-icon>
+                  下载
+                </el-button>
+                <el-button type="warning" size="small" @click="handleBatchMove">
+                  <el-icon><Rank /></el-icon>
+                  移动
+                </el-button>
+                <el-button type="info" size="small" @click="handleBatchCopy">
+                  <el-icon><CopyDocument /></el-icon>
+                  复制
+                </el-button>
+                <el-button type="danger" size="small" @click="handleBatchDelete">
+                  <el-icon><Delete /></el-icon>
+                  删除
+                </el-button>
+                <el-button size="small" @click="fileStore.clearSelection">
+                  取消选择
+                </el-button>
+              </div>
+            </div>
+          </transition>
+
           <FileList
             :files="fileStore.files"
             :view-mode="fileStore.viewMode"
@@ -147,6 +192,7 @@
             @move="handleFileMove"
             @delete="handleFileDelete"
             @versions="handleVersionHistory"
+            @share="handleFileShare"
           />
 
           <transition name="fade">
@@ -250,6 +296,17 @@
         @close="changePasswordVisible = false"
       />
     </transition>
+
+    <ShareDialog
+      v-model="shareDialogVisible"
+      :resource-type="shareResource.type"
+      :resource-token="shareResource.token"
+      :resource-name="shareResource.name"
+    />
+
+    <OperationLogDrawer
+      v-model="operationLogVisible"
+    />
   </div>
 </template>
 
@@ -260,7 +317,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Upload, FolderAdd, Search, List, Grid, HomeFilled, Fold, Expand, 
   User, ArrowDown, UserFilled, Lock, SwitchButton, ArrowRight, 
-  Refresh, Close, Moon, Sunny, FolderOpened
+  Refresh, Close, Moon, Sunny, FolderOpened, Download, Rank, 
+  CopyDocument, Delete
 } from '@element-plus/icons-vue'
 import { useFileStore } from '@/stores/fileStore'
 import { useFolderStore } from '@/stores/folderStore'
@@ -276,6 +334,8 @@ import MoveDialog from '@/components/MoveDialog.vue'
 import VersionHistory from '@/components/VersionHistory.vue'
 import UserProfileDialog from '@/components/UserProfileDialog.vue'
 import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue'
+import ShareDialog from '@/components/ShareDialog.vue'
+import OperationLogDrawer from '@/components/OperationLogDrawer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -292,6 +352,18 @@ const currentFileName = ref('')
 const versionHistoryVisible = ref(false)
 const userProfileVisible = ref(false)
 const changePasswordVisible = ref(false)
+const shareDialogVisible = ref(false)
+const operationLogVisible = ref(false)
+const isDragging = ref(false)
+const shareResource = ref<{ type: 'File' | 'Folder'; token: string; name: string }>({
+  type: 'File',
+  token: '',
+  name: ''
+})
+
+const isAllSelected = computed(() => {
+  return fileStore.files.length > 0 && fileStore.selectedFiles.length === fileStore.files.length
+})
 
 const isPulling = ref(false)
 const pullDistance = ref(0)
@@ -315,7 +387,7 @@ const renameDialog = ref<{
 const moveDialog = ref<{
   visible: boolean
   itemToken: string
-  itemType: 'file' | 'folder'
+  itemType: 'file' | 'folder' | 'batch'
 }>({
   visible: false,
   itemToken: '',
@@ -411,6 +483,94 @@ const handleVersionHistory = (file: any) => {
   currentFileToken.value = file.fileToken
   currentFileName.value = file.fileName
   versionHistoryVisible.value = true
+}
+
+const handleFileShare = (file: any) => {
+  shareResource.value = {
+    type: 'File',
+    token: file.fileToken,
+    name: file.fileName
+  }
+  shareDialogVisible.value = true
+}
+
+const handleSelectAll = (val: boolean) => {
+  if (val) {
+    fileStore.files.forEach(f => {
+      if (!fileStore.selectedFiles.includes(f.fileToken)) {
+        fileStore.selectedFiles.push(f.fileToken)
+      }
+    })
+  } else {
+    fileStore.clearSelection()
+  }
+}
+
+const handleBatchDownload = async () => {
+  ElMessage.info('批量下载功能开发中')
+}
+
+const handleBatchMove = () => {
+  if (fileStore.selectedFiles.length === 0) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  moveDialog.value = {
+    visible: true,
+    itemToken: fileStore.selectedFiles[0],
+    itemType: 'batch'
+  }
+}
+
+const handleBatchCopy = () => {
+  ElMessage.info('批量复制功能开发中')
+}
+
+const handleBatchDelete = async () => {
+  if (fileStore.selectedFiles.length === 0) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(`确定要删除选中的 ${fileStore.selectedFiles.length} 个文件吗？`, '提示', {
+      type: 'warning'
+    })
+    const { batchApi } = await import('@/api')
+    await batchApi.delete({ fileTokens: fileStore.selectedFiles, folderTokens: [] })
+    fileStore.clearSelection()
+    loadFiles()
+    ElMessage.success('批量删除成功')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('批量删除失败')
+    }
+  }
+}
+
+const handleDragOver = (_e: DragEvent) => {
+  isDragging.value = true
+}
+
+const handleDragLeave = (_e: DragEvent) => {
+  isDragging.value = false
+}
+
+const handleDrop = async (e: DragEvent) => {
+  isDragging.value = false
+  const files = e.dataTransfer?.files
+  if (!files || files.length === 0) return
+  
+  for (const file of Array.from(files)) {
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      await fileApi.upload(formData, currentFolderToken.value)
+    } catch (error) {
+      ElMessage.error(`上传 ${file.name} 失败`)
+    }
+  }
+  loadFiles()
+  ElMessage.success(`成功上传 ${files.length} 个文件`)
 }
 
 const handleUpload = () => {
@@ -952,6 +1112,61 @@ onMounted(() => {
   
   &:hover {
     color: var(--primary-color);
+  }
+}
+
+.batch-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.batch-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  
+  span {
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+}
+
+.batch-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.drag-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(var(--primary-rgb), 0.1);
+  border: 2px dashed var(--primary-color);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.drag-content {
+  text-align: center;
+  color: var(--primary-color);
+  
+  .el-icon {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  p {
+    font-size: 18px;
+    font-weight: 500;
   }
 }
 </style>

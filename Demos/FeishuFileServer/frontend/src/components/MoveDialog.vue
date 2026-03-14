@@ -38,7 +38,7 @@ import type { FolderResponse } from '@/api/types'
 
 const props = defineProps<{
   itemToken: string
-  itemType: 'file' | 'folder'
+  itemType: 'file' | 'folder' | 'batch'
 }>()
 
 const emit = defineEmits<{

@@ -214,3 +214,70 @@ export interface OperationLogListResponse {
   logs: OperationLog[]
   totalCount: number
 }
+
+// 批量操作相关类型
+export interface BatchDeleteRequest {
+  fileTokens: string[]
+  folderTokens: string[]
+}
+
+export interface BatchMoveRequest {
+  fileTokens: string[]
+  folderTokens: string[]
+  targetFolderToken?: string
+}
+
+export interface BatchCopyRequest {
+  fileTokens: string[]
+  folderTokens: string[]
+  targetFolderToken?: string
+}
+
+export interface BatchRestoreRequest {
+  fileTokens: string[]
+  folderTokens: string[]
+}
+
+export interface BatchOperationResponse {
+  success: boolean
+  successCount: number
+  failedCount: number
+  errors: BatchOperationError[]
+}
+
+export interface BatchOperationError {
+  token: string
+  name: string
+  message: string
+}
+
+// 分片上传相关类型
+export interface InitChunkUploadRequest {
+  fileName: string
+  fileSize: number
+  fileMD5?: string
+  chunkSize?: number
+  folderToken?: string
+}
+
+export interface InitChunkUploadResponse {
+  uploadId: string
+  fileName: string
+  fileSize: number
+  chunkSize: number
+  totalChunks: number
+}
+
+export interface ChunkUploadResponse {
+  uploadId: string
+  chunkNumber: number
+  isComplete: boolean
+  uploadedChunks: number
+  totalChunks: number
+  progress: number
+  fileToken?: string
+}
+
+export interface CompleteChunkUploadRequest {
+  uploadId: string
+}

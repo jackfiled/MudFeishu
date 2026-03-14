@@ -53,6 +53,16 @@ public class FeishuFileDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     /// <summary>
+    /// 分片上传记录数据集
+    /// </summary>
+    public DbSet<ChunkUploadRecord> ChunkUploadRecords { get; set; }
+
+    /// <summary>
+    /// 文件权限数据集
+    /// </summary>
+    public DbSet<FilePermission> FilePermissions { get; set; }
+
+    /// <summary>
     /// 配置数据库模型
     /// </summary>
     /// <param name="modelBuilder">模型构建器</param>
@@ -108,6 +118,19 @@ public class FeishuFileDbContext : DbContext
             entity.HasIndex(e => e.Token).IsUnique();
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.ExpireTime);
+        });
+
+        modelBuilder.Entity<ChunkUploadRecord>(entity =>
+        {
+            entity.HasIndex(e => e.UploadId).IsUnique();
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.IsCompleted);
+        });
+
+        modelBuilder.Entity<FilePermission>(entity =>
+        {
+            entity.HasIndex(e => new { e.ResourceToken, e.UserId });
+            entity.HasIndex(e => e.ResourceType);
         });
     }
 }

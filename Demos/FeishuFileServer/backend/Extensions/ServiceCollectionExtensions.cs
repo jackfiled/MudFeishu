@@ -101,6 +101,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRecycleBinService, RecycleBinService>();
         services.AddScoped<IShareService, ShareService>();
         services.AddScoped<IOperationLogService, OperationLogService>();
+        services.AddScoped<IBatchService, BatchService>();
 
         return services;
     }
