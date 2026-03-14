@@ -48,12 +48,16 @@ export interface FileListResponse {
 }
 
 export interface FileInfoResponse {
+  id: number
   fileToken: string
   folderToken?: string
+  versionToken?: string
   fileName: string
   fileSize: number
   mimeType?: string
+  fileMD5?: string
   uploadTime: string
+  isDeleted: boolean
 }
 
 export interface FolderCreateRequest {
@@ -120,6 +124,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string
+  refreshToken: string
   tokenType: string
   expiresIn: number
   user: UserInfo
@@ -140,4 +145,51 @@ export interface ChangePasswordRequest {
 export interface UpdateProfileRequest {
   email?: string
   displayName?: string
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string
+}
+
+// 分享相关类型
+export interface CreateShareRequest {
+  resourceType: string
+  resourceToken: string
+  password?: string
+  expireTime?: string
+  maxAccessCount?: number
+  allowDownload?: boolean
+}
+
+export interface UpdateShareRequest {
+  password?: string
+  expireTime?: string
+  maxAccessCount?: number
+  allowDownload?: boolean
+  isActive?: boolean
+}
+
+export interface ShareResponse {
+  id: number
+  shareCode: string
+  shareLink: string
+  resourceType: string
+  resourceName: string
+  requirePassword: boolean
+  expireTime?: string
+  allowDownload: boolean
+  createdTime: string
+}
+
+export interface ShareListResponse {
+  shares: ShareResponse[]
+  totalCount: number
+}
+
+export interface ShareContentResponse {
+  resourceType: string
+  resourceName: string
+  file?: FileInfoResponse
+  folderContents?: FolderContentsResponse
+  allowDownload: boolean
 }

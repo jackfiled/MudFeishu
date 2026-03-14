@@ -5,120 +5,145 @@ import type { UserInfo, LoginRequest, RegisterRequest, UpdateProfileRequest, Cha
 import { ElMessage } from 'element-plus'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string>(localStorage.getItem('token') || '')
+  const token = ref<string | null>(localStorage.getItem('token'))
+  const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'))
   const user = ref<UserInfo | null>(null)
   const loading = ref(false)
 
-  const isLoggedIn = computed(() => !!token.value && !!user.value)
-  const isAdmin = computed(() => user.value?.role === 'Admin')
-  const displayName = computed(() => user.value?.displayName || user.value?.username || '')
+  const isAuthenticated = computed(() => !!token.value)
 
-  async function login(credentials: LoginRequest) {
-    loading.value = true
+  const setAuth = (newToken: string, newRefreshToken: string, newUser: UserInfo) => {
+    token.value = newToken
+    refreshToken.value = newRefreshToken
+    user.value = newUser
+    localStorage.setItem('token', newToken)
+    localStorage.setItem('refreshToken', newRefreshToken)
+  }
+
+  const clearAuth = () => {
+    token.value = null
+    refreshToken.value = null
+    user.value = null
+    localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+  }
+
+  const login = async (credentials: LoginRequest) => {
     try {
+      loading.value = true
       const response = await authApi.login(credentials)
-      token.value = response.token
-      user.value = response.user
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('user', JSON.stringify(response.user))
+      setAuth(response.token, response.refreshToken, response.user)
       ElMessage.success('登录成功')
       return true
-    } catch (error) {
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '登录失败')
       return false
     } finally {
       loading.value = false
     }
   }
 
-  async function register(data: RegisterRequest) {
-    loading.value = true
+  const register = async (credentials: RegisterRequest) => {
     try {
-      const response = await authApi.register(data)
-      token.value = response.token
-      user.value = response.user
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('user', JSON.stringify(response.user))
+      loading.value = true
+      const response = await authApi.register(credentials)
+      setAuth(response.token, response.refreshToken, response.user)
       ElMessage.success('注册成功')
       return true
-    } catch (error) {
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '注册失败')
       return false
     } finally {
       loading.value = false
     }
   }
 
-  async function fetchProfile() {
-    if (!token.value) return
-    try {
-      const userInfo = await authApi.getProfile()
-      user.value = userInfo
-      localStorage.setItem('user', JSON.stringify(userInfo))
-    } catch (error) {
-      logout()
+  const logout = async () => {
+    if (refreshToken.value) {
+      try {
+        await authApi.revokeToken(refreshToken.value)
+      } catch (error) {
+        console.error('Revoke token failed:', error)
+      }
     }
+    clearAuth()
+    ElMessage.success('已退出登录')
   }
 
-  async function updateProfile(data: UpdateProfileRequest) {
-    loading.value = true
+  const refreshAccessToken = async () => {
+    if (!refreshToken.value) {
+      clearAuth()
+      return false
+    }
+
     try {
-      const userInfo = await authApi.updateProfile(data)
-      user.value = userInfo
-      localStorage.setItem('user', JSON.stringify(userInfo))
-      ElMessage.success('个人信息更新成功')
+      const response = await authApi.refreshToken(refreshToken.value)
+      setAuth(response.token, response.refreshToken, response.user)
       return true
     } catch (error) {
+      clearAuth()
+      return false
+    }
+  }
+
+  const fetchProfile = async () => {
+    if (!token.value) return
+
+    try {
+      loading.value = true
+      user.value = await authApi.getProfile()
+    } catch (error) {
+      const refreshed = await refreshAccessToken()
+      if (!refreshed) {
+        clearAuth()
+      }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const updateProfile = async (data: UpdateProfileRequest) => {
+    try {
+      loading.value = true
+      user.value = await authApi.updateProfile(data)
+      ElMessage.success('资料更新成功')
+      return true
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '更新失败')
       return false
     } finally {
       loading.value = false
     }
   }
 
-  async function changePassword(data: ChangePasswordRequest) {
-    loading.value = true
+  const changePassword = async (data: ChangePasswordRequest) => {
     try {
+      loading.value = true
       await authApi.changePassword(data)
       ElMessage.success('密码修改成功')
       return true
-    } catch (error) {
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '密码修改失败')
       return false
     } finally {
       loading.value = false
-    }
-  }
-
-  function logout() {
-    token.value = ''
-    user.value = null
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-  }
-
-  function init() {
-    const storedToken = localStorage.getItem('token')
-    const storedUser = localStorage.getItem('user')
-    if (storedToken && storedUser) {
-      token.value = storedToken
-      try {
-        user.value = JSON.parse(storedUser)
-      } catch {
-        logout()
-      }
     }
   }
 
   return {
     token,
+    refreshToken,
     user,
     loading,
-    isLoggedIn,
-    isAdmin,
-    displayName,
+    isAuthenticated,
+    setAuth,
+    clearAuth,
     login,
     register,
+    logout,
+    refreshAccessToken,
     fetchProfile,
     updateProfile,
-    changePassword,
-    logout,
-    init
+    changePassword
   }
 })

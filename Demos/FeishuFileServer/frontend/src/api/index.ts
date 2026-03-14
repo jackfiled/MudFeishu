@@ -14,7 +14,12 @@ import type {
   RegisterRequest,
   UserInfo,
   ChangePasswordRequest,
-  UpdateProfileRequest
+  UpdateProfileRequest,
+  CreateShareRequest,
+  UpdateShareRequest,
+  ShareResponse,
+  ShareListResponse,
+  ShareContentResponse
 } from './types'
 
 export const fileApi = {
@@ -186,6 +191,132 @@ export const authApi = {
       url: '/api/auth/change-password',
       method: 'post',
       data
+    })
+  },
+
+  refreshToken: (refreshToken: string) => {
+    return request({
+      url: '/api/auth/refresh-token',
+      method: 'post',
+      data: { refreshToken }
+    }) as Promise<LoginResponse>
+  },
+
+  revokeToken: (refreshToken: string) => {
+    return request({
+      url: '/api/auth/revoke-token',
+      method: 'post',
+      data: { refreshToken }
+    })
+  }
+}
+
+export const shareApi = {
+  create: (data: CreateShareRequest) => {
+    return request({
+      url: '/api/shares',
+      method: 'post',
+      data
+    }) as Promise<ShareResponse>
+  },
+
+  access: (shareCode: string, password?: string) => {
+    return request({
+      url: `/api/shares/${shareCode}`,
+      method: 'get',
+      params: { password }
+    }) as Promise<ShareContentResponse>
+  },
+
+  getMyShares: (page = 1, pageSize = 20) => {
+    return request({
+      url: '/api/shares',
+      method: 'get',
+      params: { page, pageSize }
+    }) as Promise<ShareListResponse>
+  },
+
+  getShareInfo: (shareCode: string) => {
+    return request({
+      url: `/api/shares/${shareCode}/info`,
+      method: 'get'
+    }) as Promise<ShareResponse>
+  },
+
+  download: (shareCode: string, password?: string) => {
+    return request({
+      url: `/api/shares/${shareCode}/download`,
+      method: 'get',
+      params: { password },
+      responseType: 'blob'
+    })
+  },
+
+  update: (shareId: number, data: UpdateShareRequest) => {
+    return request({
+      url: `/api/shares/${shareId}`,
+      method: 'put',
+      data
+    }) as Promise<ShareResponse>
+  },
+
+  delete: (shareId: number) => {
+    return request({
+      url: `/api/shares/${shareId}`,
+      method: 'delete'
+    })
+  }
+}
+
+export const recycleBinApi = {
+  getDeletedFiles: (page = 1, pageSize = 20) => {
+    return request({
+      url: '/api/recyclebin/files',
+      method: 'get',
+      params: { page, pageSize }
+    }) as Promise<FileListResponse>
+  },
+
+  getDeletedFolders: (page = 1, pageSize = 20) => {
+    return request({
+      url: '/api/recyclebin/folders',
+      method: 'get',
+      params: { page, pageSize }
+    }) as Promise<FolderListResponse>
+  },
+
+  restoreFile: (fileToken: string) => {
+    return request({
+      url: `/api/recyclebin/files/${fileToken}/restore`,
+      method: 'post'
+    })
+  },
+
+  restoreFolder: (folderToken: string) => {
+    return request({
+      url: `/api/recyclebin/folders/${folderToken}/restore`,
+      method: 'post'
+    })
+  },
+
+  permanentlyDeleteFile: (fileToken: string) => {
+    return request({
+      url: `/api/recyclebin/files/${fileToken}`,
+      method: 'delete'
+    })
+  },
+
+  permanentlyDeleteFolder: (folderToken: string) => {
+    return request({
+      url: `/api/recyclebin/folders/${folderToken}`,
+      method: 'delete'
+    })
+  },
+
+  emptyRecycleBin: () => {
+    return request({
+      url: '/api/recyclebin/empty',
+      method: 'delete'
     })
   }
 }
