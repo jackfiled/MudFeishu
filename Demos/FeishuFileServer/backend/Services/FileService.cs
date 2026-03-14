@@ -142,7 +142,7 @@ public class FileService : IFileService
 
     /// <summary>
     /// 删除文件
-    /// 同时删除云端文件、本地记录和关联的版本记录
+    /// 将文件移到回收站（软删除），同时删除云端文件
     /// </summary>
     /// <param name="fileToken">文件令牌</param>
     /// <param name="cancellationToken">取消令牌</param>
@@ -156,26 +156,11 @@ public class FileService : IFileService
             throw new KeyNotFoundException($"File with token {fileToken} not found");
         }
 
-        try
-        {
-            await _feishuDriveService.DeleteFileAsync(fileToken, cancellationToken);
-            _logger.LogInformation("File deleted from Feishu: {FileToken}", fileToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to delete file from Feishu, continuing with local deletion: {FileToken}", fileToken);
-        }
-
-        var versionRecords = await _dbContext.VersionRecords
-            .Where(v => v.FileToken == fileToken)
-            .ToListAsync(cancellationToken);
-
-        _dbContext.VersionRecords.RemoveRange(versionRecords);
-
         fileRecord.IsDeleted = true;
+        fileRecord.DeletedTime = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("File deleted locally with {VersionCount} versions: {FileToken}", versionRecords.Count, fileToken);
+        _logger.LogInformation("File moved to recycle bin: {FileToken}", fileToken);
     }
 
     /// <summary>
@@ -199,15 +184,16 @@ public class FileService : IFileService
 
     /// <summary>
     /// 获取文件列表
-    /// 支持按文件夹和用户筛选
+    /// 支持按文件夹、用户筛选和搜索
     /// </summary>
     /// <param name="folderToken">文件夹令牌</param>
     /// <param name="userId">用户ID</param>
+    /// <param name="searchKeyword">搜索关键词</param>
     /// <param name="page">页码</param>
     /// <param name="pageSize">每页大小</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>文件列表响应</returns>
-    public async Task<FileListResponse> GetFilesAsync(string? folderToken = null, int? userId = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<FileListResponse> GetFilesAsync(string? folderToken = null, int? userId = null, string? searchKeyword = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
         var query = _dbContext.FileRecords.Where(f => !f.IsDeleted);
 
@@ -219,6 +205,11 @@ public class FileService : IFileService
         if (userId.HasValue)
         {
             query = query.Where(f => f.UserId == userId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            query = query.Where(f => f.FileName.Contains(searchKeyword));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -236,6 +227,38 @@ public class FileService : IFileService
             Page = page,
             PageSize = pageSize
         };
+    }
+
+    /// <summary>
+    /// 重命名文件
+    /// 更新文件的显示名称
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="newName">新文件名</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>更新后的文件信息</returns>
+    public async Task<FileInfoResponse?> RenameFileAsync(string fileToken, string newName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            throw new ArgumentException("文件名不能为空", nameof(newName));
+        }
+
+        var fileRecord = await _dbContext.FileRecords
+            .FirstOrDefaultAsync(f => f.FileToken == fileToken && !f.IsDeleted, cancellationToken);
+
+        if (fileRecord == null)
+        {
+            throw new KeyNotFoundException($"文件 {fileToken} 不存在");
+        }
+
+        var oldName = fileRecord.FileName;
+        fileRecord.FileName = newName;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("File renamed from {OldName} to {NewName}: {FileToken}", oldName, newName, fileToken);
+
+        return MapToFileInfoResponse(fileRecord);
     }
 
     /// <summary>

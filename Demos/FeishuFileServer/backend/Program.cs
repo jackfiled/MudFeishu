@@ -50,7 +50,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseGlobalExceptionHandling();
+app.UseGlobalExceptionHandler();
+
+app.UseRateLimiter();
 
 app.UseCors("DefaultPolicy");
 

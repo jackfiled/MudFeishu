@@ -120,6 +120,7 @@ public class VersionService : IVersionService
     /// <summary>
     /// 创建新版本
     /// 当版本数量超过限制时，自动删除最旧的版本
+    /// 对于支持飞书版本管理的文件类型，使用飞书API创建版本
     /// </summary>
     /// <param name="fileToken">文件令牌</param>
     /// <param name="file">上传的文件</param>
@@ -159,6 +160,32 @@ public class VersionService : IVersionService
             ? existingVersions.Max(v => v.VersionNumber) + 1 
             : 1;
 
+        string? feishuVersionToken = null;
+        var objType = GetObjectType(fileRecord.FileName);
+        
+        if (!string.IsNullOrEmpty(objType))
+        {
+            try
+            {
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream, cancellationToken);
+                memoryStream.Position = 0;
+
+                var uploadResult = await _feishuDriveService.UploadFileAsync(
+                    memoryStream, 
+                    file.FileName, 
+                    fileRecord.FolderToken, 
+                    cancellationToken);
+
+                feishuVersionToken = uploadResult.FileToken;
+                _logger.LogInformation("Version uploaded to Feishu: {FeishuVersionToken}", feishuVersionToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to upload version to Feishu, continuing with local version only");
+            }
+        }
+
         var versionRecord = new VersionRecord
         {
             FileToken = fileToken,
@@ -167,7 +194,8 @@ public class VersionService : IVersionService
             FileName = file.FileName,
             FileSize = file.Length,
             CreatedTime = DateTime.UtcNow,
-            IsCurrentVersion = true
+            IsCurrentVersion = true,
+            FeishuVersionToken = feishuVersionToken
         };
 
         _dbContext.VersionRecords.Add(versionRecord);

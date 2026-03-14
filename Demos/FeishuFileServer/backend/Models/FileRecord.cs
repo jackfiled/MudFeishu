@@ -70,6 +70,11 @@ public class FileRecord
     public bool IsDeleted { get; set; } = false;
 
     /// <summary>
+    /// 删除时间（软删除时记录）
+    /// </summary>
+    public DateTime? DeletedTime { get; set; }
+
+    /// <summary>
     /// 所属用户ID
     /// </summary>
     public int? UserId { get; set; }

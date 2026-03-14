@@ -127,9 +127,10 @@ public class FilesController : ControllerBase
 
     /// <summary>
     /// 获取文件列表
-    /// <para>支持按文件夹筛选，支持分页</para>
+    /// <para>支持按文件夹筛选和搜索，支持分页</para>
     /// </summary>
     /// <param name="folderToken">文件夹令牌，可选</param>
+    /// <param name="search">搜索关键词，可选，按文件名模糊搜索</param>
     /// <param name="page">页码，从1开始</param>
     /// <param name="pageSize">每页数量</param>
     /// <param name="cancellationToken">取消令牌</param>
@@ -138,13 +139,55 @@ public class FilesController : ControllerBase
     [ProducesResponseType(typeof(FileListResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<FileListResponse>> GetFiles(
         [FromQuery] string? folderToken,
+        [FromQuery] string? search,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
-        var result = await _fileService.GetFilesAsync(folderToken, userId, page, pageSize, cancellationToken);
+        var result = await _fileService.GetFilesAsync(folderToken, userId, search, page, pageSize, cancellationToken);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// 重命名文件
+    /// <para>更新文件的显示名称</para>
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="request">重命名请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>更新后的文件信息</returns>
+    [HttpPut("{fileToken}/rename")]
+    [ProducesResponseType(typeof(FileInfoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<FileInfoResponse>> RenameFile(
+        string fileToken,
+        [FromBody] RenameFileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _fileService.RenameFileAsync(fileToken, request.NewName, cancellationToken);
+            if (result == null)
+            {
+                return NotFound(new { message = "File not found" });
+            }
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "File not found" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error renaming file {FileToken}", fileToken);
+            return StatusCode(500, new { message = "Error renaming file", error = ex.Message });
+        }
     }
 
     /// <summary>

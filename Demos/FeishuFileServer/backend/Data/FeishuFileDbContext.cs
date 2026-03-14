@@ -38,6 +38,11 @@ public class FeishuFileDbContext : DbContext
     public DbSet<User> Users { get; set; }
 
     /// <summary>
+    /// 操作日志数据集
+    /// </summary>
+    public DbSet<OperationLog> OperationLogs { get; set; }
+
+    /// <summary>
     /// 配置数据库模型
     /// </summary>
     /// <param name="modelBuilder">模型构建器</param>
@@ -70,6 +75,14 @@ public class FeishuFileDbContext : DbContext
         {
             entity.HasIndex(e => e.Username).IsUnique();
             entity.HasIndex(e => e.Email);
+        });
+
+        modelBuilder.Entity<OperationLog>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.OperationType);
+            entity.HasIndex(e => e.ResourceToken);
+            entity.HasIndex(e => e.OperationTime);
         });
     }
 }

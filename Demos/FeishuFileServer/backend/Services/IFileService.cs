@@ -57,15 +57,27 @@ public interface IFileService
 
     /// <summary>
     /// 获取文件列表
-    /// 支持按文件夹和用户筛选，支持分页
+    /// 支持按文件夹、用户筛选和搜索，支持分页
     /// </summary>
     /// <param name="folderToken">文件夹令牌，可选</param>
     /// <param name="userId">用户ID，可选</param>
+    /// <param name="searchKeyword">搜索关键词，可选，按文件名模糊搜索</param>
     /// <param name="page">页码，从1开始</param>
     /// <param name="pageSize">每页数量</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>文件列表响应</returns>
-    Task<FileListResponse> GetFilesAsync(string? folderToken = null, int? userId = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+    Task<FileListResponse> GetFilesAsync(string? folderToken = null, int? userId = null, string? searchKeyword = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 重命名文件
+    /// 更新文件的显示名称
+    /// </summary>
+    /// <param name="fileToken">文件令牌</param>
+    /// <param name="newName">新文件名</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>更新后的文件信息</returns>
+    /// <exception cref="KeyNotFoundException">文件不存在时抛出</exception>
+    Task<FileInfoResponse?> RenameFileAsync(string fileToken, string newName, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 移动文件

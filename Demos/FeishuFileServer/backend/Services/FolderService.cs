@@ -120,7 +120,7 @@ public class FolderService : IFolderService
 
     /// <summary>
     /// 删除文件夹
-    /// 同时删除云端文件夹、本地记录、子文件夹和文件
+    /// 将文件夹移到回收站（软删除），同时标记子文件夹和文件为已删除
     /// </summary>
     /// <param name="folderToken">文件夹令牌</param>
     /// <param name="cancellationToken">取消令牌</param>
@@ -134,23 +134,15 @@ public class FolderService : IFolderService
             throw new KeyNotFoundException($"Folder with token {folderToken} not found");
         }
 
-        try
-        {
-            await _feishuDriveService.DeleteFolderAsync(folderToken, cancellationToken);
-            _logger.LogInformation("Folder deleted from Feishu: {FolderToken}", folderToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to delete folder from Feishu, continuing with local deletion: {FolderToken}", folderToken);
-        }
-
         var subFolders = await _dbContext.FolderRecords
             .Where(f => f.ParentFolderToken == folderToken && !f.IsDeleted)
             .ToListAsync(cancellationToken);
 
+        var deletedTime = DateTime.UtcNow;
         foreach (var subFolder in subFolders)
         {
             subFolder.IsDeleted = true;
+            subFolder.DeletedTime = deletedTime;
         }
 
         var files = await _dbContext.FileRecords
@@ -160,12 +152,14 @@ public class FolderService : IFolderService
         foreach (var file in files)
         {
             file.IsDeleted = true;
+            file.DeletedTime = deletedTime;
         }
 
         folderRecord.IsDeleted = true;
+        folderRecord.DeletedTime = deletedTime;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Folder deleted locally: {FolderToken}", folderToken);
+        _logger.LogInformation("Folder moved to recycle bin: {FolderToken}", folderToken);
     }
 
     /// <summary>

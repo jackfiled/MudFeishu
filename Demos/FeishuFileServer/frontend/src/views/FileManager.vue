@@ -338,7 +338,7 @@ const loadFolders = async () => {
 const loadFiles = async () => {
   try {
     fileStore.setLoading(true)
-    const response = await fileApi.getList(currentFolderToken.value, fileStore.page, fileStore.pageSize)
+    const response = await fileApi.getList(currentFolderToken.value, searchKeyword.value, fileStore.page, fileStore.pageSize)
     fileStore.setFiles(response.files, response.totalCount)
   } catch (error) {
     ElMessage.error('加载文件列表失败')
@@ -434,7 +434,7 @@ const handleCreateFolderSuccess = () => {
 const handleRenameConfirm = async (newName: string) => {
   try {
     if (renameDialog.value.type === 'file') {
-      await fileApi.getInfo(renameDialog.value.token)
+      await fileApi.rename(renameDialog.value.token, newName)
     } else {
       await folderApi.update(renameDialog.value.token, { name: newName })
     }

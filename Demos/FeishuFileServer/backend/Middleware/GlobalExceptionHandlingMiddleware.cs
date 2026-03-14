@@ -83,7 +83,7 @@ public static class GlobalExceptionHandlingMiddlewareExtensions
     /// </summary>
     /// <param name="builder">应用程序构建器</param>
     /// <returns>应用程序构建器</returns>
-    public static IApplicationBuilder UseGlobalExceptionHandling(this IApplicationBuilder builder)
+    public static IApplicationBuilder UseGlobalExceptionHandler(this IApplicationBuilder builder)
     {
         return builder.UseMiddleware<GlobalExceptionHandlingMiddleware>();
     }

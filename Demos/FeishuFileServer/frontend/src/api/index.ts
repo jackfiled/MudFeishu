@@ -38,11 +38,11 @@ export const fileApi = {
     })
   },
 
-  getList: (folderToken?: string, page = 1, pageSize = 20) => {
+  getList: (folderToken?: string, search?: string, page = 1, pageSize = 20) => {
     return request({
       url: '/api/files',
       method: 'get',
-      params: { folderToken, page, pageSize }
+      params: { folderToken, search, page, pageSize }
     }) as Promise<FileListResponse>
   },
 
@@ -50,6 +50,14 @@ export const fileApi = {
     return request({
       url: `/api/files/${fileToken}`,
       method: 'get'
+    }) as Promise<FileInfoResponse>
+  },
+
+  rename: (fileToken: string, newName: string) => {
+    return request({
+      url: `/api/files/${fileToken}/rename`,
+      method: 'put',
+      data: { newName }
     }) as Promise<FileInfoResponse>
   },
 

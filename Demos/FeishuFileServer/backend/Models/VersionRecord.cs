@@ -62,4 +62,11 @@ public class VersionRecord
     /// 是否为当前版本
     /// </summary>
     public bool IsCurrentVersion { get; set; } = false;
+
+    /// <summary>
+    /// 飞书版本令牌
+    /// 用于关联飞书云盘中的版本记录
+    /// </summary>
+    [MaxLength(100)]
+    public string? FeishuVersionToken { get; set; }
 }
