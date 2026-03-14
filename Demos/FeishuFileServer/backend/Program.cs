@@ -10,6 +10,16 @@ builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFeishuServices(builder.Configuration);
 builder.Services.AddCorsConfiguration(builder.Configuration);
 
+// 添加飞书应用服务
+builder.Services.AddFeishuApp(builder.Configuration, "FeishuApps");
+
+// 注册API服务
+builder.Services.CreateFeishuServicesBuilder()
+    .AddModules(FeishuModule.Organization)
+    .AddModules(FeishuModule.Drive)
+    .Build()
+    .AddLogging(options => options.AddConsole());
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
