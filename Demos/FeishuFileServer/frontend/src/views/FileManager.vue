@@ -686,9 +686,8 @@ const handleUserCommand = async (command: string) => {
         await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
           type: 'warning'
         })
-        authStore.logout()
+        await authStore.logout()
         router.push('/login')
-        ElMessage.success('已退出登录')
       } catch (error: any) {
         if (error !== 'cancel') {
           console.error('退出登录失败:', error)

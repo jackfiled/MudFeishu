@@ -87,6 +87,7 @@
       v-model="createFolderDialogVisible"
       :title="dialogTitle"
       width="400px"
+      append-to-body
       @close="resetCreateFolderForm"
     >
       <el-form :model="createFolderForm" :rules="createFolderRules" ref="createFolderFormRef">
@@ -110,6 +111,7 @@
       v-model="renameDialogVisible"
       title="重命名文件夹"
       width="400px"
+      append-to-body
       @close="resetRenameForm"
     >
       <el-form :model="renameForm" :rules="renameRules" ref="renameFormRef">
