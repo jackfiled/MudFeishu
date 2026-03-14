@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 添加 appsettings.local.json 配置文件（用于本地开发配置）
+builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFeishuServices(builder.Configuration);
 builder.Services.AddCorsConfiguration(builder.Configuration);

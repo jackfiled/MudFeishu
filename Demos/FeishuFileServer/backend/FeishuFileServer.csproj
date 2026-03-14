@@ -25,4 +25,10 @@
         <ProjectReference Include="..\..\..\Mud.Feishu\Mud.Feishu.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Update="appsettings.local.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
 </Project>
