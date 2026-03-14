@@ -50,7 +50,6 @@ const visible = ref(true)
 const loading = ref(false)
 const folders = ref<FolderResponse[]>([])
 const selectedFolder = ref<string | null>(null)
-const treeRef = ref<InstanceType<typeof ElTree>>()
 
 const treeProps = {
   children: 'children',

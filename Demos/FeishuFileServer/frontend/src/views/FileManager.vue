@@ -292,7 +292,6 @@ const currentFileName = ref('')
 const versionHistoryVisible = ref(false)
 const userProfileVisible = ref(false)
 const changePasswordVisible = ref(false)
-const fileListRef = ref<HTMLElement | null>(null)
 
 const isPulling = ref(false)
 const pullDistance = ref(0)

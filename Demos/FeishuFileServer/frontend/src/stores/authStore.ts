@@ -11,6 +11,8 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
 
   const isAuthenticated = computed(() => !!token.value)
+  const isLoggedIn = computed(() => !!token.value)
+  const isAdmin = computed(() => user.value?.role === 'Admin')
 
   const setAuth = (newToken: string, newRefreshToken: string, newUser: UserInfo) => {
     token.value = newToken
@@ -26,6 +28,12 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem('token')
     localStorage.removeItem('refreshToken')
+  }
+
+  const init = async () => {
+    if (token.value && !user.value) {
+      await fetchProfile()
+    }
   }
 
   const login = async (credentials: LoginRequest) => {
@@ -136,8 +144,11 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     loading,
     isAuthenticated,
+    isLoggedIn,
+    isAdmin,
     setAuth,
     clearAuth,
+    init,
     login,
     register,
     logout,
