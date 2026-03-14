@@ -51,11 +51,14 @@ public static class ServiceCollectionExtensions
     /// <returns>服务集合</returns>
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>();
-        if (jwtSettings == null)
+        var jwtSettingsSection = configuration.GetSection("JwtSettings");
+        var jwtSettings = jwtSettingsSection.Get<JwtSettings>();
+        if (jwtSettings == null || string.IsNullOrEmpty(jwtSettings.Secret))
         {
-            throw new InvalidOperationException("JWT配置未找到，请检查appsettings.json中的JwtSettings配置");
+            throw new InvalidOperationException("JWT配置未找到或Secret为空，请检查appsettings.json中的JwtSettings配置");
         }
+
+        services.Configure<JwtSettings>(jwtSettingsSection);
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>

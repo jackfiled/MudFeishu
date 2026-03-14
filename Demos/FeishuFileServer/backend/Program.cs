@@ -52,7 +52,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseGlobalExceptionHandler();
 
-app.UseRateLimiter();
+app.UseRateLimiter(100);
 
 app.UseCors("DefaultPolicy");
 
