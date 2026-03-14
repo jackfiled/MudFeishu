@@ -507,7 +507,30 @@ const handleSelectAll = (val: boolean) => {
 }
 
 const handleBatchDownload = async () => {
-  ElMessage.info('批量下载功能开发中')
+  if (fileStore.selectedFiles.length === 0) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  try {
+    const { batchApi } = await import('@/api')
+    const response = await batchApi.download({ 
+      fileTokens: fileStore.selectedFiles, 
+      folderTokens: [] 
+    })
+    const blob = response.data as Blob
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `download_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}.zip`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+    fileStore.clearSelection()
+    ElMessage.success('批量下载成功')
+  } catch (error) {
+    ElMessage.error('批量下载失败')
+  }
 }
 
 const handleBatchMove = () => {

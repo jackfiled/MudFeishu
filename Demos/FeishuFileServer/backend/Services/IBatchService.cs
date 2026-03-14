@@ -43,4 +43,13 @@ public interface IBatchService
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>批量操作响应</returns>
     Task<BatchOperationResponse> BatchRestoreAsync(BatchRestoreRequest request, int userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 批量下载文件
+    /// </summary>
+    /// <param name="request">批量下载请求</param>
+    /// <param name="userId">用户ID</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>ZIP压缩包内容和文件名</returns>
+    Task<(byte[] Content, string FileName)> BatchDownloadAsync(BatchDownloadRequest request, int userId, CancellationToken cancellationToken = default);
 }

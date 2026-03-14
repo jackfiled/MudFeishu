@@ -2,16 +2,18 @@ using FeishuFileServer.Data;
 using FeishuFileServer.Models;
 using FeishuFileServer.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
+using System.IO.Compression;
 
 namespace FeishuFileServer.Services;
 
 /// <summary>
 /// 批量操作服务实现
-/// 提供批量删除、移动、复制功能
+/// 提供批量删除、移动、复制、下载功能
 /// </summary>
 public class BatchService : IBatchService
 {
     private readonly FeishuFileDbContext _dbContext;
+    private readonly IFileService _fileService;
     private readonly ILogger<BatchService> _logger;
 
     /// <summary>
@@ -19,9 +21,11 @@ public class BatchService : IBatchService
     /// </summary>
     public BatchService(
         FeishuFileDbContext dbContext,
+        IFileService fileService,
         ILogger<BatchService> logger)
     {
         _dbContext = dbContext;
+        _fileService = fileService;
         _logger = logger;
     }
 
@@ -381,5 +385,95 @@ public class BatchService : IBatchService
         _logger.LogInformation("批量恢复完成: 成功 {SuccessCount}, 失败 {FailedCount}", response.SuccessCount, response.FailedCount);
 
         return response;
+    }
+
+    /// <summary>
+    /// 批量下载文件
+    /// </summary>
+    public async Task<(byte[] Content, string FileName)> BatchDownloadAsync(BatchDownloadRequest request, int userId, CancellationToken cancellationToken = default)
+    {
+        using var memoryStream = new MemoryStream();
+        using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+        {
+            foreach (var fileToken in request.FileTokens)
+            {
+                try
+                {
+                    var file = await _dbContext.FileRecords
+                        .FirstOrDefaultAsync(f => f.FileToken == fileToken && !f.IsDeleted, cancellationToken);
+
+                    if (file != null && file.UserId == userId)
+                    {
+                        var fileContent = await _fileService.DownloadFileAsync(fileToken, null, cancellationToken);
+                        
+                        var entry = zipArchive.CreateEntry(file.FileName, CompressionLevel.Optimal);
+                        using var entryStream = entry.Open();
+                        await entryStream.WriteAsync(fileContent, cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "批量下载文件失败: {FileToken}", fileToken);
+                }
+            }
+
+            foreach (var folderToken in request.FolderTokens)
+            {
+                try
+                {
+                    await AddFolderToZipAsync(zipArchive, folderToken, userId, "", cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "批量下载文件夹失败: {FolderToken}", folderToken);
+                }
+            }
+        }
+
+        var zipFileName = $"download_{DateTime.UtcNow:yyyyMMdd_HHmmss}.zip";
+        _logger.LogInformation("批量下载完成: {FileName}", zipFileName);
+
+        return (memoryStream.ToArray(), zipFileName);
+    }
+
+    /// <summary>
+    /// 递归添加文件夹到ZIP
+    /// </summary>
+    private async Task AddFolderToZipAsync(ZipArchive zipArchive, string folderToken, int userId, string basePath, CancellationToken cancellationToken)
+    {
+        var folder = await _dbContext.FolderRecords
+            .FirstOrDefaultAsync(f => f.FolderToken == folderToken && !f.IsDeleted, cancellationToken);
+
+        if (folder == null || folder.UserId != userId) return;
+
+        var folderPath = string.IsNullOrEmpty(basePath) ? folder.FolderName : $"{basePath}/{folder.FolderName}";
+
+        var files = await _dbContext.FileRecords
+            .Where(f => f.FolderToken == folderToken && !f.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var file in files)
+        {
+            try
+            {
+                var fileContent = await _fileService.DownloadFileAsync(file.FileToken, null, cancellationToken);
+                var entry = zipArchive.CreateEntry($"{folderPath}/{file.FileName}", CompressionLevel.Optimal);
+                using var entryStream = entry.Open();
+                await entryStream.WriteAsync(fileContent, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "下载文件失败: {FileToken}", file.FileToken);
+            }
+        }
+
+        var subFolders = await _dbContext.FolderRecords
+            .Where(f => f.ParentFolderToken == folderToken && !f.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var subFolder in subFolders)
+        {
+            await AddFolderToZipAsync(zipArchive, subFolder.FolderToken, userId, folderPath, cancellationToken);
+        }
     }
 }

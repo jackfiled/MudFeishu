@@ -29,6 +29,7 @@ import type {
   InitChunkUploadRequest,
   InitChunkUploadResponse,
   ChunkUploadResponse,
+  BatchDownloadRequest,
 } from "./types";
 
 export const fileApi = {
@@ -386,6 +387,15 @@ export const batchApi = {
       method: "post",
       data,
     }) as Promise<BatchOperationResponse>;
+  },
+
+  download: (data: BatchDownloadRequest) => {
+    return request({
+      url: "/api/batch/download",
+      method: "post",
+      data,
+      responseType: "blob",
+    });
   },
 };
 

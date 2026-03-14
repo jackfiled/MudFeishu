@@ -238,6 +238,11 @@ export interface BatchRestoreRequest {
   folderTokens: string[]
 }
 
+export interface BatchDownloadRequest {
+  fileTokens: string[]
+  folderTokens: string[]
+}
+
 export interface BatchOperationResponse {
   success: boolean
   successCount: number

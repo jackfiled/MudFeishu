@@ -8,7 +8,7 @@ namespace FeishuFileServer.Controllers;
 
 /// <summary>
 /// 批量操作控制器
-/// 提供批量删除、移动、复制功能的API接口
+/// 提供批量删除、移动、复制、下载功能的API接口
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -16,14 +16,16 @@ namespace FeishuFileServer.Controllers;
 public class BatchController : ControllerBase
 {
     private readonly IBatchService _batchService;
+    private readonly IFileService _fileService;
     private readonly ILogger<BatchController> _logger;
 
     /// <summary>
     /// 初始化批量操作控制器实例
     /// </summary>
-    public BatchController(IBatchService batchService, ILogger<BatchController> logger)
+    public BatchController(IBatchService batchService, IFileService fileService, ILogger<BatchController> logger)
     {
         _batchService = batchService;
+        _fileService = fileService;
         _logger = logger;
     }
 
@@ -161,6 +163,37 @@ public class BatchController : ControllerBase
         {
             _logger.LogError(ex, "批量恢复失败");
             return StatusCode(500, new { message = "批量恢复失败", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// 批量下载文件
+    /// </summary>
+    /// <param name="request">批量下载请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>ZIP压缩包</returns>
+    [HttpPost("download")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> BatchDownload(
+        [FromBody] BatchDownloadRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Unauthorized(new { message = "未登录" });
+        }
+
+        try
+        {
+            var (zipContent, zipFileName) = await _batchService.BatchDownloadAsync(request, userId.Value, cancellationToken);
+            return File(zipContent, "application/zip", zipFileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "批量下载失败");
+            return StatusCode(500, new { message = "批量下载失败", error = ex.Message });
         }
     }
 }
