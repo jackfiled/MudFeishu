@@ -40,7 +40,10 @@
                 <el-icon><Refresh /></el-icon>
               </el-button>
             </div>
-            <FolderTree @select="handleFolderSelect" />
+            <FolderTree 
+              :current-folder-token="currentFolderToken"
+              @select="handleFolderSelect" 
+            />
           </div>
         </div>
       </aside>
@@ -419,7 +422,7 @@ const loadFiles = async () => {
 }
 
 const handleFolderSelect = (folder: any) => {
-  currentFolderToken.value = folder.folderToken
+  currentFolderToken.value = folder?.folderToken ?? undefined
   folderStore.setCurrentFolder(folder)
   fileStore.page = 1
   loadFiles()

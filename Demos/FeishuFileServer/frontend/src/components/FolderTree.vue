@@ -1,31 +1,46 @@
 <template>
   <div class="folder-tree" v-loading="folderStore.loading">
-    <el-tree
-      :data="folderStore.folders"
-      :props="treeProps"
-      node-key="folderToken"
-      :expand-on-click-node="false"
-      :default-expanded-keys="Array.from(folderStore.expandedFolders)"
-      @node-click="handleNodeClick"
-      @node-expand="handleExpand"
-      @node-collapse="handleCollapse"
+    <div 
+      class="root-folder-node"
+      :class="{ 'is-active': currentFolderToken === null }"
+      @click="handleRootClick"
     >
-      <template #default="{ node, data }">
-        <div class="tree-node" @contextmenu.prevent="showContextMenu($event, data)">
-          <el-icon class="folder-icon"><Folder /></el-icon>
-          <span class="folder-name">{{ node.label }}</span>
+      <el-icon class="folder-icon"><HomeFilled /></el-icon>
+      <span class="folder-name">根目录</span>
+    </div>
+
+    <div class="folder-list">
+      <div 
+        v-for="folder in folderStore.folders" 
+        :key="folder.folderToken"
+        class="folder-item"
+        :class="{ 'is-active': currentFolderToken === folder.folderToken }"
+        @click="handleNodeClick(folder)"
+        @contextmenu.prevent="showContextMenu($event, folder)"
+      >
+        <el-icon class="folder-icon"><Folder /></el-icon>
+        <span class="folder-name">{{ folder.folderName }}</span>
+        <div class="folder-actions">
+          <el-button 
+            type="primary" 
+            size="small" 
+            text 
+            @click.stop="handleCreateSubFolder(folder)"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-button>
         </div>
-      </template>
-    </el-tree>
+      </div>
+    </div>
 
     <el-empty v-if="!folderStore.loading && folderStore.folders.length === 0" description="暂无文件夹" />
 
     <div
       v-show="contextMenu.visible"
-      class="context-menu"
+      class="context-menu glass-effect"
       :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
     >
-      <div class="context-menu-item" @click="handleCreateSubFolder">
+      <div class="context-menu-item" @click="handleCreateSubFolder(contextMenu.folder)">
         <el-icon><FolderAdd /></el-icon>
         <span>新建子文件夹</span>
       </div>
@@ -33,7 +48,7 @@
         <el-icon><Edit /></el-icon>
         <span>重命名</span>
       </div>
-      <div class="context-menu-item" @click="handleDelete">
+      <div class="context-menu-item danger" @click="handleDelete">
         <el-icon><Delete /></el-icon>
         <span>删除</span>
       </div>
@@ -44,20 +59,20 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { HomeFilled, Folder, FolderAdd, Edit, Delete, Plus } from '@element-plus/icons-vue'
 import { useFolderStore } from '@/stores/folderStore'
 import { folderApi } from '@/api'
 import type { FolderResponse } from '@/api/types'
 
+const props = defineProps<{
+  currentFolderToken?: string | null
+}>()
+
 const emit = defineEmits<{
-  select: [folder: FolderResponse]
+  select: [folder: FolderResponse | null]
 }>()
 
 const folderStore = useFolderStore()
-
-const treeProps = {
-  children: 'children',
-  label: 'folderName'
-}
 
 const contextMenu = ref({
   visible: false,
@@ -66,16 +81,12 @@ const contextMenu = ref({
   folder: null as FolderResponse | null
 })
 
+const handleRootClick = () => {
+  emit('select', null)
+}
+
 const handleNodeClick = (data: FolderResponse) => {
   emit('select', data)
-}
-
-const handleExpand = (data: FolderResponse) => {
-  folderStore.toggleExpand(data.folderToken)
-}
-
-const handleCollapse = (data: FolderResponse) => {
-  folderStore.toggleExpand(data.folderToken)
 }
 
 const showContextMenu = (event: MouseEvent, folder: FolderResponse) => {
@@ -91,14 +102,12 @@ const hideContextMenu = () => {
   contextMenu.value.visible = false
 }
 
-const handleCreateSubFolder = async () => {
+const handleCreateSubFolder = (_folder: FolderResponse | null) => {
   hideContextMenu()
-  // 可以在这里打开创建子文件夹对话框
 }
 
 const handleRename = async () => {
   hideContextMenu()
-  // 可以在这里打开重命名对话框
 }
 
 const handleDelete = async () => {
@@ -133,18 +142,39 @@ onUnmounted(() => {
 .folder-tree {
   height: 100%;
   overflow-y: auto;
-  padding: 8px;
+  padding: var(--spacing-sm);
 }
 
-.tree-node {
+.root-folder-node {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  width: 100%;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-xs);
+  transition: all var(--transition-fast);
+  background: var(--bg-secondary);
+
+  &:hover {
+    background: var(--bg-tertiary);
+    transform: translateX(2px);
+  }
+
+  &.is-active {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    box-shadow: var(--shadow-sm), 0 2px 8px rgba(99, 102, 241, 0.3);
+
+    .folder-icon {
+      color: white;
+    }
+  }
 
   .folder-icon {
-    color: #ffc107;
+    color: var(--primary-color);
+    font-size: 18px;
+    transition: all var(--transition-fast);
   }
 
   .folder-name {
@@ -152,29 +182,112 @@ onUnmounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: 500;
+    font-size: 14px;
+  }
+}
+
+.folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  position: relative;
+
+  &:hover {
+    background: var(--bg-secondary);
+    transform: translateX(2px);
+
+    .folder-actions {
+      opacity: 1;
+    }
+  }
+
+  &.is-active {
+    background: var(--primary-light);
+    color: var(--primary-color);
+
+    .folder-icon {
+      color: var(--primary-color);
+    }
+  }
+
+  .folder-icon {
+    color: #ffc107;
+    font-size: 18px;
+    transition: all var(--transition-fast);
+  }
+
+  .folder-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+  }
+
+  .folder-actions {
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    display: flex;
+    gap: var(--spacing-xs);
   }
 }
 
 .context-menu {
   position: fixed;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   z-index: 9999;
-  min-width: 150px;
+  min-width: 160px;
+  padding: var(--spacing-xs);
+  backdrop-filter: blur(12px);
 
   .context-menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
     cursor: pointer;
-    transition: background-color 0.2s;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    font-size: 14px;
 
     &:hover {
-      background-color: var(--el-fill-color-light);
+      background: var(--bg-secondary);
     }
+
+    &.danger {
+      color: var(--danger-color);
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.1);
+      }
+    }
+
+    .el-icon {
+      font-size: 16px;
+    }
+  }
+}
+
+:deep(.el-empty) {
+  padding: var(--spacing-xl);
+
+  .el-empty__description {
+    color: var(--text-secondary);
+    font-size: 13px;
   }
 }
 </style>
