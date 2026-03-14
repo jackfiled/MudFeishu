@@ -26,4 +26,9 @@ public class JwtSettings
     /// 令牌过期时间（小时）
     /// </summary>
     public int ExpirationHours { get; set; } = 24;
+
+    /// <summary>
+    /// 刷新令牌过期时间（天）
+    /// </summary>
+    public int RefreshTokenExpirationDays { get; set; } = 7;
 }

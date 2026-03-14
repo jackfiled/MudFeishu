@@ -57,4 +57,21 @@ public interface IAuthService
     /// <returns>更新后的用户信息，用户不存在时返回 null</returns>
     /// <exception cref="InvalidOperationException">当邮箱已被其他用户使用时抛出</exception>
     Task<UserInfo?> UpdateProfileAsync(int userId, UpdateProfileRequest request);
+
+    /// <summary>
+    /// 刷新访问令牌
+    /// <para>使用刷新令牌获取新的访问令牌</para>
+    /// </summary>
+    /// <param name="refreshToken">刷新令牌</param>
+    /// <returns>新的登录响应，包含新的访问令牌和刷新令牌</returns>
+    /// <exception cref="UnauthorizedAccessException">当刷新令牌无效或已过期时抛出</exception>
+    Task<LoginResponse?> RefreshTokenAsync(string refreshToken);
+
+    /// <summary>
+    /// 撤销刷新令牌
+    /// <para>使刷新令牌失效</para>
+    /// </summary>
+    /// <param name="refreshToken">刷新令牌</param>
+    /// <param name="userId">用户ID（验证权限）</param>
+    Task RevokeRefreshTokenAsync(string refreshToken, int userId);
 }

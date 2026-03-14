@@ -35,6 +35,11 @@ public class LoginResponse
     public string Token { get; set; } = string.Empty;
 
     /// <summary>
+    /// 刷新令牌
+    /// </summary>
+    public string RefreshToken { get; set; } = string.Empty;
+
+    /// <summary>
     /// 令牌类型（默认为 Bearer）
     /// </summary>
     public string TokenType { get; set; } = "Bearer";
@@ -48,6 +53,18 @@ public class LoginResponse
     /// 用户信息
     /// </summary>
     public UserInfo User { get; set; } = new();
+}
+
+/// <summary>
+/// 刷新令牌请求
+/// </summary>
+public class RefreshTokenRequest
+{
+    /// <summary>
+    /// 刷新令牌
+    /// </summary>
+    [Required(ErrorMessage = "刷新令牌不能为空")]
+    public string RefreshToken { get; set; } = string.Empty;
 }
 
 /// <summary>

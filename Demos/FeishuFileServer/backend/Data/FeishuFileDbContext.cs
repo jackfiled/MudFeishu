@@ -43,6 +43,16 @@ public class FeishuFileDbContext : DbContext
     public DbSet<OperationLog> OperationLogs { get; set; }
 
     /// <summary>
+    /// 文件分享数据集
+    /// </summary>
+    public DbSet<ShareRecord> ShareRecords { get; set; }
+
+    /// <summary>
+    /// 刷新令牌数据集
+    /// </summary>
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+
+    /// <summary>
     /// 配置数据库模型
     /// </summary>
     /// <param name="modelBuilder">模型构建器</param>
@@ -83,6 +93,21 @@ public class FeishuFileDbContext : DbContext
             entity.HasIndex(e => e.OperationType);
             entity.HasIndex(e => e.ResourceToken);
             entity.HasIndex(e => e.OperationTime);
+        });
+
+        modelBuilder.Entity<ShareRecord>(entity =>
+        {
+            entity.HasIndex(e => e.ShareCode).IsUnique();
+            entity.HasIndex(e => e.CreatorId);
+            entity.HasIndex(e => e.ResourceToken);
+            entity.HasIndex(e => e.IsActive);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ExpireTime);
         });
     }
 }

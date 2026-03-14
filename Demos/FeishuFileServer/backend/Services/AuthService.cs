@@ -1,10 +1,3 @@
-// -----------------------------------------------------------------------
-//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
-//  Mud.Feishu 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
-//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
-//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
-// -----------------------------------------------------------------------
-
 using FeishuFileServer.Configuration;
 using FeishuFileServer.Data;
 using FeishuFileServer.Models;
@@ -14,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace FeishuFileServer.Services;
@@ -26,21 +20,24 @@ public class AuthService : IAuthService
 {
     private readonly FeishuFileDbContext _dbContext;
     private readonly JwtSettings _jwtSettings;
+    private readonly ILogger<AuthService> _logger;
 
     /// <summary>
     /// 初始化认证服务实例
     /// </summary>
     /// <param name="dbContext">数据库上下文</param>
     /// <param name="jwtSettings">JWT配置选项</param>
-    public AuthService(FeishuFileDbContext dbContext, IOptions<JwtSettings> jwtSettings)
+    /// <param name="logger">日志记录器</param>
+    public AuthService(FeishuFileDbContext dbContext, IOptions<JwtSettings> jwtSettings, ILogger<AuthService> logger)
     {
         _dbContext = dbContext;
         _jwtSettings = jwtSettings.Value;
+        _logger = logger;
     }
 
     /// <summary>
     /// 用户登录
-    /// 验证用户名和密码，成功后生成JWT令牌
+    /// 验证用户名和密码，成功后生成JWT令牌和刷新令牌
     /// </summary>
     /// <param name="request">登录请求</param>
     /// <returns>登录响应或null</returns>
@@ -58,10 +55,12 @@ public class AuthService : IAuthService
         await _dbContext.SaveChangesAsync();
 
         var token = GenerateJwtToken(user);
+        var refreshToken = await GenerateRefreshTokenAsync(user.Id);
 
         return new LoginResponse
         {
             Token = token,
+            RefreshToken = refreshToken.Token,
             TokenType = "Bearer",
             ExpiresIn = _jwtSettings.ExpirationHours * 3600,
             User = MapToUserInfo(user)
@@ -70,7 +69,7 @@ public class AuthService : IAuthService
 
     /// <summary>
     /// 用户注册
-    /// 创建新用户账户并生成JWT令牌
+    /// 创建新用户账户并生成JWT令牌和刷新令牌
     /// </summary>
     /// <param name="request">注册请求</param>
     /// <returns>登录响应</returns>
@@ -102,14 +101,80 @@ public class AuthService : IAuthService
         await _dbContext.SaveChangesAsync();
 
         var token = GenerateJwtToken(user);
+        var refreshToken = await GenerateRefreshTokenAsync(user.Id);
 
         return new LoginResponse
         {
             Token = token,
+            RefreshToken = refreshToken.Token,
             TokenType = "Bearer",
             ExpiresIn = _jwtSettings.ExpirationHours * 3600,
             User = MapToUserInfo(user)
         };
+    }
+
+    /// <summary>
+    /// 刷新访问令牌
+    /// 使用刷新令牌获取新的访问令牌
+    /// </summary>
+    /// <param name="refreshToken">刷新令牌</param>
+    /// <returns>新的登录响应</returns>
+    public async Task<LoginResponse?> RefreshTokenAsync(string refreshToken)
+    {
+        var storedToken = await _dbContext.RefreshTokens
+            .Include(rt => rt.User)
+            .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+
+        if (storedToken == null || !storedToken.IsValid)
+        {
+            _logger.LogWarning("Invalid refresh token attempt: {Token}", refreshToken);
+            throw new UnauthorizedAccessException("无效的刷新令牌");
+        }
+
+        storedToken.IsUsed = true;
+        storedToken.UsedTime = DateTime.UtcNow;
+
+        var user = storedToken.User;
+        if (user == null || !user.IsActive)
+        {
+            throw new UnauthorizedAccessException("用户不存在或已禁用");
+        }
+
+        var newToken = GenerateJwtToken(user);
+        var newRefreshToken = await GenerateRefreshTokenAsync(user.Id);
+
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Token refreshed for user {UserId}", user.Id);
+
+        return new LoginResponse
+        {
+            Token = newToken,
+            RefreshToken = newRefreshToken.Token,
+            TokenType = "Bearer",
+            ExpiresIn = _jwtSettings.ExpirationHours * 3600,
+            User = MapToUserInfo(user)
+        };
+    }
+
+    /// <summary>
+    /// 撤销刷新令牌
+    /// </summary>
+    /// <param name="refreshToken">刷新令牌</param>
+    /// <param name="userId">用户ID</param>
+    public async Task RevokeRefreshTokenAsync(string refreshToken, int userId)
+    {
+        var storedToken = await _dbContext.RefreshTokens
+            .FirstOrDefaultAsync(rt => rt.Token == refreshToken && rt.UserId == userId);
+
+        if (storedToken != null)
+        {
+            storedToken.IsRevoked = true;
+            storedToken.RevokedTime = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation("Refresh token revoked for user {UserId}", userId);
+        }
     }
 
     /// <summary>
@@ -211,6 +276,34 @@ public class AuthService : IAuthService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    /// <summary>
+    /// 生成刷新令牌
+    /// </summary>
+    /// <param name="userId">用户ID</param>
+    /// <returns>刷新令牌实体</returns>
+    private async Task<RefreshToken> GenerateRefreshTokenAsync(int userId)
+    {
+        var randomBytes = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomBytes);
+        var token = Convert.ToBase64String(randomBytes);
+
+        var refreshToken = new RefreshToken
+        {
+            Token = token,
+            UserId = userId,
+            CreatedTime = DateTime.UtcNow,
+            ExpireTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
+            IsRevoked = false,
+            IsUsed = false
+        };
+
+        _dbContext.RefreshTokens.Add(refreshToken);
+        await _dbContext.SaveChangesAsync();
+
+        return refreshToken;
     }
 
     /// <summary>
