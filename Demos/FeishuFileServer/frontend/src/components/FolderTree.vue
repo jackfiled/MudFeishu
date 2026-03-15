@@ -87,6 +87,7 @@
       v-model="dialogVisible"
       :mode="dialogMode"
       :folder="dialogFolder"
+      :parent-folder="dialogParentFolder"
       @success="handleDialogSuccess"
     />
   </div>
@@ -123,6 +124,7 @@ const contextMenu = ref({
 const dialogVisible = ref(false)
 const dialogMode = ref<'create' | 'rename'>('create')
 const dialogFolder = ref<FolderResponse | null>(null)
+const dialogParentFolder = ref<FolderResponse | null>(null)
 
 const handleRootClick = () => {
   emit('select', null)
@@ -148,7 +150,8 @@ const hideContextMenu = () => {
 const handleCreateFolder = (parentFolder: FolderResponse | null) => {
   hideContextMenu()
   dialogMode.value = 'create'
-  dialogFolder.value = parentFolder
+  dialogParentFolder.value = parentFolder
+  dialogFolder.value = null
   dialogVisible.value = true
 }
 
