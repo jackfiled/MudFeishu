@@ -286,3 +286,25 @@ export interface ChunkUploadResponse {
 export interface CompleteChunkUploadRequest {
   uploadId: string
 }
+
+// 同步相关类型
+export interface SyncResult {
+  success: boolean
+  syncedFolders: number
+  syncedFiles: number
+  addedFolders: number
+  addedFiles: number
+  updatedFolders: number
+  updatedFiles: number
+  errorMessage?: string
+  syncTime: string
+}
+
+export interface SyncStatus {
+  isSyncing: boolean
+  lastSyncTime?: string
+  progress: number
+  currentItem?: string
+  totalFolders: number
+  totalFiles: number
+}

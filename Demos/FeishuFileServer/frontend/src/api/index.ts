@@ -30,7 +30,9 @@ import type {
   InitChunkUploadResponse,
   ChunkUploadResponse,
   BatchDownloadRequest,
-} from "./types";
+  SyncResult,
+  SyncStatus,
+} from "@/api/types";
 
 export const fileApi = {
   upload: (
@@ -439,5 +441,28 @@ export const chunkUploadApi = {
       url: `/api/files/chunk/${uploadId}/progress`,
       method: "get",
     }) as Promise<ChunkUploadResponse>;
+  },
+};
+
+export const syncApi = {
+  syncAll: () => {
+    return request({
+      url: "/api/sync/all",
+      method: "post",
+    }) as Promise<SyncResult>;
+  },
+
+  syncFolder: (folderToken: string) => {
+    return request({
+      url: `/api/sync/folder/${folderToken}`,
+      method: "post",
+    }) as Promise<SyncResult>;
+  },
+
+  getStatus: () => {
+    return request({
+      url: "/api/sync/status",
+      method: "get",
+    }) as Promise<SyncStatus>;
   },
 };

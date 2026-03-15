@@ -106,6 +106,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOperationLogService, OperationLogService>();
         services.AddScoped<IBatchService, BatchService>();
         services.AddScoped<IChunkUploadService, ChunkUploadService>();
+        services.AddScoped<IFeishuSyncService, FeishuSyncService>();
 
         return services;
     }

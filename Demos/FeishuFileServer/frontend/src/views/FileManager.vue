@@ -23,6 +23,12 @@
 
         <div class="sidebar-content" v-show="!appStore.sidebarCollapsed">
           <div class="quick-actions">
+            <button class="action-btn btn-sync" @click="showSyncDialog = true">
+              <el-icon>
+                <Refresh />
+              </el-icon>
+              <span>同步云空间</span>
+            </button>
             <button class="action-btn btn-primary" @click="handleUpload">
               <el-icon>
                 <Upload />
@@ -264,6 +270,10 @@
     <ShareDialog v-model="shareDialogVisible" :resource-type="shareResource.type" :resource-token="shareResource.token" :resource-name="shareResource.name" />
 
     <OperationLogDrawer v-model="operationLogVisible" />
+
+    <el-dialog v-model="showSyncDialog" title="飞书云空间同步" width="500px" :close-on-click-modal="false">
+      <SyncPanel @sync-complete="handleSyncComplete" />
+    </el-dialog>
   </div>
 </template>
 
@@ -312,6 +322,7 @@ import UserProfileDialog from "@/components/UserProfileDialog.vue"
 import ChangePasswordDialog from "@/components/ChangePasswordDialog.vue"
 import ShareDialog from "@/components/ShareDialog.vue"
 import OperationLogDrawer from "@/components/OperationLogDrawer.vue"
+import SyncPanel from "@/components/SyncPanel.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -330,6 +341,7 @@ const userProfileVisible = ref(false)
 const changePasswordVisible = ref(false)
 const shareDialogVisible = ref(false)
 const operationLogVisible = ref(false)
+const showSyncDialog = ref(false)
 const isDragging = ref(false)
 const shareResource = ref<{
   type: "File" | "Folder"
@@ -633,6 +645,12 @@ const handleMoveSuccess = () => {
   loadFolders()
 }
 
+const handleSyncComplete = () => {
+  showSyncDialog.value = false
+  loadFiles()
+  loadFolders()
+}
+
 const handleSearch = () => {
   fileStore.page = 1
   loadFiles()
@@ -858,6 +876,21 @@ onMounted(() => {
     background: var(--bg-tertiary);
     border-color: var(--primary-color);
     color: var(--primary-color);
+  }
+}
+
+.btn-sync {
+  background: linear-gradient(
+    135deg,
+    #10b981 0%,
+    #059669 100%
+  );
+  color: white;
+  box-shadow: var(--shadow-md), 0 4px 12px rgba(16, 185, 129, 0.25);
+
+  &:hover {
+    box-shadow: var(--shadow-lg), 0 6px 20px rgba(16, 185, 129, 0.35);
+    transform: translateY(-1px);
   }
 }
 
