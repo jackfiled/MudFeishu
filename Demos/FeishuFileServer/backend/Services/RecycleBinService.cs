@@ -135,10 +135,11 @@ public class RecycleBinService : IRecycleBinService
         try
         {
             await _feishuDriveService.DeleteFileAsync(fileToken, cancellationToken);
+            _logger.LogInformation("已从飞书云端删除文件: {FileToken}", fileToken);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "从飞书删除文件失败: {FileToken}", fileToken);
+            _logger.LogWarning(ex, "从飞书云端删除文件失败（文件可能不存在或无权限）: {FileToken}，将继续删除本地记录", fileToken);
         }
 
         var versionRecords = await _dbContext.VersionRecords
@@ -149,7 +150,7 @@ public class RecycleBinService : IRecycleBinService
         _dbContext.FileRecords.Remove(fileRecord);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("文件已永久删除: {FileToken}", fileToken);
+        _logger.LogInformation("文件已从本地数据库永久删除: {FileToken}", fileToken);
     }
 
     /// <summary>

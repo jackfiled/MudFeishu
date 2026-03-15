@@ -5,6 +5,7 @@ using FeishuFileServer.Models.DTOs;
 using FeishuFileServer.Services.Feishu;
 using Microsoft.EntityFrameworkCore;
 using Mud.Feishu;
+using Mud.Feishu.DataModels.Drive.Files;
 using Mud.Feishu.Interfaces;
 
 using FileInfo = Mud.Feishu.DataModels.Drive.Folder.FileInfo;
@@ -15,16 +16,19 @@ public class FeishuSyncService : IFeishuSyncService
 {
     private readonly FeishuFileDbContext _dbContext;
     private readonly IFeishuTenantV1DriveFolder _driveFolder;
+    private readonly IFeishuTenantV1DriveFiles _driveFiles;
     private readonly ILogger<FeishuSyncService> _logger;
     private static readonly Dictionary<int, SyncStatus> _syncStatuses = new();
 
     public FeishuSyncService(
         FeishuFileDbContext dbContext,
         IFeishuTenantV1DriveFolder driveFolder,
+        IFeishuTenantV1DriveFiles driveFiles,
         ILogger<FeishuSyncService> logger)
     {
         _dbContext = dbContext;
         _driveFolder = driveFolder;
+        _driveFiles = driveFiles;
         _logger = logger;
     }
 
@@ -40,6 +44,8 @@ public class FeishuSyncService : IFeishuSyncService
             UpdateSyncStatus(userId, true, 0, "开始同步...");
 
             var rootFolders = await SyncFolderRecursiveAsync(null, userId, result, cancellationToken);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             result.Success = true;
             _logger.LogInformation("同步完成: 新增文件夹 {AddedFolders}, 更新文件夹 {UpdatedFolders}, 新增文件 {AddedFiles}, 更新文件 {UpdatedFiles}",
@@ -70,6 +76,8 @@ public class FeishuSyncService : IFeishuSyncService
             UpdateSyncStatus(userId, true, 0, $"同步文件夹 {folderToken}...");
 
             await SyncFolderRecursiveAsync(folderToken, userId, result, cancellationToken);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             result.Success = true;
 
@@ -103,6 +111,7 @@ public class FeishuSyncService : IFeishuSyncService
     private async Task<List<FolderRecord>> SyncFolderRecursiveAsync(string? folderToken, int userId, SyncResult result, CancellationToken cancellationToken)
     {
         var folders = new List<FolderRecord>();
+        var allFiles = new List<FileInfo>();
         string? pageToken = null;
 
         do
@@ -121,23 +130,18 @@ public class FeishuSyncService : IFeishuSyncService
             {
                 if (file.Type == "folder")
                 {
-                    var folder = await SyncFolderRecordAsync(file, userId, result, cancellationToken);
+                    var folder = await SyncFolderRecordAsync(file, folderToken, userId, result, cancellationToken);
                     if (folder != null)
                     {
                         folders.Add(folder);
                         result.SyncedFolders++;
 
-                        var subFolders = await SyncFolderRecursiveAsync(file.Token, userId, result, cancellationToken);
-                        foreach (var subFolder in subFolders)
-                        {
-                            subFolder.ParentFolderToken = folder.FolderToken;
-                        }
+                        await SyncFolderRecursiveAsync(file.Token, userId, result, cancellationToken);
                     }
                 }
                 else
                 {
-                    await SyncFileRecordAsync(file, folderToken, userId, result, cancellationToken);
-                    result.SyncedFiles++;
+                    allFiles.Add(file);
                 }
             }
 
@@ -145,10 +149,96 @@ public class FeishuSyncService : IFeishuSyncService
         }
         while (!string.IsNullOrEmpty(pageToken));
 
+        if (allFiles.Count > 0)
+        {
+            await SyncFileRecordsWithMetadataAsync(allFiles, folderToken, userId, result, cancellationToken);
+            result.SyncedFiles += allFiles.Count;
+        }
+
         return folders;
     }
 
-    private async Task<FolderRecord?> SyncFolderRecordAsync(Mud.Feishu.DataModels.Drive.Folder.FileInfo file, int userId, SyncResult result, CancellationToken cancellationToken)
+    private async Task SyncFileRecordsWithMetadataAsync(List<FileInfo> files, string? folderToken, int userId, SyncResult result, CancellationToken cancellationToken)
+    {
+        const int batchSize = 50;
+        
+        for (int i = 0; i < files.Count; i += batchSize)
+        {
+            var batch = files.Skip(i).Take(batchSize).ToList();
+            
+            var requestDocs = batch
+                .Where(f => !string.IsNullOrEmpty(f.Token))
+                .Select(f => new RequestDoc
+                {
+                    DocToken = f.Token!,
+                    DocType = MapFileType(f.Type)
+                })
+                .ToArray();
+
+            if (requestDocs.Length == 0)
+            {
+                continue;
+            }
+
+            var metasRequest = new MetasBatchQueryRequest
+            {
+                RequestDocs = requestDocs
+            };
+
+            Dictionary<string, FileMetaInfo> metaDict = new();
+            
+            try
+            {
+                var metasResponse = await _driveFiles.BatchQueryMetasAsync(metasRequest, cancellationToken: cancellationToken);
+                
+                if (metasResponse?.Data?.Metas != null)
+                {
+                    foreach (var meta in metasResponse.Data.Metas)
+                    {
+                        if (!string.IsNullOrEmpty(meta.DocToken))
+                        {
+                            metaDict[meta.DocToken] = meta;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "批量获取文件元数据失败");
+            }
+
+            foreach (var file in batch)
+            {
+                if (string.IsNullOrEmpty(file.Token))
+                {
+                    continue;
+                }
+
+                metaDict.TryGetValue(file.Token, out var metaInfo);
+                await SyncFileRecordAsync(file, folderToken, userId, result, metaInfo, cancellationToken);
+            }
+        }
+    }
+
+    private static string MapFileType(string? type)
+    {
+        return type switch
+        {
+            "doc" => "doc",
+            "docx" => "docx",
+            "sheet" => "sheet",
+            "bitable" => "bitable",
+            "mindnote" => "mindnote",
+            "file" => "file",
+            "folder" => "folder",
+            "shortcut" => "file",
+            "slides" => "file",
+            "wiki" => "wiki",
+            _ => "file"
+        };
+    }
+
+    private async Task<FolderRecord?> SyncFolderRecordAsync(FileInfo file, string? parentFolderToken, int userId, SyncResult result, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(file.Token))
         {
@@ -164,7 +254,7 @@ public class FeishuSyncService : IFeishuSyncService
             {
                 FolderToken = file.Token,
                 FolderName = file.Name ?? "未命名文件夹",
-                ParentFolderToken = file.ParentToken,
+                ParentFolderToken = parentFolderToken,
                 CreatedTime = ParseDateTime(file.CreatedTime) ?? DateTime.UtcNow,
                 IsDeleted = false
             };
@@ -172,24 +262,36 @@ public class FeishuSyncService : IFeishuSyncService
             _dbContext.FolderRecords.Add(newFolder);
             result.AddedFolders++;
 
-            _logger.LogDebug("新增文件夹: {FolderName} ({FolderToken})", newFolder.FolderName, newFolder.FolderToken);
+            _logger.LogDebug("新增文件夹: {FolderName} ({FolderToken}), 父文件夹: {ParentFolderToken}", newFolder.FolderName, newFolder.FolderToken, parentFolderToken);
             return newFolder;
         }
         else
         {
+            var needUpdate = false;
+
             if (existingFolder.FolderName != file.Name)
             {
                 existingFolder.FolderName = file.Name ?? existingFolder.FolderName;
-                existingFolder.CreatedTime = ParseDateTime(file.CreatedTime) ?? existingFolder.CreatedTime;
-                result.UpdatedFolders++;
+                needUpdate = true;
+            }
 
+            if (existingFolder.ParentFolderToken != parentFolderToken && !string.IsNullOrEmpty(parentFolderToken))
+            {
+                existingFolder.ParentFolderToken = parentFolderToken;
+                needUpdate = true;
+            }
+
+            if (needUpdate)
+            {
+                result.UpdatedFolders++;
                 _logger.LogDebug("更新文件夹: {FolderName} ({FolderToken})", existingFolder.FolderName, existingFolder.FolderToken);
             }
+            
             return existingFolder;
         }
     }
 
-    private async Task SyncFileRecordAsync(Mud.Feishu.DataModels.Drive.Folder.FileInfo file, string? folderToken, int userId, SyncResult result, CancellationToken cancellationToken)
+    private async Task SyncFileRecordAsync(FileInfo file, string? folderToken, int userId, SyncResult result, FileMetaInfo? metaInfo, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(file.Token))
         {
@@ -199,16 +301,20 @@ public class FeishuSyncService : IFeishuSyncService
         var existingFile = await _dbContext.FileRecords
             .FirstOrDefaultAsync(f => f.FileToken == file.Token, cancellationToken);
 
+        var fileName = metaInfo?.Title ?? file.Name ?? "未命名文件";
+        var createTime = ParseDateTime(metaInfo?.CreateTime ?? file.CreatedTime) ?? DateTime.UtcNow;
+        var modifyTime = ParseDateTime(metaInfo?.LatestModifyTime) ?? createTime;
+
         if (existingFile == null)
         {
             var newFile = new FileRecord
             {
                 FileToken = file.Token,
-                FileName = file.Name ?? "未命名文件",
+                FileName = fileName,
                 FileSize = 0,
-                MimeType = file.Type ?? "application/octet-stream",
+                MimeType = GetMimeType(file.Type),
                 FolderToken = folderToken,
-                UploadTime = ParseDateTime(file.CreatedTime) ?? DateTime.UtcNow,
+                UploadTime = createTime,
                 UserId = userId,
                 IsDeleted = false
             };
@@ -216,15 +322,21 @@ public class FeishuSyncService : IFeishuSyncService
             _dbContext.FileRecords.Add(newFile);
             result.AddedFiles++;
 
-            _logger.LogDebug("新增文件: {FileName} ({FileToken})", newFile.FileName, newFile.FileToken);
+            _logger.LogDebug("新增文件: {FileName} ({FileToken}), 类型: {FileType}", newFile.FileName, newFile.FileToken, file.Type);
         }
         else
         {
             var needUpdate = false;
 
-            if (existingFile.FileName != file.Name)
+            if (existingFile.FileName != fileName)
             {
-                existingFile.FileName = file.Name ?? existingFile.FileName;
+                existingFile.FileName = fileName;
+                needUpdate = true;
+            }
+
+            if (existingFile.FolderToken != folderToken)
+            {
+                existingFile.FolderToken = folderToken;
                 needUpdate = true;
             }
 
@@ -234,6 +346,21 @@ public class FeishuSyncService : IFeishuSyncService
                 _logger.LogDebug("更新文件: {FileName} ({FileToken})", existingFile.FileName, existingFile.FileToken);
             }
         }
+    }
+
+    private static string GetMimeType(string? fileType)
+    {
+        return fileType switch
+        {
+            "doc" => "application/msword",
+            "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "sheet" => "application/vnd.ms-excel",
+            "bitable" => "application/vnd.lark.lark-table",
+            "mindnote" => "application/vnd.lark.lark-mindnote",
+            "slides" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "file" => "application/octet-stream",
+            _ => "application/octet-stream"
+        };
     }
 
     private void UpdateSyncStatus(int userId, bool isSyncing, int progress, string currentItem)

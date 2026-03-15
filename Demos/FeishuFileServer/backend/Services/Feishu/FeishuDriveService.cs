@@ -2,6 +2,7 @@ using FeishuFileServer.Models;
 using Mud.Feishu;
 using Mud.Feishu.DataModels.Drive;
 using Mud.Feishu.DataModels.Drive.Files;
+using Mud.Feishu.Exceptions;
 
 namespace FeishuFileServer.Services.Feishu;
 
@@ -213,13 +214,45 @@ public class FeishuDriveService : IFeishuDriveService
     /// <param name="cancellationToken">取消令牌</param>
     public async Task DeleteFileAsync(string fileToken, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Deleting file {FileToken}", fileToken);
+        _logger.LogInformation("Deleting file {FileToken} from Feishu cloud", fileToken);
 
-        var result = await _driveFiles.DeleteFileByFileTokenAsync(fileToken, "file", cancellationToken);
-
-        if (result?.Code != 0 && result?.Code != null)
+        try
         {
-            _logger.LogWarning("Delete file returned code {Code}: {Message}", result.Code, result.Msg);
+            var result = await _driveFiles.DeleteFileByFileTokenAsync(fileToken, "file", cancellationToken);
+
+            if (result == null)
+            {
+                _logger.LogWarning("Delete file API returned null result for {FileToken}", fileToken);
+                return;
+            }
+
+            if (result.Code == 0)
+            {
+                _logger.LogInformation("File deleted successfully from Feishu cloud: {FileToken}", fileToken);
+                return;
+            }
+
+            var errorMsg = result.Msg ?? "Unknown error";
+            var errorCode = result.Code;
+
+            var notFoundCodes = new[] { 10010, 1060101, 1060102, 1060103 };
+            var notFoundKeywords = new[] { "not found", "不存在", "no such file", "file not found", "resource not found", "permission denied", "无权限", "no permission" };
+
+            if (notFoundCodes.Contains(errorCode) || notFoundKeywords.Any(k => errorMsg.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            {
+                _logger.LogWarning("File not found or no permission in Feishu cloud (Code: {Code}, Msg: {Msg}): {FileToken}", errorCode, errorMsg, fileToken);
+                return;
+            }
+
+            _logger.LogWarning("Delete file from Feishu cloud returned error (Code: {Code}, Msg: {Msg}): {FileToken}", errorCode, errorMsg, fileToken);
+        }
+        catch (FeishuException ex)
+        {
+            _logger.LogWarning("Feishu API error when deleting file {FileToken}: Code={Code}, Message={Message}", fileToken, ex.ErrorCode, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Exception when deleting file from Feishu cloud: {FileToken}. The file may not exist or no permission.", fileToken);
         }
     }
 
@@ -230,13 +263,45 @@ public class FeishuDriveService : IFeishuDriveService
     /// <param name="cancellationToken">取消令牌</param>
     public async Task DeleteFolderAsync(string folderToken, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Deleting folder {FolderToken}", folderToken);
+        _logger.LogInformation("Deleting folder {FolderToken} from Feishu cloud", folderToken);
 
-        var result = await _driveFiles.DeleteFileByFileTokenAsync(folderToken, "folder", cancellationToken);
-
-        if (result?.Code != 0 && result?.Code != null)
+        try
         {
-            _logger.LogWarning("Delete folder returned code {Code}: {Message}", result.Code, result.Msg);
+            var result = await _driveFiles.DeleteFileByFileTokenAsync(folderToken, "folder", cancellationToken);
+
+            if (result == null)
+            {
+                _logger.LogWarning("Delete folder API returned null result for {FolderToken}", folderToken);
+                return;
+            }
+
+            if (result.Code == 0)
+            {
+                _logger.LogInformation("Folder deleted successfully from Feishu cloud: {FolderToken}", folderToken);
+                return;
+            }
+
+            var errorMsg = result.Msg ?? "Unknown error";
+            var errorCode = result.Code;
+
+            var notFoundCodes = new[] { 10010, 1060101, 1060102, 1060103 };
+            var notFoundKeywords = new[] { "not found", "不存在", "no such folder", "folder not found", "resource not found", "permission denied", "无权限", "no permission" };
+
+            if (notFoundCodes.Contains(errorCode) || notFoundKeywords.Any(k => errorMsg.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            {
+                _logger.LogWarning("Folder not found or no permission in Feishu cloud (Code: {Code}, Msg: {Msg}): {FolderToken}", errorCode, errorMsg, folderToken);
+                return;
+            }
+
+            _logger.LogWarning("Delete folder from Feishu cloud returned error (Code: {Code}, Msg: {Msg}): {FolderToken}", errorCode, errorMsg, folderToken);
+        }
+        catch (FeishuException ex)
+        {
+            _logger.LogWarning("Feishu API error when deleting folder {FolderToken}: Code={Code}, Message={Message}", folderToken, ex.ErrorCode, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Exception when deleting folder from Feishu cloud: {FolderToken}. The folder may not exist or no permission.", folderToken);
         }
     }
 
