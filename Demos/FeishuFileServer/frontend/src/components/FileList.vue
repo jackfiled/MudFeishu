@@ -118,7 +118,7 @@
         </div>
         
         <div class="grid-icon-wrapper">
-          <el-icon :class="getFileIconClass(file.fileName)" class="grid-icon">
+          <el-icon :class="['grid-icon', getFileIconClass(file.fileName)]">
             <component :is="getFileIcon(file.fileName)" />
           </el-icon>
         </div>
@@ -273,7 +273,7 @@ const handleCommand = (command: string, file: FileInfoResponse) => {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   
   &:hover {
     background: var(--bg-tertiary);
@@ -285,8 +285,31 @@ const handleCommand = (command: string, file: FileInfoResponse) => {
   }
   
   &.selected {
-    background: var(--primary-bg);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.08) 100%);
     border-color: var(--primary-color);
+    box-shadow: 0 0 0 1px var(--primary-color), 0 2px 8px rgba(99, 102, 241, 0.2);
+    
+    .file-name {
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+    
+    .file-icon-wrapper {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      
+      .file-icon {
+        color: white;
+      }
+    }
+    
+    .size-badge {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .date-text {
+      color: var(--primary-color);
+    }
   }
 }
 
@@ -402,6 +425,7 @@ const handleCommand = (command: string, file: FileInfoResponse) => {
   cursor: pointer;
   transition: all var(--transition-normal);
   position: relative;
+  border: 2px solid transparent;
   
   &:hover {
     transform: translateY(-4px);
@@ -414,7 +438,25 @@ const handleCommand = (command: string, file: FileInfoResponse) => {
   
   &.selected {
     border-color: var(--primary-color);
-    background: var(--primary-bg);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0.05) 100%);
+    box-shadow: 0 0 0 1px var(--primary-color), 0 4px 16px rgba(99, 102, 241, 0.25);
+    
+    .grid-name {
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+    
+    .grid-icon-wrapper {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.08) 100%);
+    }
+    
+    .grid-icon {
+      color: var(--primary-color);
+    }
+    
+    .grid-size {
+      color: var(--primary-color);
+    }
   }
 }
 
@@ -451,6 +493,9 @@ const handleCommand = (command: string, file: FileInfoResponse) => {
   justify-content: center;
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-sm);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
 }
 
 .grid-icon {

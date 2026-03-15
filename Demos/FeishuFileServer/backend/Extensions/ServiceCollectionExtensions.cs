@@ -105,6 +105,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IShareService, ShareService>();
         services.AddScoped<IOperationLogService, OperationLogService>();
         services.AddScoped<IBatchService, BatchService>();
+        services.AddScoped<IChunkUploadService, ChunkUploadService>();
 
         return services;
     }

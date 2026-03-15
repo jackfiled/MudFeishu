@@ -1,5 +1,6 @@
 using FeishuFileServer.Models;
 using Mud.Feishu;
+using Mud.Feishu.DataModels.Drive;
 using Mud.Feishu.DataModels.Drive.Files;
 
 namespace FeishuFileServer.Services.Feishu;
@@ -94,6 +95,95 @@ public class FeishuDriveService : IFeishuDriveService
                 File.Delete(tempFilePath);
             }
         }
+    }
+
+    /// <summary>
+    /// 初始化分片上传到飞书云盘
+    /// </summary>
+    public async Task<string> InitChunkUploadAsync(string fileName, long fileSize, string? folderToken = null, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Initializing chunk upload for {FileName}, size: {FileSize}", fileName, fileSize);
+
+        var request = new FilesUploadPrepareRequest
+        {
+            FileName = fileName,
+            ParentType = "explorer",
+            ParentNode = folderToken ?? string.Empty,
+            Size = (int)fileSize
+        };
+
+        var result = await _driveFiles.UploadPrepareFileAsync(request, cancellationToken);
+
+        if (result?.Data == null)
+        {
+            throw new Exception($"Failed to init chunk upload: {result?.Msg ?? "Unknown error"}");
+        }
+
+        _logger.LogInformation("Chunk upload initialized, uploadId: {UploadId}", result.Data.UploadId);
+        return result.Data.UploadId ?? throw new Exception("UploadId is null");
+    }
+
+    /// <summary>
+    /// 上传分片到飞书云盘
+    /// </summary>
+    public async Task UploadChunkAsync(string uploadId, int seq, byte[] chunkData, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Uploading chunk {Seq} for uploadId: {UploadId}", seq, uploadId);
+
+        var tempChunkPath = Path.Combine(_tempDirectory, $"chunk_{uploadId}_{seq}");
+        try
+        {
+            await File.WriteAllBytesAsync(tempChunkPath, chunkData, cancellationToken);
+
+            var request = new FilesUploadPartRequest
+            {
+                UploadId = uploadId,
+                Seq = seq,
+                Size = chunkData.Length,
+                FileName = tempChunkPath
+            };
+
+            var result = await _driveFiles.UploadPartFileAsync(request, cancellationToken);
+
+            if (result?.Code != 0 && result?.Code != null)
+            {
+                throw new Exception($"Failed to upload chunk: {result.Msg}");
+            }
+
+            _logger.LogInformation("Chunk {Seq} uploaded successfully", seq);
+        }
+        finally
+        {
+            if (File.Exists(tempChunkPath))
+            {
+                File.Delete(tempChunkPath);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 完成分片上传到飞书云盘
+    /// </summary>
+    public async Task<string> CompleteChunkUploadAsync(string uploadId, int totalChunks, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Completing chunk upload for uploadId: {UploadId}, totalChunks: {TotalChunks}", uploadId, totalChunks);
+
+        var request = new FilesUploadFinishRequest
+        {
+            UploadId = uploadId,
+            BlockNum = totalChunks
+        };
+
+        var result = await _driveFiles.UploadFinishFileAsync(request, cancellationToken);
+
+        if (result?.Data == null)
+        {
+            throw new Exception($"Failed to complete chunk upload: {result?.Msg ?? "Unknown error"}");
+        }
+
+        var fileToken = result.Data.FileToken ?? throw new Exception("FileToken is null");
+        _logger.LogInformation("Chunk upload completed, fileToken: {FileToken}", fileToken);
+        return fileToken;
     }
 
     /// <summary>

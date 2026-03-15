@@ -423,14 +423,21 @@ export const chunkUploadApi = {
   complete: (uploadId: string) => {
     return request({
       url: `/api/files/chunk/${uploadId}/complete`,
-      method: "post",
-    }) as Promise<ChunkUploadResponse>;
+      method: 'post'
+    }) as Promise<ChunkUploadResponse>
   },
 
   cancel: (uploadId: string) => {
     return request({
-      url: `/api/files/chunk/${uploadId}/cancel`,
+      url: `/api/files/chunk/${uploadId}`,
       method: "delete",
     });
+  },
+
+  getProgress: (uploadId: string) => {
+    return request({
+      url: `/api/files/chunk/${uploadId}/progress`,
+      method: "get",
+    }) as Promise<ChunkUploadResponse>;
   },
 };

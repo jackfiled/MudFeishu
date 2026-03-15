@@ -19,6 +19,34 @@ public interface IFeishuDriveService
     Task<FileRecord> UploadFileAsync(Stream fileStream, string fileName, string? folderToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 初始化分片上传到飞书云盘
+    /// </summary>
+    /// <param name="fileName">文件名</param>
+    /// <param name="fileSize">文件大小</param>
+    /// <param name="folderToken">目标文件夹令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>飞书上传事务ID</returns>
+    Task<string> InitChunkUploadAsync(string fileName, long fileSize, string? folderToken = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 上传分片到飞书云盘
+    /// </summary>
+    /// <param name="uploadId">飞书上传事务ID</param>
+    /// <param name="seq">分片序号</param>
+    /// <param name="chunkData">分片数据</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    Task UploadChunkAsync(string uploadId, int seq, byte[] chunkData, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 完成分片上传到飞书云盘
+    /// </summary>
+    /// <param name="uploadId">飞书上传事务ID</param>
+    /// <param name="totalChunks">总分片数</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件令牌</returns>
+    Task<string> CompleteChunkUploadAsync(string uploadId, int totalChunks, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 从飞书云盘下载文件
     /// </summary>
     /// <param name="fileToken">文件令牌</param>
