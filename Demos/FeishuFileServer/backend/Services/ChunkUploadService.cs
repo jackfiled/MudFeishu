@@ -19,6 +19,8 @@ public class ChunkUploadService : IChunkUploadService
     private readonly ILogger<ChunkUploadService> _logger;
     private readonly IConfiguration _configuration;
     private readonly string _uploadDirectory;
+    private static readonly HashSet<string> _activeUploads = new();
+    private static readonly object _lockObject = new();
 
     public ChunkUploadService(
         FeishuFileDbContext dbContext,
@@ -38,62 +40,99 @@ public class ChunkUploadService : IChunkUploadService
         }
     }
 
+    private static bool TryAcquireUploadLock(string uploadId)
+    {
+        lock (_lockObject)
+        {
+            return _activeUploads.Add(uploadId);
+        }
+    }
+
+    private static void ReleaseUploadLock(string uploadId)
+    {
+        lock (_lockObject)
+        {
+            _activeUploads.Remove(uploadId);
+        }
+    }
+
+    private static bool IsUploadLocked(string uploadId)
+    {
+        lock (_lockObject)
+        {
+            return _activeUploads.Contains(uploadId);
+        }
+    }
+
     public async Task<InitChunkUploadResponse> InitUploadAsync(InitChunkUploadRequest request, int userId, CancellationToken cancellationToken = default)
     {
         var chunkSize = request.ChunkSize > 0 ? request.ChunkSize : 4 * 1024 * 1024;
         var totalChunks = (int)Math.Ceiling((double)request.FileSize / chunkSize);
         var uploadId = Guid.NewGuid().ToString("N");
 
-        string? feishuUploadId = null;
+        if (!TryAcquireUploadLock(uploadId))
+        {
+            throw new InvalidOperationException("无法获取上传锁，请稍后重试");
+        }
+
         try
         {
-            feishuUploadId = await _feishuDriveService.InitChunkUploadAsync(
-                request.FileName,
-                request.FileSize,
-                request.FolderToken,
-                cancellationToken);
+            string? feishuUploadId = null;
+            try
+            {
+                feishuUploadId = await _feishuDriveService.InitChunkUploadAsync(
+                    request.FileName,
+                    request.FileSize,
+                    request.FolderToken,
+                    cancellationToken);
 
-            _logger.LogInformation("飞书分片上传初始化成功: FeishuUploadId={FeishuUploadId}", feishuUploadId);
+                _logger.LogInformation("飞书分片上传初始化成功: FeishuUploadId={FeishuUploadId}", feishuUploadId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "飞书分片上传初始化失败，将使用本地存储");
+            }
+
+            var record = new ChunkUploadRecord
+            {
+                UploadId = uploadId,
+                FileName = request.FileName,
+                FileSize = request.FileSize,
+                FileMD5 = request.FileMD5,
+                ChunkSize = chunkSize,
+                TotalChunks = totalChunks,
+                UploadedChunks = 0,
+                UploadedChunkNumbers = JsonSerializer.Serialize(new Dictionary<int, bool>()),
+                FolderToken = request.FolderToken,
+                UserId = userId,
+                CreatedTime = DateTime.UtcNow,
+                IsCompleted = false,
+                IsCancelled = false
+            };
+
+            _dbContext.ChunkUploadRecords.Add(record);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var tempDir = Path.Combine(_uploadDirectory, "chunks", uploadId);
+            Directory.CreateDirectory(tempDir);
+
+            _logger.LogInformation("初始化分片上传: UploadId={UploadId}, FileName={FileName}, TotalChunks={TotalChunks}",
+                uploadId, request.FileName, totalChunks);
+
+            return new InitChunkUploadResponse
+            {
+                UploadId = uploadId,
+                FileName = request.FileName,
+                FileSize = request.FileSize,
+                ChunkSize = chunkSize,
+                TotalChunks = totalChunks
+            };
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogWarning(ex, "飞书分片上传初始化失败，将使用本地存储");
+            ReleaseUploadLock(uploadId);
+            throw;
         }
-
-        var record = new ChunkUploadRecord
-        {
-            UploadId = uploadId,
-            FileName = request.FileName,
-            FileSize = request.FileSize,
-            FileMD5 = request.FileMD5,
-            ChunkSize = chunkSize,
-            TotalChunks = totalChunks,
-            UploadedChunks = 0,
-            UploadedChunkNumbers = JsonSerializer.Serialize(new Dictionary<int, bool>()),
-            FolderToken = request.FolderToken,
-            UserId = userId,
-            CreatedTime = DateTime.UtcNow,
-            IsCompleted = false,
-            IsCancelled = false
-        };
-
-        _dbContext.ChunkUploadRecords.Add(record);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        var tempDir = Path.Combine(_uploadDirectory, "chunks", uploadId);
-        Directory.CreateDirectory(tempDir);
-
-        _logger.LogInformation("初始化分片上传: UploadId={UploadId}, FileName={FileName}, TotalChunks={TotalChunks}",
-            uploadId, request.FileName, totalChunks);
-
-        return new InitChunkUploadResponse
-        {
-            UploadId = uploadId,
-            FileName = request.FileName,
-            FileSize = request.FileSize,
-            ChunkSize = chunkSize,
-            TotalChunks = totalChunks
-        };
     }
 
     public async Task<ChunkUploadResponse> UploadChunkAsync(string uploadId, int chunkNumber, Stream chunkData, int userId, CancellationToken cancellationToken = default)
@@ -249,6 +288,8 @@ public class ChunkUploadService : IChunkUploadService
 
         _logger.LogInformation("分片上传完成: UploadId={UploadId}, FileToken={FileToken}", uploadId, fileToken);
 
+        ReleaseUploadLock(uploadId);
+
         return new ChunkUploadResponse
         {
             UploadId = uploadId,
@@ -274,6 +315,8 @@ public class ChunkUploadService : IChunkUploadService
         record.IsCancelled = true;
         record.UpdatedTime = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        ReleaseUploadLock(uploadId);
 
         var tempDir = Path.Combine(_uploadDirectory, "chunks", uploadId);
         try

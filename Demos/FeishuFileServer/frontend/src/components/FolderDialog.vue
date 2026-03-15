@@ -37,6 +37,7 @@ interface Props {
   mode: FolderDialogMode
   folder?: FolderResponse | null
   parentFolder?: FolderResponse | null
+  parentToken?: string
 }
 
 const props = defineProps<Props>()
@@ -53,9 +54,10 @@ const visible = computed({
 
 const dialogTitle = computed(() => {
   if (props.mode === 'create') {
-    return props.parentFolder 
-      ? `在"${props.parentFolder.folderName}"中新建文件夹` 
-      : '新建文件夹'
+    if (props.parentFolder) {
+      return `在"${props.parentFolder.folderName}"中新建文件夹`
+    }
+    return '新建文件夹'
   }
   return '重命名文件夹'
 })
@@ -80,9 +82,9 @@ const rules: FormRules = {
 watch(() => props.modelValue, (val) => {
   if (val) {
     if (props.mode === 'rename' && props.folder) {
-    form.name = props.folder.folderName
+      form.name = props.folder.folderName
     } else {
-    form.name = ''
+      form.name = ''
     }
   }
 })
@@ -100,12 +102,13 @@ const handleSubmit = async () => {
     loading.value = true
 
     if (props.mode === 'create') {
+      const parentFolderToken = props.parentFolder?.folderToken ?? props.parentToken
       await folderApi.create({
         name: form.name,
-        parentFolderToken: props.parentFolder?.folderToken
+        parentFolderToken
       })
       ElMessage.success('文件夹创建成功')
-    } else if (props.mode === 'rename' && props.folder) {
+    } else if (props.folder) {
       await folderApi.update(props.folder.folderToken, {
         name: form.name
       })
