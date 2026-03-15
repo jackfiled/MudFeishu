@@ -4,6 +4,13 @@ import type { AxiosInstance, AxiosResponse } from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 import router from '@/router'
 
+interface ApiResponse<T = any> {
+  success: boolean
+  message?: string
+  data: T
+  code: number
+}
+
 const service: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 30000
@@ -24,11 +31,18 @@ service.interceptors.request.use(
 )
 
 service.interceptors.response.use(
-  (response: AxiosResponse) => {
-    return response.data
+  (response: AxiosResponse<ApiResponse>) => {
+    const apiResponse = response.data
+    if (apiResponse.success) {
+      return apiResponse.data
+    } else {
+      ElMessage.error(apiResponse.message || '请求失败')
+      return Promise.reject(new Error(apiResponse.message || '请求失败'))
+    }
   },
   (error) => {
-    const message = error.response?.data?.message || error.message || '请求失败'
+    const apiResponse = error.response?.data as ApiResponse | undefined
+    const message = apiResponse?.message || error.message || '请求失败'
     
     if (error.response?.status === 401) {
       const authStore = useAuthStore()
