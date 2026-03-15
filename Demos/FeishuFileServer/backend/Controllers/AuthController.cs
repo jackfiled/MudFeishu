@@ -147,4 +147,50 @@ public class AuthController : FeishuControllerBase
         return Success("密码修改成功");
     }
 
+    [HttpPost("refresh-token")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ApiResponse<LoginResponse>>> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        try
+        {
+            var response = await _authService.RefreshTokenAsync(request.RefreshToken);
+            if (response == null)
+            {
+                return UnauthorizedResult<LoginResponse>("刷新令牌无效或已过期");
+            }
+
+            return Success(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "刷新令牌失败");
+            return UnauthorizedResult<LoginResponse>("刷新令牌无效或已过期");
+        }
+    }
+
+    [HttpPost("revoke-token")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ApiResponse>> RevokeToken([FromBody] RefreshTokenRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return UnauthorizedResult("未登录");
+        }
+
+        try
+        {
+            await _authService.RevokeRefreshTokenAsync(request.RefreshToken, userId.Value);
+            return Success("令牌已撤销");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "撤销令牌失败");
+            return ServerError("撤销令牌失败");
+        }
+    }
 }

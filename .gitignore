@@ -81,4 +81,5 @@ node_modules
 /Tests/Mud.Feishu.Tests/obj
 /Demos/FeishuFileServer/backend/obj
 /Demos/FeishuFileServer/backend/bin
+/Demos/FeishuFileServer/backend/logs
 /Demos/FeishuFileServer/frontend/dist
