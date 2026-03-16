@@ -14,6 +14,6 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Drive", InheritedFrom = nameof(FeishuV1DriveMedia))]
 [Header(Consts.Authorization)]
 [Token(TokenType.UserAccessToken)]
-public interface IFeishuUserV1DriveMedia : IFeishuV1DriveMedia
+public interface IFeishuUserV1DriveMedia : IFeishuV1DriveMedia, ICurrentUserId
 {
 }

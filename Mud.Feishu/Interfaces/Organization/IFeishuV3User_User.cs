@@ -17,7 +17,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization", InheritedFrom = nameof(FeishuV3User))]
 [Header(Consts.Authorization)]
 [Token(TokenType.UserAccessToken)]
-public interface IFeishuUserV3User : IFeishuV3User
+public interface IFeishuUserV3User : IFeishuV3User, ICurrentUserId
 {
     /// <summary>
     /// 通过用户名关键词搜索其他用户的信息，包括用户头像、用户名、用户所在部门、用户 user_id 以及 open_id。

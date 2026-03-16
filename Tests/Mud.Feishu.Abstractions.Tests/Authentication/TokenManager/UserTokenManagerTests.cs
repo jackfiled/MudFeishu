@@ -6,8 +6,9 @@
 // -----------------------------------------------------------------------
 
 using Mud.Feishu.DataModels;
+using Mud.Feishu.TokenManager;
 
-namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
+namespace Mud.Feishu.Tests.Authentication.TokenManager;
 
 /// <summary>
 /// 用户令牌管理器测试（通过 FeishuAppContext 接口测试）
@@ -29,47 +30,89 @@ public class UserTokenManagerTests : TokenManagerTestsBase
     [Fact]
     public async Task GetUserTokenWithCodeAsync_ShouldReturnNull_WhenApiReturnsNull()
     {
-        // Arrange
         _authenticationApiMock
             .Setup(x => x.GetOAuthenAccessTokenAsync(It.IsAny<OAuthTokenRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((OAuthCredentialsResult?)null);
 
-        // Act
         var result = await _userTokenManager.GetUserTokenWithCodeAsync("test-code", "https://example.com/callback", CancellationToken.None);
 
-        // Assert
         Assert.Null(result);
-        _tokenCacheMock.Verify(x => x.SetAsync(
+        _userTokenCacheMock.Verify(x => x.SetAsync(
             It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<TimeSpan>(),
+            It.IsAny<UserTokenInfo>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task RefreshUserTokenAsync_ShouldReturnNull_WhenApiReturnsNull()
+    public async Task RefreshUserTokenAsync_ShouldReturnNull_WhenNoTokenInCache()
     {
-        // Arrange
-        _authenticationApiMock
-            .Setup(x => x.GetOAuthenRefreshAccessTokenAsync(It.IsAny<OAuthRefreshTokenRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((OAuthCredentialsResult?)null);
+        UserTokenInfo? nullToken = null;
+        _userTokenCacheMock
+            .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(nullToken);
 
-        // Act
-        var result = await _userTokenManager.RefreshUserTokenAsync("user123", "test-refresh-token", CancellationToken.None);
+        var result = await _userTokenManager.RefreshUserTokenAsync("user123", CancellationToken.None);
 
-        // Assert
         Assert.Null(result);
-        _tokenCacheMock.Verify(x => x.SetAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<TimeSpan>(),
-            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task GetTokenAsync_ShouldThrowArgumentException_WhenUserIdIsNull()
     {
-        // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => _userTokenManager.GetTokenAsync(null, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ShouldReturnNull_WhenNoTokenInCache()
+    {
+        UserTokenInfo? nullToken = null;
+        _userTokenCacheMock
+            .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(nullToken);
+
+        var result = await _userTokenManager.GetTokenAsync("user123", CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task HasValidTokenAsync_ShouldReturnFalse_WhenNoTokenInCache()
+    {
+        UserTokenInfo? nullToken = null;
+        _userTokenCacheMock
+            .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(nullToken);
+
+        var result = await _userTokenManager.HasValidTokenAsync("user123", CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task CanRefreshTokenAsync_ShouldReturnFalse_WhenNoTokenInCache()
+    {
+        UserTokenInfo? nullToken = null;
+        _userTokenCacheMock
+            .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(nullToken);
+
+        var result = await _userTokenManager.CanRefreshTokenAsync("user123", CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task RemoveTokenAsync_ShouldCallCacheRemove()
+    {
+        _userTokenCacheMock
+            .Setup(x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await _userTokenManager.RemoveTokenAsync("user123", CancellationToken.None);
+
+        Assert.True(result);
+        _userTokenCacheMock.Verify(x => x.RemoveAsync(
+            It.Is<string>(s => s.Contains("user123")),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

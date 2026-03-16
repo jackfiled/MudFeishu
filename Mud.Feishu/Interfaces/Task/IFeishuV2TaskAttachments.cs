@@ -26,9 +26,8 @@ public interface IFeishuV2TaskAttachments : IFeishuAppContextSwitcher
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
     /// <returns></returns>
     [Post("/open-apis/task/v2/attachments/upload")]
-    [IgnoreImplement]
     Task<FeishuApiResult<TaskAttachmentsUploadResult>?> UploadAttachmentAsync(
-         [Body] UploadTaskAttachmentsRequest uploadFileRequest,
+         [FormContent] UploadTaskAttachmentsRequest uploadFileRequest,
          [Query("user_id_type")] string user_id_type = Consts.User_Id_Type,
          CancellationToken cancellationToken = default);
 

@@ -10,36 +10,20 @@ using Mud.Feishu.Abstractions;
 namespace Mud.Feishu.TokenManager;
 
 /// <summary>
-/// 基于内存的令牌缓存实现
+/// 基于内存的用户令牌缓存实现
 /// </summary>
 /// <remarks>
-/// 使用 ConcurrentDictionary 和 Lazy 实现线程安全的内存缓存。
-/// 支持令牌过期检测、自动清理等功能，适用于单实例部署场景。
+/// 使用 ConcurrentDictionary 实现线程安全的内存缓存，专门存储 UserTokenInfo 对象。
+/// 支持访问令牌和刷新令牌的过期检测。
 /// </remarks>
-public class MemoryTokenCache : MemoryCacheBase<MemoryTokenCache.TokenEntry>, ITokenCache
+public class MemoryUserTokenCache : MemoryCacheBase<UserTokenInfo>, IUserTokenCache
 {
     /// <summary>
-    /// 令牌缓存项
-    /// </summary>
-    public class TokenEntry
-    {
-        /// <summary>
-        /// 令牌值
-        /// </summary>
-        public string Value { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 过期时间戳（毫秒）
-        /// </summary>
-        public long ExpirationTime { get; set; }
-    }
-
-    /// <summary>
-    /// 初始化 MemoryTokenCache 实例
+    /// 初始化 MemoryUserTokenCache 实例
     /// </summary>
     /// <param name="logger">日志记录器</param>
     /// <param name="refreshThresholdSeconds">令牌刷新阈值(秒)，默认300秒</param>
-    public MemoryTokenCache(ILogger<MemoryTokenCache> logger, int refreshThresholdSeconds = 300)
+    public MemoryUserTokenCache(ILogger<MemoryUserTokenCache> logger, int refreshThresholdSeconds = 300)
         : base(logger, refreshThresholdSeconds)
     {
     }
@@ -48,13 +32,10 @@ public class MemoryTokenCache : MemoryCacheBase<MemoryTokenCache.TokenEntry>, IT
     /// 判断缓存项是否有效
     /// </summary>
     /// <param name="entry">缓存项</param>
-    /// <returns>如果有效返回 true</returns>
-    protected override bool IsValid(TokenEntry entry)
+    /// <returns>如果访问令牌有效返回 true</returns>
+    protected override bool IsValid(UserTokenInfo entry)
     {
-        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var refreshThresholdMs = TimeSpan.FromSeconds(_refreshThresholdSeconds).TotalMilliseconds;
-        var effectiveExpirationTime = entry.ExpirationTime - (long)refreshThresholdMs;
-        return effectiveExpirationTime >= currentTime;
+        return entry.IsAccessTokenValid(_refreshThresholdSeconds);
     }
 
     /// <summary>
@@ -63,7 +44,7 @@ public class MemoryTokenCache : MemoryCacheBase<MemoryTokenCache.TokenEntry>, IT
     /// <param name="key">缓存键</param>
     protected override void LogCacheHit(string key)
     {
-        _logger.LogDebug("Token cache hit for key: {Key}", key);
+        _logger.LogDebug("User token cache hit for key: {Key}", key);
     }
 
     /// <summary>
@@ -72,7 +53,7 @@ public class MemoryTokenCache : MemoryCacheBase<MemoryTokenCache.TokenEntry>, IT
     /// <param name="key">缓存键</param>
     protected override void LogCacheMiss(string key)
     {
-        _logger.LogDebug("Token cache miss for key: {Key}", key);
+        _logger.LogDebug("User token cache miss for key: {Key}", key);
     }
 
     /// <summary>
@@ -80,10 +61,9 @@ public class MemoryTokenCache : MemoryCacheBase<MemoryTokenCache.TokenEntry>, IT
     /// </summary>
     /// <param name="key">缓存键</param>
     /// <param name="entry">被添加的缓存项</param>
-    protected override void OnEntryAdded(string key, TokenEntry entry)
+    protected override void OnEntryAdded(string key, UserTokenInfo entry)
     {
-        var remainingSeconds = (entry.ExpirationTime - DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) / 1000;
-        _logger.LogDebug("Token cached with key: {Key}, expires in {Expiration} seconds", key, remainingSeconds);
+        _logger.LogDebug("User token cached with key: {Key}, userId: {UserId}", key, entry.UserId);
     }
 
     /// <summary>
@@ -91,47 +71,41 @@ public class MemoryTokenCache : MemoryCacheBase<MemoryTokenCache.TokenEntry>, IT
     /// </summary>
     /// <param name="key">缓存键</param>
     /// <param name="entry">被移除的缓存项</param>
-    protected override void OnEntryRemoved(string key, TokenEntry entry)
+    protected override void OnEntryRemoved(string key, UserTokenInfo entry)
     {
-        _logger.LogDebug("Token removed from cache for key: {Key}", key);
+        _logger.LogDebug("User token removed from cache for key: {Key}", key);
     }
 
     /// <summary>
-    /// 从缓存中获取令牌
+    /// 获取用户令牌信息
     /// </summary>
     /// <param name="key">缓存键</param>
     /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>令牌值，如果不存在或已过期则返回 null</returns>
-    public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
+    /// <returns>用户令牌信息，如果不存在或访问令牌已过期则返回 null</returns>
+    public Task<UserTokenInfo?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         var entry = GetCore(key);
-        return Task.FromResult(entry?.Value);
+        if (entry == null)
+        {
+            _logger.LogDebug("User token expired for key: {Key}", key);
+        }
+        return Task.FromResult(entry);
     }
 
     /// <summary>
-    /// 将令牌存入缓存
+    /// 存储用户令牌信息
     /// </summary>
     /// <param name="key">缓存键</param>
-    /// <param name="value">令牌值</param>
-    /// <param name="expiration">过期时间</param>
+    /// <param name="tokenInfo">用户令牌信息</param>
     /// <param name="cancellationToken">取消令牌</param>
-    public Task SetAsync(string key, string value, TimeSpan expiration, CancellationToken cancellationToken = default)
+    public Task SetAsync(string key, UserTokenInfo tokenInfo, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentNullException(nameof(value));
-
-        var entry = new TokenEntry
-        {
-            Value = value,
-            ExpirationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (long)expiration.TotalMilliseconds
-        };
-
-        SetCore(key, entry);
+        SetCore(key, tokenInfo);
         return Task.CompletedTask;
     }
 
     /// <summary>
-    /// 从缓存中移除令牌
+    /// 移除用户令牌缓存
     /// </summary>
     /// <param name="key">缓存键</param>
     /// <param name="cancellationToken">取消令牌</param>
@@ -142,7 +116,7 @@ public class MemoryTokenCache : MemoryCacheBase<MemoryTokenCache.TokenEntry>, IT
     }
 
     /// <summary>
-    /// 检查缓存中是否存在有效令牌
+    /// 检查是否存在有效的用户令牌
     /// </summary>
     /// <param name="key">缓存键</param>
     /// <param name="cancellationToken">取消令牌</param>
@@ -153,16 +127,26 @@ public class MemoryTokenCache : MemoryCacheBase<MemoryTokenCache.TokenEntry>, IT
     }
 
     /// <summary>
-    /// 清理过期的令牌缓存
+    /// 清理过期的用户令牌
     /// </summary>
     /// <param name="cancellationToken">取消令牌</param>
     public Task CleanExpiredAsync(CancellationToken cancellationToken = default)
     {
-        var count = CleanExpiredCore();
-        if (count > 0)
+        var expiredKeys = _cache
+            .Where(kvp => !kvp.Value.IsAccessTokenValid(_refreshThresholdSeconds) && !kvp.Value.IsRefreshTokenValid())
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var key in expiredKeys)
         {
-            _logger.LogInformation("Cleaned {Count} expired tokens from memory cache", count);
+            _cache.TryRemove(key, out _);
         }
+
+        if (expiredKeys.Count > 0)
+        {
+            _logger.LogInformation("Cleaned {Count} expired user tokens from memory cache", expiredKeys.Count);
+        }
+
         return Task.CompletedTask;
     }
 
@@ -174,5 +158,24 @@ public class MemoryTokenCache : MemoryCacheBase<MemoryTokenCache.TokenEntry>, IT
     public Task<(int Total, int Expired)> GetStatisticsAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(GetStatisticsCore());
+    }
+
+    /// <summary>
+    /// 获取用户令牌信息（即使访问令牌已过期，只要刷新令牌有效也返回）
+    /// </summary>
+    /// <param name="key">缓存键</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>用户令牌信息，如果不存在或刷新令牌也过期则返回 null</returns>
+    public Task<UserTokenInfo?> GetWithRefreshTokenAsync(string key, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return Task.FromResult<UserTokenInfo?>(null);
+
+        if (_cache.TryGetValue(key, out var tokenInfo) && tokenInfo.IsRefreshTokenValid())
+        {
+            return Task.FromResult<UserTokenInfo?>(tokenInfo);
+        }
+
+        return Task.FromResult<UserTokenInfo?>(null);
     }
 }

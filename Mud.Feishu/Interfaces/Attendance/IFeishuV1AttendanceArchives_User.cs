@@ -16,7 +16,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Attendance", InheritedFrom = nameof(FeishuV1AttendanceArchives))]
 [Header(Consts.Authorization)]
 [Token(TokenType.UserAccessToken)]
-public interface IFeishuUserV1AttendanceArchives : IFeishuV1AttendanceArchives
+public interface IFeishuUserV1AttendanceArchives : IFeishuV1AttendanceArchives, ICurrentUserId
 {
 
 

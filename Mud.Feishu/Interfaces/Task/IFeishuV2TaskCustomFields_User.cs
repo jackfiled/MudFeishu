@@ -15,6 +15,6 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2TaskCustomFields))]
 [Header(Consts.Authorization)]
 [Token(TokenType.UserAccessToken)]
-public interface IFeishuUserV2TaskCustomFields : IFeishuV2TaskCustomFields
+public interface IFeishuUserV2TaskCustomFields : IFeishuV2TaskCustomFields, ICurrentUserId
 {
 }

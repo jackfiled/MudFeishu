@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 using Mud.Feishu.TokenManager;
 using Mud.HttpUtils;
 
-namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
+namespace Mud.Feishu.Tests.Authentication.TokenManager;
 
 /// <summary>
 /// 令牌管理器测试基类
@@ -21,6 +21,7 @@ public abstract class TokenManagerTestsBase : IDisposable
 {
     protected readonly Mock<IFeishuAuthentication> _authenticationApiMock;
     protected readonly Mock<ITokenCache> _tokenCacheMock;
+    protected readonly Mock<IUserTokenCache> _userTokenCacheMock;
     protected readonly Mock<IEnhancedHttpClient> _httpClientMock;
     protected readonly FeishuAppConfig Config;
     protected readonly FeishuAppContext AppContext;
@@ -29,9 +30,9 @@ public abstract class TokenManagerTestsBase : IDisposable
     {
         _authenticationApiMock = new Mock<IFeishuAuthentication>();
         _tokenCacheMock = new Mock<ITokenCache>();
+        _userTokenCacheMock = new Mock<IUserTokenCache>();
         _httpClientMock = new Mock<IEnhancedHttpClient>();
 
-        // 创建测试用的 FeishuAppConfig
         Config = new FeishuAppConfig
         {
             AppKey = "test",
@@ -40,8 +41,8 @@ public abstract class TokenManagerTestsBase : IDisposable
             TokenRefreshThreshold = 300
         };
 
-        // 创建 Mock 的 TokenManager 实例
         var loggerMock = new Mock<ILogger<TokenManagerWithCache>>();
+        var userTokenManagerLoggerMock = new Mock<ILogger<Mud.Feishu.TokenManager.UserTokenManager>>();
         var optionsMock = new Mock<IOptions<FeishuAppConfig>>();
         optionsMock.Setup(x => x.Value).Returns(Config);
 
@@ -57,13 +58,12 @@ public abstract class TokenManagerTestsBase : IDisposable
             loggerMock.Object,
             _tokenCacheMock.Object);
 
-        var userTokenManager = new UserTokenManager(
+        var userTokenManager = new Mud.Feishu.TokenManager.UserTokenManager(
             _authenticationApiMock.Object,
             optionsMock.Object,
-            loggerMock.Object,
-            _tokenCacheMock.Object);
+            userTokenManagerLoggerMock.Object,
+            _userTokenCacheMock.Object);
 
-        // 创建 FeishuAppContext 实例
         AppContext = new FeishuAppContext(
             Config,
             tenantTokenManager,
@@ -73,12 +73,19 @@ public abstract class TokenManagerTestsBase : IDisposable
             _tokenCacheMock.Object,
             _httpClientMock.Object);
 
-        // 设置默认的 Mock 行为
         _tokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
         _tokenCacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _tokenCacheMock.Setup(x => x.GetStatisticsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((0, 0));
+
+        UserTokenInfo? nullToken = null;
+        _userTokenCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(nullToken);
+        _userTokenCacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<UserTokenInfo>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _userTokenCacheMock.Setup(x => x.GetStatisticsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((0, 0));
     }
 

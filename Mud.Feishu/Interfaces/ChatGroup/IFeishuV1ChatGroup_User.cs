@@ -15,7 +15,7 @@ namespace Mud.Feishu;
 [HttpClientApi(RegistryGroupName = "ChatGroup", TokenManage = nameof(IFeishuAppManager), InheritedFrom = nameof(FeishuV1ChatGroup))]
 [Header(Consts.Authorization)]
 [Token(TokenType.UserAccessToken)]
-public interface IFeishuUserV1ChatGroup : IFeishuV1ChatGroup
+public interface IFeishuUserV1ChatGroup : IFeishuV1ChatGroup, ICurrentUserId
 {
 
 }

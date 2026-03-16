@@ -10,7 +10,8 @@ namespace Mud.Feishu.DataModels.TasksAttachments;
 /// <summary>
 /// 上传附件请求体
 /// </summary>
-public class UploadTaskAttachmentsRequest
+[FormContent]
+public partial class UploadTaskAttachmentsRequest
 {
     /// <summary>
     /// <para>附件归属资源的类型</para>
@@ -33,5 +34,7 @@ public class UploadTaskAttachmentsRequest
     /// 要上传的文件，单请求支持最多5个文件。上传结果的顺序将和请求中文件的顺序保持一致。
     /// <para>必填：是</para>
     /// </summary>
+    [JsonPropertyName("file")]
+    [FilePath]
     public string File { get; set; } = string.Empty;
 }

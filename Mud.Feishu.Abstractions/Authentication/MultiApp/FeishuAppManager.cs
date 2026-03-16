@@ -73,7 +73,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// <typeparam name="T">飞书API类型</typeparam>
     /// <param name="appKey">应用键</param>
     /// <returns>指定应用的飞书API实例</returns>
-    public T GetFeishuApi<T>(string appKey) where T : IFeishuAppContextSwitcher
+    public T GetWebApi<T>(string appKey) where T : IAppContextSwitcher
     {
         var service = _serviceProvider.GetService<T>();
         if (service == null)
@@ -87,7 +87,7 @@ internal class FeishuAppManager : IFeishuAppManager
     /// </summary>
     /// <typeparam name="T">飞书API类型</typeparam>
     /// <returns>默认应用的飞书API实例</returns>
-    public T GetFeishuApi<T>() where T : IFeishuAppContextSwitcher
+    public T GetDefalutWebApi<T>() where T : IAppContextSwitcher
     {
         var service = _serviceProvider.GetService<T>();
         if (service == null)
@@ -203,27 +203,24 @@ internal class FeishuAppManager : IFeishuAppManager
     {
         config.Validate();
 
-        // 创建Logger
-        var logger = _serviceProvider.GetRequiredService<ILogger<TokenManager.MemoryTokenCache>>();
-
-        // 创建带应用键前缀的缓存
-        var appCache = new TokenManager.MemoryTokenCache(logger, config.TokenRefreshThreshold);
+        var memoryCacheLogger = _serviceProvider.GetRequiredService<ILogger<MemoryTokenCache>>();
+        var appCache = new MemoryTokenCache(memoryCacheLogger, config.TokenRefreshThreshold);
         var prefixedCache = new PrefixedTokenCache(appCache, config.AppKey);
+
+        var userTokenCacheLogger = _serviceProvider.GetRequiredService<ILogger<MemoryUserTokenCache>>();
+        var appUserTokenCache = new MemoryUserTokenCache(userTokenCacheLogger, config.TokenRefreshThreshold);
+        var prefixedUserTokenCache = new PrefixedUserTokenCache(appUserTokenCache, config.AppKey);
+
         var jsonSerializerOptions = _serviceProvider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>();
 
-        // 为每个应用创建独立的HttpClient
         var httpClient = CreateHttpClient(config, jsonSerializerOptions);
 
-        // 创建认证API
         var authenticationApi = new FeishuV3Authentication(httpClient, jsonSerializerOptions);
 
-        // 创建Logger (用于TokenManager)
         var tokenManagerLogger = _serviceProvider.GetRequiredService<ILogger<TokenManagerWithCache>>();
 
-        // 创建配置选项并验证
         var options = Options.Create(config);
 
-        // 创建TokenManager
         var tenantTokenManager = new TenantTokenManager(
             authenticationApi,
             options,
@@ -236,11 +233,12 @@ internal class FeishuAppManager : IFeishuAppManager
             tokenManagerLogger,
             prefixedCache);
 
+        var userTokenManagerLogger = _serviceProvider.GetRequiredService<ILogger<TokenManager.UserTokenManager>>();
         var userTokenManager = new UserTokenManager(
             authenticationApi,
             options,
-            tokenManagerLogger,
-            prefixedCache);
+            userTokenManagerLogger,
+            prefixedUserTokenCache);
 
 
         var context = new FeishuAppContext(

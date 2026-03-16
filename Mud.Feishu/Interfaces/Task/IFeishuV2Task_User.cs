@@ -18,7 +18,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Task", InheritedFrom = nameof(FeishuV2Task))]
 [Header(Consts.Authorization)]
 [Token(TokenType.UserAccessToken)]
-public interface IFeishuUserV2Task : IFeishuV2Task
+public interface IFeishuUserV2Task : IFeishuV2Task, ICurrentUserId
 {
     /// <summary>
     /// <para>基于调用身份，分页列出特定类型的所有任务。</para>

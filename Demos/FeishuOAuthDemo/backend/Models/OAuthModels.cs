@@ -69,3 +69,35 @@ public class RefreshTokenResponse
     public string? AccessToken { get; set; }
     public string? RefreshToken { get; set; }
 }
+
+/// <summary>
+/// 令牌状态响应
+/// </summary>
+public class TokenStatusResponse
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public bool HasValidToken { get; set; }
+    public bool CanRefresh { get; set; }
+    public TokenExpirationInfo? TokenInfo { get; set; }
+}
+
+/// <summary>
+/// 令牌过期信息
+/// </summary>
+public class TokenExpirationInfo
+{
+    public DateTime? AccessTokenExpiresAt { get; set; }
+    public DateTime? RefreshTokenExpiresAt { get; set; }
+    public bool AccessTokenExpired { get; set; }
+    public bool RefreshTokenExpired { get; set; }
+}
+
+/// <summary>
+/// 登出响应
+/// </summary>
+public class LogoutResponse
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+}

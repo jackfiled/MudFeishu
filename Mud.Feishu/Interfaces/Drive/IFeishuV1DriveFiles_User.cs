@@ -17,7 +17,7 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Drive", InheritedFrom = nameof(FeishuV1DriveFiles))]
 [Header(Consts.Authorization)]
 [Token(TokenType.UserAccessToken)]
-public interface IFeishuUserV1DriveFiles : IFeishuV1DriveFiles
+public interface IFeishuUserV1DriveFiles : IFeishuV1DriveFiles, ICurrentUserId
 {
     /// <summary>
     /// 用于根据搜索关键词（search_key）对当前用户可见的云文档进行搜索。。

@@ -16,6 +16,6 @@ namespace Mud.Feishu;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Organization", InheritedFrom = nameof(FeishuV3Departments))]
 [Header(Consts.Authorization)]
 [Token(TokenType.UserAccessToken)]
-public interface IFeishuUserV3Departments : IFeishuV3Departments
+public interface IFeishuUserV3Departments : IFeishuV3Departments, ICurrentUserId
 {
 }

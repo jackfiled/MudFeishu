@@ -8,7 +8,6 @@ const api = axios.create({
   }
 })
 
-// 请求拦截器：添加token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token')
@@ -22,7 +21,6 @@ api.interceptors.request.use(
   }
 )
 
-// 响应拦截器：处理错误
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -56,20 +54,44 @@ export interface LoginResponse {
   user?: UserInfo
 }
 
+export interface TokenExpirationInfo {
+  accessTokenExpiresAt?: string
+  refreshTokenExpiresAt?: string
+  accessTokenExpired: boolean
+  refreshTokenExpired: boolean
+}
+
+export interface TokenStatusResponse {
+  success: boolean
+  message?: string
+  hasValidToken: boolean
+  canRefresh: boolean
+  tokenInfo?: TokenExpirationInfo
+}
+
+export interface RefreshTokenResponse {
+  success: boolean
+  message?: string
+  accessToken?: string
+  refreshToken?: string
+}
+
+export interface LogoutResponse {
+  success: boolean
+  message?: string
+}
+
 export const authApi = {
-  // 获取飞书授权URL
   getAuthUrl: async (): Promise<AuthUrlResponse> => {
     const response = await api.get<AuthUrlResponse>('/oauth/feishu/url')
     return response.data
   },
 
-  // 处理飞书OAuth回调
   handleCallback: async (code: string, state: string): Promise<LoginResponse> => {
     const response = await api.post<LoginResponse>('/oauth/feishu/callback', { code, state })
     return response.data
   },
 
-  // 验证token
   validateToken: async (token: string): Promise<{ success: boolean; message?: string; user?: UserInfo }> => {
     const response = await api.post('/oauth/validate-token', token, {
       headers: { 'Content-Type': 'application/json' }
@@ -77,15 +99,23 @@ export const authApi = {
     return response.data
   },
 
-  // 获取当前用户信息
   getCurrentUser: async () => {
     const response = await api.get('/oauth/user/me')
     return response.data
   },
 
-  // 登出
-  logout: async () => {
-    const response = await api.post('/oauth/logout')
+  getTokenStatus: async (): Promise<TokenStatusResponse> => {
+    const response = await api.get<TokenStatusResponse>('/oauth/token-status')
+    return response.data
+  },
+
+  refreshToken: async (): Promise<RefreshTokenResponse> => {
+    const response = await api.post<RefreshTokenResponse>('/oauth/refresh')
+    return response.data
+  },
+
+  logout: async (): Promise<LogoutResponse> => {
+    const response = await api.post<LogoutResponse>('/oauth/logout')
     return response.data
   }
 }

@@ -8,7 +8,7 @@
 using Mud.Feishu.DataModels;
 using Mud.Feishu.Exceptions;
 
-namespace Mud.Feishu.Abstractions.Tests.Authentication.TokenManager;
+namespace Mud.Feishu.Tests.Authentication.TokenManager;
 
 /// <summary>
 /// 租户令牌管理器测试（通过 FeishuAppContext 接口测试）

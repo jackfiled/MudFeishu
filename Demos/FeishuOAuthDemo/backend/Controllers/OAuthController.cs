@@ -16,6 +16,16 @@ namespace FeishuOAuthDemo.Controllers;
 /// <summary>
 /// 飞书OAuth认证控制器
 /// </summary>
+/// <remarks>
+/// 演示完整的飞书OAuth认证流程，包括：
+/// <list type="bullet">
+///   <item><description>获取授权URL</description></item>
+///   <item><description>处理OAuth回调</description></item>
+///   <item><description>令牌刷新</description></item>
+///   <item><description>令牌状态检查</description></item>
+///   <item><description>登出（清除令牌缓存）</description></item>
+/// </list>
+/// </remarks>
 [ApiController]
 [Route("api/[controller]")]
 public class OAuthController : ControllerBase
@@ -67,10 +77,8 @@ public class OAuthController : ControllerBase
                 });
             }
 
-            // 生成state参数（防CSRF攻击）
             var state = _stateStorageService.GenerateState();
 
-            // 构建飞书授权URL
             var authUrl = $"https://accounts.feishu.cn/open-apis/authen/v1/authorize?" +
                           $"client_id={appId}&" +
                           $"redirect_uri={Uri.EscapeDataString(redirectUri)}&" +
@@ -109,9 +117,8 @@ public class OAuthController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("收到飞书OAuth回调，Code: {Code}, State: {State}", request.Code[..8] + "...", request.State);
+            _logger.LogInformation("收到飞书OAuth回调，Code: {Code}, State: {State}", request.Code[..Math.Min(8, request.Code.Length)] + "...", request.State);
 
-            // 1. 验证请求参数
             if (string.IsNullOrEmpty(request.Code) || string.IsNullOrEmpty(request.State))
             {
                 return BadRequest(new LoginResponse
@@ -121,7 +128,6 @@ public class OAuthController : ControllerBase
                 });
             }
 
-            // 2. 验证state参数（防CSRF攻击）
             if (!_stateStorageService.ValidateState(request.State))
             {
                 _logger.LogWarning("State验证失败: {State}", request.State);
@@ -132,12 +138,10 @@ public class OAuthController : ControllerBase
                 });
             }
 
-            // 移除已使用的state
             _stateStorageService.RemoveState(request.State);
 
             var redirectUri = _configuration["OAuth:RedirectUri"];
 
-            // 3. 使用授权码获取用户访问令牌
             _logger.LogInformation("开始使用授权码获取用户访问令牌");
             var tokenResult = await _userTokenManager.GetUserTokenWithCodeAsync(request.Code, redirectUri ?? string.Empty);
 
@@ -153,7 +157,6 @@ public class OAuthController : ControllerBase
 
             _logger.LogInformation("成功获取用户访问令牌");
 
-            // 4. 获取用户信息
             _logger.LogInformation("开始获取用户信息");
             var userInfoResult = await _feishuUserApi.GetUserInfoAsync();
 
@@ -170,7 +173,6 @@ public class OAuthController : ControllerBase
             var feishuUser = userInfoResult.Data;
             _logger.LogInformation("成功获取用户信息: {Name} ({OpenId})", feishuUser.Name ?? "未知", feishuUser.OpenId ?? "未知");
 
-            // 5. 在本地系统中获取或创建用户
             var userId = await _userService.GetOrCreateUserAsync(
                 feishuUser.OpenId ?? string.Empty,
                 feishuUser.UnionId ?? string.Empty,
@@ -181,7 +183,6 @@ public class OAuthController : ControllerBase
 
             _logger.LogInformation("用户处理完成，本地用户ID: {UserId}", userId);
 
-            // 6. 生成JWT令牌
             var jwtToken = _jwtTokenService.GenerateToken(
                 feishuUser.OpenId ?? string.Empty,
                 feishuUser.UnionId ?? string.Empty,
@@ -190,7 +191,6 @@ public class OAuthController : ControllerBase
 
             _logger.LogInformation("JWT令牌生成成功");
 
-            // 7. 返回登录结果
             return Ok(new LoginResponse
             {
                 Success = true,
@@ -268,7 +268,6 @@ public class OAuthController : ControllerBase
     {
         try
         {
-            // 从Authorization头获取令牌
             var authHeader = Request.Headers.Authorization.FirstOrDefault();
             if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
             {
@@ -283,7 +282,6 @@ public class OAuthController : ControllerBase
                 return Unauthorized(new { success = false, message = "令牌无效" });
             }
 
-            // 获取完整用户信息
             var user = await _userService.GetUserByIdAsync(userInfo.Value.openId);
             if (user == null)
             {
@@ -314,14 +312,216 @@ public class OAuthController : ControllerBase
     }
 
     /// <summary>
+    /// 刷新用户令牌
+    /// </summary>
+    /// <remarks>
+    /// 使用缓存的刷新令牌自动刷新用户访问令牌。
+    /// 如果刷新令牌也过期，则需要重新授权。
+    /// 
+    /// 使用方式：
+    /// 1. 从JWT令牌中获取用户的openId
+    /// 2. 调用此接口刷新飞书用户访问令牌
+    /// </remarks>
+    /// <returns>刷新结果</returns>
+    [HttpPost("refresh")]
+    public async Task<IActionResult> RefreshToken()
+    {
+        try
+        {
+            var authHeader = Request.Headers.Authorization.FirstOrDefault();
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized(new RefreshTokenResponse
+                {
+                    Success = false,
+                    Message = "缺少授权令牌"
+                });
+            }
+
+            var token = authHeader["Bearer ".Length..].Trim();
+            var userInfo = _jwtTokenService.GetUserFromToken(token);
+
+            if (userInfo == null)
+            {
+                return Unauthorized(new RefreshTokenResponse
+                {
+                    Success = false,
+                    Message = "令牌无效"
+                });
+            }
+
+            var openId = userInfo.Value.openId;
+
+            _logger.LogInformation("开始刷新用户令牌，OpenId: {OpenId}", openId);
+
+            var canRefresh = await _userTokenManager.CanRefreshTokenAsync(openId);
+            if (!canRefresh)
+            {
+                _logger.LogWarning("用户令牌无法刷新，需要重新授权，OpenId: {OpenId}", openId);
+                return BadRequest(new RefreshTokenResponse
+                {
+                    Success = false,
+                    Message = "刷新令牌已过期，请重新授权"
+                });
+            }
+
+            var newToken = await _userTokenManager.RefreshUserTokenAsync(openId);
+
+            if (newToken == null || newToken.Code != 0)
+            {
+                _logger.LogError("刷新用户令牌失败: {Message}", newToken?.Msg ?? "未知错误");
+                return BadRequest(new RefreshTokenResponse
+                {
+                    Success = false,
+                    Message = $"刷新令牌失败: {newToken?.Msg ?? "未知错误"}"
+                });
+            }
+
+            _logger.LogInformation("用户令牌刷新成功，OpenId: {OpenId}", openId);
+
+            return Ok(new RefreshTokenResponse
+            {
+                Success = true,
+                Message = "令牌刷新成功",
+                AccessToken = newToken.AccessToken
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "刷新用户令牌失败");
+            return StatusCode(500, new RefreshTokenResponse
+            {
+                Success = false,
+                Message = $"刷新令牌失败: {ex.Message}"
+            });
+        }
+    }
+
+    /// <summary>
+    /// 检查用户令牌状态
+    /// </summary>
+    /// <remarks>
+    /// 返回用户飞书访问令牌的当前状态，包括：
+    /// - 是否有有效的访问令牌
+    /// - 是否可以刷新令牌
+    /// - 令牌过期时间信息
+    /// </remarks>
+    /// <returns>令牌状态信息</returns>
+    [HttpGet("token-status")]
+    public async Task<IActionResult> GetTokenStatus()
+    {
+        try
+        {
+            var authHeader = Request.Headers.Authorization.FirstOrDefault();
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized(new TokenStatusResponse
+                {
+                    Success = false,
+                    Message = "缺少授权令牌"
+                });
+            }
+
+            var token = authHeader["Bearer ".Length..].Trim();
+            var userInfo = _jwtTokenService.GetUserFromToken(token);
+
+            if (userInfo == null)
+            {
+                return Unauthorized(new TokenStatusResponse
+                {
+                    Success = false,
+                    Message = "令牌无效"
+                });
+            }
+
+            var openId = userInfo.Value.openId;
+
+            var hasValidToken = await _userTokenManager.HasValidTokenAsync(openId);
+            var canRefresh = await _userTokenManager.CanRefreshTokenAsync(openId);
+
+            var tokenInfo = await _userTokenManager.GetTokenInfoAsync(openId);
+
+            TokenExpirationInfo? expirationInfo = null;
+            if (tokenInfo != null)
+            {
+                var now = DateTime.UtcNow;
+                expirationInfo = new TokenExpirationInfo
+                {
+                    AccessTokenExpiresAt = tokenInfo.AccessTokenExpireTime > 0
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(tokenInfo.AccessTokenExpireTime).UtcDateTime
+                        : null,
+                    RefreshTokenExpiresAt = tokenInfo.RefreshTokenExpireTime > 0
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(tokenInfo.RefreshTokenExpireTime).UtcDateTime
+                        : null,
+                    AccessTokenExpired = !tokenInfo.IsAccessTokenValid(0),
+                    RefreshTokenExpired = !tokenInfo.IsRefreshTokenValid()
+                };
+            }
+
+            return Ok(new TokenStatusResponse
+            {
+                Success = true,
+                Message = hasValidToken ? "令牌有效" : (canRefresh ? "令牌已过期，可刷新" : "令牌已失效，需重新授权"),
+                HasValidToken = hasValidToken,
+                CanRefresh = canRefresh,
+                TokenInfo = expirationInfo
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "检查令牌状态失败");
+            return StatusCode(500, new TokenStatusResponse
+            {
+                Success = false,
+                Message = $"检查令牌状态失败: {ex.Message}"
+            });
+        }
+    }
+
+    /// <summary>
     /// 登出
     /// </summary>
+    /// <remarks>
+    /// 清除用户令牌缓存。
+    /// 注意：JWT令牌是无状态的，此接口主要清除飞书用户令牌的缓存。
+    /// 前端应同时删除本地存储的JWT令牌。
+    /// </remarks>
     /// <returns>登出结果</returns>
     [HttpPost("logout")]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
-        // JWT是无状态的，登出主要是前端删除令牌
-        // 后端可以维护一个黑名单（可选）
-        return Ok(new { success = true, message = "登出成功" });
+        try
+        {
+            var authHeader = Request.Headers.Authorization.FirstOrDefault();
+            string? openId = null;
+
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+            {
+                var token = authHeader["Bearer ".Length..].Trim();
+                var userInfo = _jwtTokenService.GetUserFromToken(token);
+                openId = userInfo?.openId;
+            }
+
+            if (!string.IsNullOrEmpty(openId))
+            {
+                var removed = await _userTokenManager.RemoveTokenAsync(openId);
+                _logger.LogInformation("用户登出，OpenId: {OpenId}, 令牌缓存清除: {Removed}", openId, removed);
+            }
+
+            return Ok(new LogoutResponse
+            {
+                Success = true,
+                Message = "登出成功"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "登出失败");
+            return StatusCode(500, new LogoutResponse
+            {
+                Success = false,
+                Message = $"登出失败: {ex.Message}"
+            });
+        }
     }
 }
