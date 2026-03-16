@@ -37,9 +37,9 @@ internal class TenantTokenManager(
         return new CredentialToken
         {
             AccessToken = res?.TenantAccessToken ?? string.Empty,
-            Expire = res.Expire,
-            Code = res.Code,
-            Msg = res.Msg
+            Expire = res?.Expire ?? 0,
+            Code = res?.Code ?? -1,
+            Msg = res?.Msg ?? string.Empty
         };
     }
 }

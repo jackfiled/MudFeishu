@@ -33,7 +33,7 @@ internal class UserTokenManager(
    ILogger<TokenManagerWithCache> logger,
    ITokenCache tokenCache) : TokenManagerWithCache(authenticationApi, options, logger, tokenCache, TokenType.UserAccessToken), IUserTokenManager
 {
-    public override async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
+    public override async Task<string> GetTokenAsync(CancellationToken cancellationToken = default)
     {
         // 用户令牌必须通过指定 userId 获取，不支持无参数调用
         throw new InvalidOperationException("用户令牌需要指定 userId，请使用 GetTokenAsync(userId) 方法");
