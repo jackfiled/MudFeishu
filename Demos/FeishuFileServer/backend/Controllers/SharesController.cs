@@ -5,6 +5,10 @@ using FeishuFileServer.Services;
 
 namespace FeishuFileServer.Controllers;
 
+/// <summary>
+/// 分享控制器
+/// 提供文件和文件夹的分享功能
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class SharesController : FeishuControllerBase
@@ -12,12 +16,23 @@ public class SharesController : FeishuControllerBase
     private readonly IShareService _shareService;
     private readonly ILogger<SharesController> _logger;
 
+    /// <summary>
+    /// 初始化分享控制器
+    /// </summary>
+    /// <param name="shareService">分享服务</param>
+    /// <param name="logger">日志记录器</param>
     public SharesController(IShareService shareService, ILogger<SharesController> logger)
     {
         _shareService = shareService;
         _logger = logger;
     }
 
+    /// <summary>
+    /// 创建分享链接
+    /// </summary>
+    /// <param name="request">创建分享请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>分享信息，包含分享码和链接</returns>
     [HttpPost]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<ShareResponse>), StatusCodes.Status201Created)]
@@ -53,6 +68,13 @@ public class SharesController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 访问分享（获取分享内容）
+    /// </summary>
+    /// <param name="shareCode">分享码</param>
+    /// <param name="password">访问密码（可选）</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>分享内容信息</returns>
     [HttpGet("{shareCode}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<ShareContentResponse>), StatusCodes.Status200OK)]
@@ -87,6 +109,13 @@ public class SharesController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 获取当前用户创建的分享列表
+    /// </summary>
+    /// <param name="page">页码，默认1</param>
+    /// <param name="pageSize">每页数量，默认20</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>分享列表</returns>
     [HttpGet]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<ShareListResponse>), StatusCodes.Status200OK)]
@@ -105,6 +134,12 @@ public class SharesController : FeishuControllerBase
         return Success(result);
     }
 
+    /// <summary>
+    /// 获取分享基本信息（无需密码）
+    /// </summary>
+    /// <param name="shareCode">分享码</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>分享基本信息</returns>
     [HttpGet("{shareCode}/info")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<ShareResponse>), StatusCodes.Status200OK)]
@@ -134,6 +169,13 @@ public class SharesController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 下载分享的文件
+    /// </summary>
+    /// <param name="shareCode">分享码</param>
+    /// <param name="password">访问密码（可选）</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件内容</returns>
     [HttpGet("{shareCode}/download")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
@@ -172,6 +214,13 @@ public class SharesController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 更新分享设置
+    /// </summary>
+    /// <param name="shareId">分享ID</param>
+    /// <param name="request">更新请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>更新后的分享信息</returns>
     [HttpPut("{shareId}")]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<ShareResponse>), StatusCodes.Status200OK)]
@@ -204,6 +253,12 @@ public class SharesController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 删除分享
+    /// </summary>
+    /// <param name="shareId">分享ID</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>无内容</returns>
     [HttpDelete("{shareId}")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

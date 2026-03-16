@@ -3,12 +3,22 @@ using System.Text.Json;
 
 namespace FeishuFileServer.Middleware;
 
+/// <summary>
+/// 全局异常处理中间件
+/// 捕获应用程序中所有未处理的异常，并返回统一的错误响应格式
+/// </summary>
 public class GlobalExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
     private readonly IHostEnvironment _environment;
 
+    /// <summary>
+    /// 初始化全局异常处理中间件
+    /// </summary>
+    /// <param name="next">下一个中间件委托</param>
+    /// <param name="logger">日志记录器</param>
+    /// <param name="environment">主机环境信息</param>
     public GlobalExceptionHandlingMiddleware(
         RequestDelegate next,
         ILogger<GlobalExceptionHandlingMiddleware> logger,
@@ -19,6 +29,11 @@ public class GlobalExceptionHandlingMiddleware
         _environment = environment;
     }
 
+    /// <summary>
+    /// 执行中间件逻辑
+    /// 捕获请求处理过程中的所有异常，并统一处理
+    /// </summary>
+    /// <param name="context">HTTP上下文</param>
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -44,10 +59,19 @@ public class GlobalExceptionHandlingMiddleware
         }
     }
 
+    /// <summary>
+    /// 处理异常并返回统一的错误响应
+    /// 根据异常类型设置相应的HTTP状态码和错误消息
+    /// </summary>
+    /// <param name="context">HTTP上下文</param>
+    /// <param name="exception">捕获的异常</param>
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
 
+        /// <summary>
+        /// 根据异常类型映射HTTP状态码和错误消息
+        /// </summary>
         var (statusCode, message) = exception switch
         {
             ArgumentNullException => (HttpStatusCode.BadRequest, exception.Message),
@@ -64,6 +88,9 @@ public class GlobalExceptionHandlingMiddleware
 
         object response;
 
+        /// <summary>
+        /// 开发环境下返回详细的错误信息，生产环境只返回基本错误信息
+        /// </summary>
         if (_environment.IsDevelopment())
         {
             response = new
@@ -101,8 +128,17 @@ public class GlobalExceptionHandlingMiddleware
     }
 }
 
+/// <summary>
+/// 全局异常处理中间件扩展方法
+/// 提供简洁的中间件注册方式
+/// </summary>
 public static class GlobalExceptionHandlingMiddlewareExtensions
 {
+    /// <summary>
+    /// 注册全局异常处理中间件
+    /// </summary>
+    /// <param name="builder">应用程序构建器</param>
+    /// <returns>应用程序构建器</returns>
     public static IApplicationBuilder UseGlobalExceptionHandler(this IApplicationBuilder builder)
     {
         return builder.UseMiddleware<GlobalExceptionHandlingMiddleware>();

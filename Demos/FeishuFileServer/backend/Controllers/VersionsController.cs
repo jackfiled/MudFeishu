@@ -5,6 +5,10 @@ using FeishuFileServer.Services;
 
 namespace FeishuFileServer.Controllers;
 
+/// <summary>
+/// 文件版本管理控制器
+/// 提供文件版本的查询、创建、下载、恢复、删除等功能
+/// </summary>
 [ApiController]
 [Route("api/files/{fileToken}/versions")]
 [Authorize]
@@ -13,6 +17,11 @@ public class VersionsController : FeishuControllerBase
     private readonly IVersionService _versionService;
     private readonly ILogger<VersionsController> _logger;
 
+    /// <summary>
+    /// 初始化版本控制器
+    /// </summary>
+    /// <param name="versionService">版本服务</param>
+    /// <param name="logger">日志记录器</param>
     public VersionsController(
         IVersionService versionService,
         ILogger<VersionsController> logger)
@@ -21,6 +30,12 @@ public class VersionsController : FeishuControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// 获取文件的所有版本历史
+    /// </summary>
+    /// <param name="fileToken">文件Token</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>版本列表响应</returns>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<VersionListResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<VersionListResponse>>> GetVersions(
@@ -36,6 +51,13 @@ public class VersionsController : FeishuControllerBase
         });
     }
 
+    /// <summary>
+    /// 创建新版本（上传文件作为新版本）
+    /// </summary>
+    /// <param name="fileToken">文件Token</param>
+    /// <param name="file">新版本文件</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>版本创建响应</returns>
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<VersionCreateResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
@@ -53,6 +75,13 @@ public class VersionsController : FeishuControllerBase
         return CreatedAtAction(nameof(DownloadVersion), new { fileToken, versionToken = result.VersionToken }, ApiResponse<VersionCreateResponse>.Ok(result));
     }
 
+    /// <summary>
+    /// 下载指定版本的文件
+    /// </summary>
+    /// <param name="fileToken">文件Token</param>
+    /// <param name="versionToken">版本Token</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>文件内容</returns>
     [HttpGet("{versionToken}/download")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -77,6 +106,13 @@ public class VersionsController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 恢复到指定版本
+    /// </summary>
+    /// <param name="fileToken">文件Token</param>
+    /// <param name="versionToken">要恢复的版本Token</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>无内容</returns>
     [HttpPut("{versionToken}/restore")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -89,6 +125,13 @@ public class VersionsController : FeishuControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// 删除指定版本
+    /// </summary>
+    /// <param name="fileToken">文件Token</param>
+    /// <param name="versionToken">要删除的版本Token</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>无内容</returns>
     [HttpDelete("{versionToken}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]

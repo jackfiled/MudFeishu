@@ -5,6 +5,10 @@ using FeishuFileServer.Services;
 
 namespace FeishuFileServer.Controllers;
 
+/// <summary>
+/// 认证控制器
+/// 提供用户登录、注册、令牌刷新等功能
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -13,12 +17,22 @@ public class AuthController : FeishuControllerBase
     private readonly IAuthService _authService;
     private readonly ILogger<AuthController> _logger;
 
+    /// <summary>
+    /// 初始化认证控制器
+    /// </summary>
+    /// <param name="authService">认证服务</param>
+    /// <param name="logger">日志记录器</param>
     public AuthController(IAuthService authService, ILogger<AuthController> logger)
     {
         _authService = authService;
         _logger = logger;
     }
 
+    /// <summary>
+    /// 用户登录
+    /// </summary>
+    /// <param name="request">登录请求</param>
+    /// <returns>登录响应，包含访问令牌和刷新令牌</returns>
     [HttpPost("login")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
@@ -42,6 +56,11 @@ public class AuthController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 用户注册
+    /// </summary>
+    /// <param name="request">注册请求</param>
+    /// <returns>注册响应，包含访问令牌和刷新令牌</returns>
     [HttpPost("register")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
@@ -69,6 +88,10 @@ public class AuthController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 获取当前用户信息
+    /// </summary>
+    /// <returns>用户信息</returns>
     [HttpGet("profile")]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<UserInfo>), StatusCodes.Status200OK)]
@@ -91,6 +114,11 @@ public class AuthController : FeishuControllerBase
         return Success(userInfo);
     }
 
+    /// <summary>
+    /// 更新用户信息
+    /// </summary>
+    /// <param name="request">更新请求</param>
+    /// <returns>更新后的用户信息</returns>
     [HttpPut("profile")]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<UserInfo>), StatusCodes.Status200OK)]
@@ -125,6 +153,11 @@ public class AuthController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 修改密码
+    /// </summary>
+    /// <param name="request">修改密码请求</param>
+    /// <returns>操作结果</returns>
     [HttpPost("change-password")]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
@@ -147,6 +180,11 @@ public class AuthController : FeishuControllerBase
         return Success("密码修改成功");
     }
 
+    /// <summary>
+    /// 刷新访问令牌
+    /// </summary>
+    /// <param name="request">刷新令牌请求</param>
+    /// <returns>新的访问令牌和刷新令牌</returns>
     [HttpPost("refresh-token")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
@@ -170,6 +208,11 @@ public class AuthController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 撤销刷新令牌
+    /// </summary>
+    /// <param name="request">撤销令牌请求</param>
+    /// <returns>操作结果</returns>
     [HttpPost("revoke-token")]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]

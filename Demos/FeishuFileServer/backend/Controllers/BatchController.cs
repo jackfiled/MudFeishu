@@ -12,6 +12,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FeishuFileServer.Controllers;
 
+/// <summary>
+/// 批量操作控制器
+/// 提供文件的批量删除、移动、复制、下载等功能
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -21,6 +25,12 @@ public class BatchController : FeishuControllerBase
     private readonly IFileService _fileService;
     private readonly ILogger<BatchController> _logger;
 
+    /// <summary>
+    /// 初始化批量操作控制器
+    /// </summary>
+    /// <param name="batchService">批量操作服务</param>
+    /// <param name="fileService">文件服务</param>
+    /// <param name="logger">日志记录器</param>
     public BatchController(IBatchService batchService, IFileService fileService, ILogger<BatchController> logger)
     {
         _batchService = batchService;
@@ -28,6 +38,12 @@ public class BatchController : FeishuControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// 批量删除文件和文件夹
+    /// </summary>
+    /// <param name="request">批量删除请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>批量操作结果</returns>
     [HttpPost("delete")]
     [ProducesResponseType(typeof(ApiResponse<BatchOperationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
@@ -53,6 +69,12 @@ public class BatchController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 批量移动文件和文件夹
+    /// </summary>
+    /// <param name="request">批量移动请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>批量操作结果</returns>
     [HttpPost("move")]
     [ProducesResponseType(typeof(ApiResponse<BatchOperationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
@@ -78,6 +100,12 @@ public class BatchController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 批量复制文件和文件夹
+    /// </summary>
+    /// <param name="request">批量复制请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>批量操作结果</returns>
     [HttpPost("copy")]
     [ProducesResponseType(typeof(ApiResponse<BatchOperationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
@@ -103,6 +131,12 @@ public class BatchController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 批量恢复文件和文件夹（从回收站）
+    /// </summary>
+    /// <param name="request">批量恢复请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>批量操作结果</returns>
     [HttpPost("restore")]
     [ProducesResponseType(typeof(ApiResponse<BatchOperationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
@@ -128,6 +162,12 @@ public class BatchController : FeishuControllerBase
         }
     }
 
+    /// <summary>
+    /// 批量下载文件（打包为ZIP）
+    /// </summary>
+    /// <param name="request">批量下载请求</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>ZIP文件内容</returns>
     [HttpPost("download")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]

@@ -10,7 +10,6 @@ using Mud.Feishu.Abstractions;
 using Mud.Feishu.Abstractions.Metrics;
 using Mud.Feishu.Exceptions;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 
 namespace Mud.Feishu.TokenManager;
 
@@ -114,7 +113,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// 此方法会自动处理令牌缓存和刷新逻辑，优先使用缓存中的有效令牌。
     /// 如果缓存中没有有效令牌，则会获取新令牌并更新缓存。
     /// </remarks>
-    public virtual async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
+    public virtual async Task<string> GetTokenAsync(CancellationToken cancellationToken = default)
     {
         return await GetTokenInternalAsync(cancellationToken);
     }
@@ -129,7 +128,7 @@ public abstract class TokenManagerWithCache : ITokenManager, IDisposable
     /// 首先检查缓存中是否有有效令牌，如果没有则使用Lazy机制确保只有一个请求在获取新令牌。
     /// 缓存中存储的是原始token（不带Bearer前缀），返回时统一添加前缀。
     /// </remarks>
-    private async Task<string?> GetTokenInternalAsync(CancellationToken cancellationToken)
+    private async Task<string> GetTokenInternalAsync(CancellationToken cancellationToken)
     {
         var cacheKey = GenerateCacheKey();
 
